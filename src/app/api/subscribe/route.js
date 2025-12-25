@@ -34,6 +34,7 @@ export async function POST(request) {
                     email,
                     reactivate_existing: false,
                     send_welcome_email: true,
+                    automation_ids: ['aut_b57b7770-0363-42ac-aa4c-93f66e3bd173'],
                     utm_source: utmSource || 'first90',
                     utm_medium: utmMedium || 'website',
                     utm_campaign: utmCampaign || 'waitlist',
