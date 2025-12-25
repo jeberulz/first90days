@@ -1,8 +1,10 @@
 "use client";
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Briefcase, ArrowRight, Loader2, CheckCircle2 } from "lucide-react";
 
 export function Hero() {
+    const searchParams = useSearchParams();
     const [firstName, setFirstName] = useState("");
     const [email, setEmail] = useState("");
     const [status, setStatus] = useState("idle"); // idle, loading, success, error
@@ -17,7 +19,13 @@ export function Hero() {
             const response = await fetch("/api/subscribe", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ firstName, email }),
+                body: JSON.stringify({
+                    firstName,
+                    email,
+                    utmSource: searchParams.get("utm_source"),
+                    utmMedium: searchParams.get("utm_medium"),
+                    utmCampaign: searchParams.get("utm_campaign")
+                }),
             });
 
             const data = await response.json();

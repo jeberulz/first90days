@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request) {
     try {
-        const { email, firstName } = await request.json();
+        const { email, firstName, utmSource, utmMedium, utmCampaign } = await request.json();
 
         if (!email || !firstName) {
             return NextResponse.json(
@@ -34,8 +34,9 @@ export async function POST(request) {
                     email,
                     reactivate_existing: false,
                     send_welcome_email: true,
-                    utm_source: 'website',
-                    utm_medium: 'organic',
+                    utm_source: utmSource || 'first90',
+                    utm_medium: utmMedium || 'website',
+                    utm_campaign: utmCampaign || 'waitlist',
                     custom_fields: [
                         {
                             name: 'First Name',
