@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { Navbar } from "@/components/ui/Navbar";
 import { Hero } from "@/components/ui/Hero";
 import { Mockup } from "@/components/ui/Mockup";
@@ -14,7 +15,9 @@ export default function Home() {
       <Navbar />
 
       <main className="pt-32 pb-20 relative">
-        <Hero />
+        <Suspense fallback={<div>Loading...</div>}>
+          <Hero />
+        </Suspense>
         <Mockup />
 
         {/* Companies / Trust Section */}
