@@ -2,11 +2,22 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request) {
     try {
-        const { email, firstName, utmSource, utmMedium, utmCampaign } = await request.json();
+        let { email, firstName, utmSource, utmMedium, utmCampaign } = await request.json();
 
         if (!email || !firstName) {
             return NextResponse.json(
                 { error: 'Email and First Name are required' },
+                { status: 400 }
+            );
+        }
+
+        // Normalize email
+        email = email.trim().toLowerCase();
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return NextResponse.json(
+                { error: 'Invalid email format' },
                 { status: 400 }
             );
         }
