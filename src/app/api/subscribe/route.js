@@ -11,6 +11,14 @@ export async function POST(request) {
             );
         }
 
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return NextResponse.json(
+                { error: 'Invalid email format' },
+                { status: 400 }
+            );
+        }
+
         const API_KEY = process.env.BEEHIIV_API_KEY;
         const PUBLICATION_ID = process.env.BEEHIIV_PUBLICATION_ID;
 
