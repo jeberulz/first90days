@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+    darkMode: ["class"],
     content: [
         "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
         "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -9,24 +10,65 @@ export default {
         extend: {
             fontFamily: {
                 sans: ['var(--font-inter)', 'sans-serif'],
+                mono: ['var(--font-jetbrains-mono)', 'monospace'],
                 outfit: ['var(--font-outfit)', 'sans-serif'],
             },
             colors: {
-                background: "var(--background)",
-                foreground: "var(--foreground)",
-                neutral: {
-                    50: '#fafafa',
-                    100: '#f5f5f5',
-                    200: '#e5e5e5',
-                    300: '#d4d4d4',
-                    400: '#a3a3a3',
-                    500: '#737373',
-                    600: '#525252',
-                    700: '#404040',
-                    800: '#262626',
-                    900: '#171717',
-                    950: '#0a0a0a',
+                background: 'var(--background)',
+                foreground: 'var(--foreground)',
+                card: {
+                    DEFAULT: 'var(--card)',
+                    foreground: 'var(--card-foreground)'
+                },
+                popover: {
+                    DEFAULT: 'var(--popover)',
+                    foreground: 'var(--popover-foreground)'
+                },
+                primary: {
+                    DEFAULT: 'var(--primary)',
+                    foreground: 'var(--primary-foreground)'
+                },
+                secondary: {
+                    DEFAULT: 'var(--secondary)',
+                    foreground: 'var(--secondary-foreground)'
+                },
+                muted: {
+                    DEFAULT: 'var(--muted)',
+                    foreground: 'var(--muted-foreground)'
+                },
+                accent: {
+                    DEFAULT: 'var(--accent)',
+                    foreground: 'var(--accent-foreground)'
+                },
+                destructive: {
+                    DEFAULT: 'var(--destructive)',
+                    foreground: 'var(--destructive-foreground)'
+                },
+                border: 'var(--border)',
+                input: 'var(--input)',
+                ring: 'var(--ring)',
+                chart: {
+                    '1': 'var(--chart-1)',
+                    '2': 'var(--chart-2)',
+                    '3': 'var(--chart-3)',
+                    '4': 'var(--chart-4)',
+                    '5': 'var(--chart-5)'
+                },
+                sidebar: {
+                    DEFAULT: 'var(--sidebar-background)',
+                    foreground: 'var(--sidebar-foreground)',
+                    primary: 'var(--sidebar-primary)',
+                    'primary-foreground': 'var(--sidebar-primary-foreground)',
+                    accent: 'var(--sidebar-accent)',
+                    'accent-foreground': 'var(--sidebar-accent-foreground)',
+                    border: 'var(--sidebar-border)',
+                    ring: 'var(--sidebar-ring)'
                 }
+            },
+            borderRadius: {
+                lg: 'var(--radius)',
+                md: 'calc(var(--radius) - 2px)',
+                sm: 'calc(var(--radius) - 4px)'
             },
             keyframes: {
                 fadeUp: {
@@ -42,7 +84,7 @@ export default {
                 'fade-up': 'fadeUp 0.8s ease-out forwards',
                 'pulse': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
             },
-        },
+        }
     },
-    plugins: [],
+    plugins: [require("tailwindcss-animate")],
 };
