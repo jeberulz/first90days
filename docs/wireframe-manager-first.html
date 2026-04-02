@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>First90 - Manager-First Wedge Wireframe</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #111; color: #ccc; padding: 40px 20px; }
+  .page { max-width: 800px; margin: 0 auto 60px; border: 1px solid #333; border-radius: 12px; padding: 32px; background: #1a1a1a; }
+  .page-label { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #666; margin-bottom: 20px; border-bottom: 1px dashed #333; padding-bottom: 8px; }
+  h2 { font-size: 20px; font-weight: 500; color: #fff; margin-bottom: 8px; }
+  .subtitle { font-size: 13px; color: #888; margin-bottom: 24px; }
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 11px; color: #999; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px; }
+  .form-group input, .form-group textarea, .form-group select {
+    width: 100%; padding: 10px 12px; background: #222; border: 1px solid #333;
+    border-radius: 8px; color: #fff; font-size: 13px; outline: none;
+  }
+  .form-group textarea { height: 80px; resize: vertical; }
+  .form-row { display: flex; gap: 12px; }
+  .form-row .form-group { flex: 1; }
+  .btn { display: inline-block; padding: 10px 24px; border-radius: 999px; font-size: 12px; font-weight: 500; cursor: pointer; border: none; }
+  .btn-primary { background: #fff; color: #000; }
+  .btn-secondary { background: transparent; color: #fff; border: 1px solid #333; }
+  .plan-section { margin-bottom: 20px; padding: 16px; border: 1px solid #333; border-radius: 8px; background: #222; }
+  .plan-section h3 { font-size: 14px; color: #fff; margin-bottom: 4px; }
+  .plan-section .days { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .plan-item { font-size: 12px; color: #aaa; padding: 4px 0; padding-left: 16px; position: relative; }
+  .plan-item::before { content: ""; position: absolute; left: 0; top: 10px; width: 6px; height: 6px; border-radius: 50%; background: #444; }
+  .success-criteria { font-size: 11px; color: #4ade80; background: #4ade8010; padding: 8px 12px; border-radius: 6px; margin-top: 8px; }
+  .share-bar { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: #222; border-radius: 8px; margin-top: 20px; border: 1px solid #333; }
+  .share-bar input { flex: 1; background: #1a1a1a; border: 1px solid #333; border-radius: 6px; padding: 8px 12px; color: #fff; font-size: 12px; }
+  .arrow { display: flex; align-items: center; justify-content: center; margin: 20px auto; color: #444; font-size: 24px; }
+  .note { font-size: 10px; color: #555; font-style: italic; margin-top: 8px; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 10px; background: #4ade8020; color: #4ade80; margin-left: 8px; }
+  .timer { font-size: 10px; color: #666; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<!-- SCREEN 1: Manager Intake Form -->
+<div class="page">
+  <div class="page-label">Screen 1 / Manager Intake (the entry point)</div>
+  <h2>Set up your new hire for success</h2>
+  <p class="subtitle">Answer 5 quick questions. We'll generate a personalized 90-day plan you can send before their first day.</p>
+  <p class="timer">Takes about 3 minutes</p>
+
+  <div style="margin-top: 20px;">
+    <div class="form-row">
+      <div class="form-group">
+        <label>New hire's role</label>
+        <input type="text" placeholder="e.g. Senior Product Manager" />
+      </div>
+      <div class="form-group">
+        <label>Team / Department</label>
+        <input type="text" placeholder="e.g. Growth, Platform Eng" />
+      </div>
+    </div>
+
+    <!-- Question 1 -->
+    <div class="form-group">
+      <label>1. What does "killing it" look like at 90 days?</label>
+      <textarea placeholder="What would make you say this hire was a great decision? Be specific..."></textarea>
+    </div>
+
+    <!-- Question 2 -->
+    <div class="form-group">
+      <label>2. Key stakeholders they need to build relationships with</label>
+      <textarea placeholder="Names and roles of people who matter most early on..."></textarea>
+    </div>
+
+    <!-- Question 3 -->
+    <div class="form-group">
+      <label>3. First meaningful deliverable you'd expect</label>
+      <input type="text" placeholder="e.g. Ship first feature, close first deal, complete audit..." />
+    </div>
+
+    <!-- Question 4 -->
+    <div class="form-group">
+      <label>4. Unwritten rules or political landmines to know about</label>
+      <textarea placeholder="Things not in the handbook that a new hire needs to know..."></textarea>
+    </div>
+
+    <!-- Question 5 -->
+    <div class="form-group">
+      <label>5. What do people who struggle here typically get wrong?</label>
+      <textarea placeholder="Common mistakes new hires make on your team..."></textarea>
+    </div>
+
+    <div style="margin-top: 24px; display: flex; gap: 12px;">
+      <button class="btn btn-primary">Generate 90-Day Plan</button>
+    </div>
+  </div>
+  <!-- Design note: the 5 questions are inspired by the subagent's prototype spec -->
+  <!-- The form is intentionally short, targeting <5 min completion -->
+</div>
+
+<div class="arrow">v</div>
+
+<!-- SCREEN 2: Generated Plan (Manager View) -->
+<div class="page">
+  <div class="page-label">Screen 2 / Generated Plan (manager reviews before sending)</div>
+  <h2>90-Day Plan: Senior Product Manager <span class="badge">Draft</span></h2>
+  <p class="subtitle">Growth Team / Generated for Sarah Chen's start date: Jan 15</p>
+
+  <div class="plan-section">
+    <div class="days">Days 1-30: Learn</div>
+    <h3>Foundation & Context</h3>
+    <div class="plan-item">Complete 1:1s with all Growth stakeholders (Jamie, Pat, Alex)</div>
+    <div class="plan-item">Shadow 3 customer calls to understand current user pain</div>
+    <div class="plan-item">Map existing product metrics and identify gaps in tracking</div>
+    <div class="plan-item">Understand the Q1 OKR framework and where Growth fits</div>
+    <div class="success-criteria">Success: Can articulate the team's top 3 priorities and why they matter</div>
+  </div>
+
+  <div class="plan-section">
+    <div class="days">Days 31-60: Contribute</div>
+    <h3>First Deliverable</h3>
+    <div class="plan-item">Own and ship the onboarding flow redesign (your first feature)</div>
+    <div class="plan-item">Present initial findings on conversion funnel to leadership</div>
+    <div class="plan-item">Establish weekly sync cadence with Eng and Design leads</div>
+    <div class="success-criteria">Success: First feature shipped, stakeholders know your name</div>
+  </div>
+
+  <div class="plan-section">
+    <div class="days">Days 61-90: Lead</div>
+    <h3>Ownership & Impact</h3>
+    <div class="plan-item">Define Q2 product roadmap for Growth vertical</div>
+    <div class="plan-item">Identify and propose one strategic bet for H2</div>
+    <div class="plan-item">Build cross-functional relationships beyond immediate team</div>
+    <div class="success-criteria">Success: Manager says "this hire was a great decision"</div>
+  </div>
+
+  <!-- Heads Up section -->
+  <div style="margin-top: 16px; padding: 12px 16px; border: 1px solid #f59e0b30; background: #f59e0b08; border-radius: 8px;">
+    <h3 style="font-size: 13px; color: #f59e0b; margin-bottom: 6px;">Heads Up</h3>
+    <div class="plan-item" style="color: #f59e0b90;">Don't skip the eng retro on Fridays, even if it feels optional</div>
+    <div class="plan-item" style="color: #f59e0b90;">Platform team has strong opinions on data schemas, loop them in early</div>
+  </div>
+
+  <div class="share-bar">
+    <span style="font-size: 11px; color: #999; white-space: nowrap;">Share with new hire:</span>
+    <input type="text" value="https://first90.app/plan/a8f3k2..." readonly />
+    <button class="btn btn-primary" style="padding: 8px 16px;">Copy Link</button>
+  </div>
+  <p class="note">Your new hire gets a read-only view. They can't see the "Heads Up" section until you unlock it.</p>
+</div>
+
+<div class="arrow">v</div>
+
+<!-- SCREEN 3: New Hire View (read-only) -->
+<div class="page">
+  <div class="page-label">Screen 3 / New Hire View (what they receive before day 1)</div>
+  <h2>Your 90-Day Plan at Acme Corp</h2>
+  <p class="subtitle">Prepared by your manager, Jordan. Welcome to the Growth team.</p>
+
+  <div style="padding: 16px; background: #4ade8010; border: 1px solid #4ade8030; border-radius: 8px; margin-bottom: 20px;">
+    <p style="font-size: 12px; color: #4ade80;">Your manager put this together to help you hit the ground running. This is what success looks like in your first 90 days.</p>
+  </div>
+
+  <!-- Simplified plan view -->
+  <div class="plan-section">
+    <div class="days">Days 1-30: Learn</div>
+    <h3>Foundation & Context</h3>
+    <div class="plan-item">Complete 1:1s with all Growth stakeholders</div>
+    <div class="plan-item">Shadow 3 customer calls</div>
+    <div class="plan-item">Map existing product metrics</div>
+    <div class="success-criteria">Success: Can articulate the team's top 3 priorities</div>
+  </div>
+
+  <div class="plan-section">
+    <div class="days">Days 31-60: Contribute</div>
+    <h3>First Deliverable</h3>
+    <div class="plan-item">Own the onboarding flow redesign</div>
+    <div class="plan-item">Present conversion funnel findings</div>
+    <div class="success-criteria">Success: First feature shipped</div>
+  </div>
+
+  <div class="plan-section">
+    <div class="days">Days 61-90: Lead</div>
+    <h3>Ownership & Impact</h3>
+    <div class="plan-item">Define Q2 roadmap for Growth</div>
+    <div class="plan-item">Propose strategic bet for H2</div>
+    <div class="success-criteria">Success: "This hire was a great decision"</div>
+  </div>
+
+  <div style="margin-top: 20px; text-align: center;">
+    <p style="font-size: 11px; color: #666; margin-bottom: 12px;">Want to add your own context to this plan?</p>
+    <button class="btn btn-secondary">Add My Perspective (Coming Soon)</button>
+  </div>
+  <p class="note" style="text-align: center; margin-top: 8px;">Future: new hire adds their strengths, unknowns, and working style. AI re-synthesizes the plan with both perspectives.</p>
+</div>
+
+</body>
+</html>
