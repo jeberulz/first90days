@@ -1,89 +1,93 @@
-import Link from "next/link";
-import { Sparkles, Twitter, Github, Linkedin } from "lucide-react";
+import { Twitter, Github, Linkedin } from "lucide-react";
 
 export function Footer() {
-    return (
-        <footer className="border-t border-white/5 bg-[#050505] pt-16 pb-8">
-            <div className="max-w-6xl mx-auto px-6">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
-                    <div className="col-span-2 md:col-span-1">
-                        <div className="flex items-center gap-2 mb-4">
-                            <Sparkles className="w-4 h-4 text-white" />
-                            <span className="text-white font-medium tracking-tight text-sm">
-                                First90
-                            </span>
-                        </div>
-                        <p className="text-[11px] text-neutral-500 leading-relaxed">
-                            AI-powered career planning for the modern professional.
-                        </p>
-                    </div>
-                    <div>
-                        <h4 className="text-xs font-medium text-white mb-4">Product</h4>
-                        <ul className="space-y-2 text-[11px] text-neutral-500">
-                            <li>
-                                <Link href="#" className="hover:text-neutral-300">
-                                    Features
-                                </Link>
-                            </li>
-                            <li>
-                                <Link href="#" className="hover:text-neutral-300">
-                                    Integration
-                                </Link>
-                            </li>
-                            <li>
-                                <Link href="#" className="hover:text-neutral-300">
-                                    Pricing
-                                </Link>
-                            </li>
-                        </ul>
-                    </div>
-                    <div>
-                        <h4 className="text-xs font-medium text-white mb-4">Resources</h4>
-                        <ul className="space-y-2 text-[11px] text-neutral-500">
-                            <li>
-                                <Link href="#" className="hover:text-neutral-300">
-                                    Methodology
-                                </Link>
-                            </li>
-                            <li>
-                                <Link href="#" className="hover:text-neutral-300">
-                                    Career Guides
-                                </Link>
-                            </li>
-                            <li>
-                                <Link href="#" className="hover:text-neutral-300">
-                                    Blog
-                                </Link>
-                            </li>
-                        </ul>
-                    </div>
-                    <div>
-                        <h4 className="text-xs font-medium text-white mb-4">Legal</h4>
-                        <ul className="space-y-2 text-[11px] text-neutral-500">
-                            <li>
-                                <Link href="#" className="hover:text-neutral-300">
-                                    Privacy
-                                </Link>
-                            </li>
-                            <li>
-                                <Link href="#" className="hover:text-neutral-300">
-                                    Terms
-                                </Link>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-                <div className="flex items-center justify-between pt-8 border-t border-white/5">
-                    <p className="text-[10px] text-neutral-600">
-                        © 2024 First90 Inc. All rights reserved.
-                    </p>
-                    <div className="flex gap-4 text-neutral-600">
-                        <Twitter className="w-3.5 h-3.5 hover:text-white cursor-pointer transition" />
-                        <Github className="w-3.5 h-3.5 hover:text-white cursor-pointer transition" />
-                        <Linkedin className="w-3.5 h-3.5 hover:text-white cursor-pointer transition" />
-                    </div>
-                </div>
-            </div>
-        </footer>
-    );
+  return (
+    <footer className="bg-[#131313] py-24 text-cream-100">
+      <div className="max-w-7xl mx-auto px-6">
+        {/* Logo */}
+        <div className="mb-16">
+          <div className="flex items-center gap-2 mb-6 text-terracotta">
+            <svg viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" />
+            </svg>
+            <span className="font-serif text-2xl">First90</span>
+          </div>
+        </div>
+
+        {/* Links Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-12 text-sm border-t pt-12 border-white/10">
+          <div>
+            <h4 className="font-medium mb-4 text-white">Product</h4>
+            <ul className="space-y-3 text-white/50">
+              <li>
+                <a href="#" className="transition-colors hover:text-white">
+                  Features
+                </a>
+              </li>
+              <li>
+                <a href="#" className="transition-colors hover:text-white">
+                  Integrations
+                </a>
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="font-medium mb-4 text-white">Resources</h4>
+            <ul className="space-y-3 text-white/50">
+              <li>
+                <a href="#" className="transition-colors hover:text-white">
+                  Documentation
+                </a>
+              </li>
+              <li>
+                <a href="#" className="transition-colors hover:text-white">
+                  API Reference
+                </a>
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="font-medium mb-4 text-white">Company</h4>
+            <ul className="space-y-3 text-white/50">
+              <li>
+                <a href="#" className="transition-colors hover:text-white">
+                  About Us
+                </a>
+              </li>
+              <li>
+                <a href="#" className="transition-colors hover:text-white">
+                  Careers
+                </a>
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="font-medium mb-4 text-white">Legal</h4>
+            <ul className="space-y-3 text-white/50">
+              <li>
+                <a href="#" className="transition-colors hover:text-white">
+                  Privacy Policy
+                </a>
+              </li>
+              <li>
+                <a href="#" className="transition-colors hover:text-white">
+                  Terms of Service
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        {/* Bottom Bar */}
+        <div className="flex justify-between items-center mt-20 text-xs text-white/30">
+          <div>&copy; 2024 First90 Inc.</div>
+          <div className="flex gap-4">
+            <Twitter className="w-4 h-4 cursor-pointer transition hover:text-white" />
+            <Github className="w-4 h-4 cursor-pointer transition hover:text-white" />
+            <Linkedin className="w-4 h-4 cursor-pointer transition hover:text-white" />
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
 }

@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+    darkMode: 'class',
     content: [
         "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
         "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -8,39 +9,33 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['var(--font-inter)', 'sans-serif'],
-                outfit: ['var(--font-outfit)', 'sans-serif'],
+                sans: ['"Inter"', 'sans-serif'],
+                serif: ['"Instrument Serif"', 'serif'],
             },
             colors: {
-                background: "var(--background)",
-                foreground: "var(--foreground)",
-                neutral: {
-                    50: '#fafafa',
-                    100: '#f5f5f5',
-                    200: '#e5e5e5',
-                    300: '#d4d4d4',
-                    400: '#a3a3a3',
-                    500: '#737373',
-                    600: '#525252',
-                    700: '#404040',
-                    800: '#262626',
-                    900: '#171717',
-                    950: '#0a0a0a',
-                }
+                cream: {
+                    50: '#FDFBF7',
+                    100: '#F5F2E8',
+                    200: '#EAE7DC',
+                    300: '#D8D4C8',
+                },
+                terracotta: {
+                    DEFAULT: '#D97757',
+                    hover: '#C06345',
+                },
+                charcoal: {
+                    DEFAULT: '#1F1F1F',
+                    light: '#4A4A4A',
+                },
             },
             keyframes: {
                 fadeUp: {
-                    '0%': { opacity: 0, transform: 'translateY(20px)' },
-                    '100%': { opacity: 1, transform: 'translateY(0)' },
+                    '0%': { opacity: '0', transform: 'translateY(20px)' },
+                    '100%': { opacity: '1', transform: 'translateY(0)' },
                 },
-                pulse: {
-                    '0%, 100%': { opacity: 1 },
-                    '50%': { opacity: .5 },
-                }
             },
             animation: {
-                'fade-up': 'fadeUp 0.8s ease-out forwards',
-                'pulse': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                'fade-up': 'fadeUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards',
             },
         },
     },
