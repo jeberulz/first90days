@@ -1,120 +1,57 @@
-# First90 — AI onboarding planner
+# First90
 
-Marketing site and backend scaffolding for **First90**, an AI-assisted 30‑60‑90 day onboarding product (tagline: *Your first 90 days, engineered for impact.*).
+**Your first 90 days, engineered for impact.**
 
-The public UI is a single landing page (hero, product story, Chart.js demos, waitlist-oriented CTAs). Data and auth for the full product are modeled in **Convex**; email capture can go through **Beehiiv** via a Next.js route handler.
+First90 helps anyone starting a new role generate a **role-specific 30‑60‑90 day plan** with AI—so you align with your manager early and ramp with clarity instead of guesswork.
 
-## Stack
+---
 
-| Layer | Choice |
-|--------|--------|
-| Framework | [Next.js](https://nextjs.org) 16 (App Router), `src/app` |
-| UI | React 19, Tailwind CSS 3, Google fonts (Inter, Instrument Serif, Space Grotesk) |
-| Charts | [Chart.js](https://www.chartjs.org/) |
-| Backend (schema + auth) | [Convex](https://www.convex.dev/) + [`@convex-dev/auth`](https://www.npmjs.com/package/@convex-dev/auth) (password provider) |
-| Newsletter | [Beehiiv](https://www.beehiiv.com/) API (`POST /api/subscribe`) |
+## What you get
 
-## Prerequisites
+- **Instant, tailored plans** — Not a generic checklist: the product is built to reflect your role, context, and how you work (function, level, remote vs hybrid, team shape, and more).
+- **Role-specific intelligence** — Interpretation that goes beyond a job description: implicit expectations, seniority-aware milestones, and what “good” looks like in your situation.
+- **Semantic context** — Deep parsing of the role and team topology to surface hidden requirements you might miss in week one.
+- **Market sense** — Benchmarking framing so leveling and expectations are grounded in how roles actually show up in the market.
+- **Stakeholder clarity** — Map decision-makers and influencers **before** day one so relationship-building is intentional, not accidental.
 
-- **Node.js** 20+ (recommended; matches common Next.js support)
-- **Convex** account and CLI if you use the Convex backend locally or in prod
+## Manager alignment
 
-## Setup
+Onboarding fails most often when expectations drift. First90 is designed around a **shared workspace** for you and your manager:
 
-```bash
-npm install
-```
+- **Collaborative review** — Invite your manager to comment and refine the 30‑60‑90 plan in one place.
+- **Live sync** — Push updates to the docs and formats your org already uses (e.g. Notion, Google Docs, PDF) so there’s no “secret” plan in a silo.
+- **Sign-off** — Capture explicit approval on goals so success criteria aren’t fuzzy later.
 
-### Environment variables
+## Progress you can show
 
-Create `.env.local` in the project root.
+- **30 / 60 / 90 milestones** — Visual progress tied to the phases leaders already think in.
+- **Velocity narrative** — Compare how you’re doing vs the plan so you can explain ramp-up with evidence, not vibes.
+- **Automated summaries** — Weekly rollups from completed work so reporting isn’t a manual archaeology project.
 
-**Waitlist / Beehiiv** (required for `POST /api/subscribe`):
+## Knowledge, not scavenger hunts
 
-| Variable | Purpose |
-|----------|---------|
-| `BEEHIIV_API_KEY` | Bearer token for Beehiiv API v2 |
-| `BEEHIIV_PUBLICATION_ID` | Publication UUID in the subscription URL |
+- **Curated reading** — Industry and internal context surfaced for your role so you’re not still “finding the Google Doc” in month two.
+- **Templates** — Strategic templates aligned to high performers in similar roles, so you’re not staring at a blank page.
 
-**Convex** — after `npx convex dev` (or deploy), add the values Convex prints, typically:
+## How it works (daily rhythm)
 
-| Variable | Purpose |
-|----------|---------|
-| `NEXT_PUBLIC_CONVEX_URL` | Convex deployment URL for the client |
-| `CONVEX_DEPLOY_KEY` / deploy config | As per [Convex Next.js docs](https://docs.convex.dev/client/react/next) |
+**Three minutes each morning** — small actions that compound.
 
-> The subscription route references a specific Beehiiv `automation_ids` entry; change that in `src/app/api/subscribe/route.js` if you use a different automation.
+1. **Tell us about your role** — One-time intake (~5 minutes): function, work style, scope, and situation so the plan matches reality.
+2. **Get your daily tasks** — A short list of clear actions (roughly 15–60 minutes each), delivered on a predictable cadence.
+3. **Complete and move forward** — Mark done, skip when needed; the plan adapts without guilt trips.
+4. **Reach day 90 confident** — Relationships, company context, and concrete wins—not just “surviving” the quarter.
 
-### Run the app
+---
 
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000).
-
-### Convex (optional, for backend work)
+## Developers
 
 ```bash
-npx convex dev
+npm install && npm run dev
 ```
 
-This syncs `convex/` functions and schema. Auth is configured in `convex/auth.js`; tables live in `convex/schema.js` (users, onboarding intake, plans, phases, weeks, activities, goals, stakeholders, reflections, etc.).
-
-## Scripts
-
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Next.js dev server |
-| `npm run build` | Production build |
-| `npm run start` | Start production server |
-| `npm run lint` | ESLint |
-
-## Project layout
-
-```
-src/
-  app/
-    layout.js          # Root layout, fonts, theme script, metadata
-    page.js            # Landing page sections
-    globals.css
-    api/subscribe/
-      route.js         # Beehiiv subscription proxy
-  components/ui/      # Navbar, Hero, feature blocks, charts, footer
-  lib/utils.js
-convex/
-  schema.js           # App data model + auth tables
-  auth.js             # Convex Auth (password)
-  http.js             # HTTP router (extend as needed)
-public/               # Static assets
-```
-
-## API
-
-### `POST /api/subscribe`
-
-JSON body:
-
-```json
-{
-  "email": "you@example.com",
-  "firstName": "Ada",
-  "utmSource": "first90",
-  "utmMedium": "website",
-  "utmCampaign": "waitlist"
-}
-```
-
-Returns `201` with `{ "message": "Successfully subscribed" }` on success, or `4xx`/`5xx` with `{ "error": "..." }`.
-
-## Security headers
-
-`next.config.mjs` sets HSTS, frame options, XSS protection, referrer policy, and related headers for all routes.
-
-## Deploy
-
-Usual path: **Vercel** for Next.js, **Convex Cloud** for the backend. Set the same env vars in Vercel; run `npx convex deploy` for production Convex functions.
+Open [http://localhost:3000](http://localhost:3000). Newsletter signup and backend configuration use environment variables as implemented in this repo.
 
 ## License
 
-Private / not licensed for redistribution unless you add a license file.
+Private unless a license file is added.
