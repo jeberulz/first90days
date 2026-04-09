@@ -78,6 +78,7 @@ export default defineSchema({
   })
     .index("by_plan", ["planId"])
     .index("by_phase", ["phaseId"])
+    .index("by_user", ["userId"])
     .index("by_user_number", ["userId", "number"]),
 
   activities: defineTable({
