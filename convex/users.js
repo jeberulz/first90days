@@ -1,13 +1,16 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { auth } from "./auth";
+import { isPilotEmail } from "./lib/pilotUser";
 
 export const viewer = query({
   args: {},
   handler: async (ctx) => {
     const userId = await auth.getUserId(ctx);
     if (!userId) return null;
-    return await ctx.db.get(userId);
+    const user = await ctx.db.get(userId);
+    if (!user) return null;
+    return { ...user, isPilotUser: isPilotEmail(user.email) };
   },
 });
 

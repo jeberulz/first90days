@@ -76,17 +76,17 @@ export function Navbar() {
           </button>
 
           <Link
-            href="#"
+            href="/login"
             className="text-sm font-medium transition-colors hidden sm:block font-space-grotesk text-[#44403C] dark:text-[#D6D3D1] hover:text-[#1C1917] dark:hover:text-white"
           >
             Log in
           </Link>
-          <button
-            type="button"
+          <Link
+            href="/signup"
             className="bg-accent text-sm font-semibold px-5 py-2.5 rounded-full hover:bg-accent-hover transition-all shadow-[0_2px_10px_rgba(217,119,87,0.3)] font-space-grotesk border border-accent text-white"
           >
             Generate Plan
-          </button>
+          </Link>
         </div>
       </div>
     </nav>

@@ -15,6 +15,16 @@ export const get = query({
   },
 });
 
+export const getByUserId = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("onboardingData")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .first();
+  },
+});
+
 export const save = mutation({
   args: {
     roleTitle: v.string(),
@@ -32,6 +42,11 @@ export const save = mutation({
     workModel: v.string(),
     industry: v.optional(v.string()),
     starsSituation: v.string(),
+    reportsTo: v.optional(v.string()),
+    selectedGoals: v.optional(v.array(v.string())),
+    existingContext: v.optional(v.string()),
+    challenges: v.optional(v.string()),
+    successDefinition: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const userId = await auth.getUserId(ctx);

@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export function Hero() {
   return (
     <div className="z-10 text-center max-w-6xl mx-auto px-6 relative">
@@ -34,18 +36,18 @@ export function Hero() {
         className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-up"
         style={{ animationDelay: "0.3s" }}
       >
-        <button
-          type="button"
+        <Link
+          href="/signup"
           className="h-12 px-8 rounded-full bg-[#F5F2E8] dark:bg-[#1C1917] text-[#1C1917] dark:text-white border border-[#A8A29E] dark:border-[#44403C] font-semibold font-space-grotesk dark:hover:bg-[#2C2825] hover:shadow-md transition-all flex items-center gap-2 hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >
           Start for free
-        </button>
-        <button
-          type="button"
-          className="h-12 px-8 rounded-full bg-transparent text-[#57534E] dark:text-[#D6D3D1] font-semibold font-space-grotesk hover:text-[#1C1917] dark:hover:text-white transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-full"
+        </Link>
+        <Link
+          href="/login"
+          className="h-12 px-8 rounded-full bg-transparent text-[#57534E] dark:text-[#D6D3D1] font-semibold font-space-grotesk hover:text-[#1C1917] dark:hover:text-white transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >
-          Request a demo
-        </button>
+          Log in →
+        </Link>
       </div>
     </div>
   );

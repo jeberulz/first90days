@@ -2,6 +2,16 @@ import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { auth } from "./auth";
 
+function ymdForPlanDay(startYmd, dayNum) {
+  const [y, m, d] = startYmd.split("-").map(Number);
+  const dt = new Date(y, m - 1, d);
+  dt.setDate(dt.getDate() + (dayNum - 1));
+  const yy = dt.getFullYear();
+  const mm = String(dt.getMonth() + 1).padStart(2, "0");
+  const dd = String(dt.getDate()).padStart(2, "0");
+  return `${yy}-${mm}-${dd}`;
+}
+
 export const getToday = query({
   args: {},
   handler: async (ctx) => {
@@ -148,10 +158,30 @@ export const create = mutation({
       .first();
     if (!plan) throw new Error("No plan found");
 
+    const onboarding = await ctx.db
+      .query("onboardingData")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+    const startYmd =
+      onboarding?.startDate ?? new Date().toISOString().split("T")[0];
+
+    let weekNumber = args.weekNumber;
+    let scheduledDate = args.scheduledDate;
+    let scheduledDay = args.scheduledDay;
+
+    if (scheduledDay !== undefined) {
+      scheduledDate =
+        scheduledDate ?? ymdForPlanDay(startYmd, scheduledDay);
+      weekNumber = Math.min(
+        Math.max(Math.ceil(scheduledDay / 7), 1),
+        12
+      );
+    }
+
     const week = await ctx.db
       .query("weeks")
       .withIndex("by_user_number", (q) =>
-        q.eq("userId", userId).eq("number", args.weekNumber)
+        q.eq("userId", userId).eq("number", weekNumber)
       )
       .first();
     if (!week) throw new Error("Week not found");
@@ -160,15 +190,15 @@ export const create = mutation({
       planId: plan._id,
       weekId: week._id,
       userId,
-      weekNumber: args.weekNumber,
+      weekNumber,
       title: args.title,
       description: args.description,
       category: args.category,
       subcategory: args.subcategory,
       estimatedTime: args.estimatedTime,
       priority: args.priority,
-      scheduledDate: args.scheduledDate,
-      scheduledDay: args.scheduledDay,
+      scheduledDate,
+      scheduledDay,
       status: "upcoming",
       isCustom: true,
       source: "user",
@@ -187,6 +217,8 @@ export const update = mutation({
     estimatedTime: v.optional(v.string()),
     priority: v.optional(v.string()),
     scheduledDate: v.optional(v.string()),
+    scheduledDay: v.optional(v.number()),
+    weekNumber: v.optional(v.number()),
     status: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -198,10 +230,42 @@ export const update = mutation({
       throw new Error("Activity not found");
     }
 
-    const { id, ...updates } = args;
+    const { id, scheduledDay, weekNumber, ...rest } = args;
     const filtered = Object.fromEntries(
-      Object.entries(updates).filter(([, v]) => v !== undefined)
+      Object.entries(rest).filter(([, val]) => val !== undefined)
     );
+
+    if (scheduledDay !== undefined) {
+      const onboarding = await ctx.db
+        .query("onboardingData")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .first();
+      const startYmd =
+        onboarding?.startDate ?? new Date().toISOString().split("T")[0];
+      filtered.scheduledDay = scheduledDay;
+      filtered.scheduledDate = ymdForPlanDay(startYmd, scheduledDay);
+      const wn = Math.min(Math.max(Math.ceil(scheduledDay / 7), 1), 12);
+      const week = await ctx.db
+        .query("weeks")
+        .withIndex("by_user_number", (q) =>
+          q.eq("userId", userId).eq("number", wn)
+        )
+        .first();
+      if (!week) throw new Error("Week not found");
+      filtered.weekId = week._id;
+      filtered.weekNumber = wn;
+    } else if (weekNumber !== undefined) {
+      const week = await ctx.db
+        .query("weeks")
+        .withIndex("by_user_number", (q) =>
+          q.eq("userId", userId).eq("number", weekNumber)
+        )
+        .first();
+      if (!week) throw new Error("Week not found");
+      filtered.weekId = week._id;
+      filtered.weekNumber = weekNumber;
+    }
+
     await ctx.db.patch(id, filtered);
   },
 });

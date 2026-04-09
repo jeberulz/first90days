@@ -58,6 +58,34 @@ export const get = query({
   },
 });
 
+export const createBatch = mutation({
+  args: {
+    stakeholders: v.array(
+      v.object({
+        name: v.string(),
+        role: v.string(),
+        relationshipType: v.string(),
+        priority: v.string(),
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const ids = [];
+    for (const s of args.stakeholders) {
+      const id = await ctx.db.insert("stakeholders", {
+        userId,
+        ...s,
+        firstMeetingScheduled: false,
+      });
+      ids.push(id);
+    }
+    return ids;
+  },
+});
+
 export const create = mutation({
   args: {
     name: v.string(),

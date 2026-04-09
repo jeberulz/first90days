@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Navbar } from "@/components/ui/Navbar";
 import { Hero } from "@/components/ui/Hero";
 import { Mockup } from "@/components/ui/Mockup";
@@ -37,18 +38,18 @@ export default function Home() {
             Join 10,000+ professionals who mastered their onboarding.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <button
-              type="button"
-              className="w-full sm:w-auto bg-accent h-12 px-8 rounded-full text-sm font-semibold hover:bg-accent-hover transition-colors shadow-lg shadow-orange-500/20 font-space-grotesk text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0F0E0D]"
+            <Link
+              href="/signup"
+              className="w-full sm:w-auto bg-accent h-12 px-8 rounded-full text-sm font-semibold hover:bg-accent-hover transition-colors shadow-lg shadow-orange-500/20 font-space-grotesk text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0F0E0D] flex items-center justify-center"
             >
               Get Started Free
-            </button>
-            <button
-              type="button"
-              className="w-full sm:w-auto border h-12 px-8 rounded-full text-sm font-semibold transition-colors font-space-grotesk border-[#D1CDC7] dark:border-[#44403C] text-[#1C1917] dark:text-white dark:hover:bg-[#1C1917] hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            </Link>
+            <Link
+              href="/login"
+              className="w-full sm:w-auto border h-12 px-8 rounded-full text-sm font-semibold transition-colors font-space-grotesk border-[#D1CDC7] dark:border-[#44403C] text-[#1C1917] dark:text-white dark:hover:bg-[#1C1917] hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-accent flex items-center justify-center"
             >
-              View Sample Plans
-            </button>
+              Log in
+            </Link>
           </div>
         </div>
       </section>

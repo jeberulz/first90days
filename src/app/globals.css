@@ -30,6 +30,22 @@
   }
 }
 
+@layer components {
+  .step-slide-in {
+    animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .step-slide-out {
+    animation: slideOutLeft 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .onboarding-fade-in {
+    animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .onboarding-fade-in-d1 { animation: fadeInUp 0.5s 0.08s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .onboarding-fade-in-d2 { animation: fadeInUp 0.5s 0.16s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .onboarding-fade-in-d3 { animation: fadeInUp 0.5s 0.24s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .onboarding-fade-in-d4 { animation: fadeInUp 0.5s 0.32s cubic-bezier(0.16, 1, 0.3, 1) both; }
+}
+
 @layer utilities {
   .bg-grid-pattern {
     background-image:

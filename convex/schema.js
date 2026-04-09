@@ -41,6 +41,11 @@ export default defineSchema({
     workModel: v.string(),
     industry: v.optional(v.string()),
     starsSituation: v.string(),
+    reportsTo: v.optional(v.string()),
+    selectedGoals: v.optional(v.array(v.string())),
+    existingContext: v.optional(v.string()),
+    challenges: v.optional(v.string()),
+    successDefinition: v.optional(v.string()),
   }).index("by_user", ["userId"]),
 
   plans: defineTable({
