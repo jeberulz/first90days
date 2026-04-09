@@ -1,15 +1,47 @@
 import { mutation } from "./_generated/server";
 import { auth } from "./auth";
 import { isPilotEmail, PILOT_PLAN_START_DATE } from "./lib/pilotUser";
+import { scheduleYmd } from "./lib/planDates";
 
-function scheduleYmd(startDate, dayNumber) {
-  const [sy, sm, sd] = startDate.split("-").map(Number);
-  const d = new Date(sy, sm - 1, sd);
-  d.setDate(d.getDate() + (dayNumber - 1));
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${dd}`;
+async function _reconcilePilotSchedule(ctx, userId) {
+  const user = await ctx.db.get(userId);
+  if (!user || !isPilotEmail(user.email)) {
+    throw new Error("Pilot schedule sync is only available for the pilot account.");
+  }
+
+  const onboardingRow = await ctx.db
+    .query("onboardingData")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .first();
+
+  if (onboardingRow) {
+    await ctx.db.patch(onboardingRow._id, { startDate: PILOT_PLAN_START_DATE });
+  }
+
+  const activities = await ctx.db
+    .query("activities")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .collect();
+
+  let activitiesUpdated = 0;
+  for (const a of activities) {
+    if (typeof a.scheduledDay !== "number") continue;
+    const nextDate = scheduleYmd(PILOT_PLAN_START_DATE, a.scheduledDay);
+    if (a.scheduledDate === nextDate) continue;
+    await ctx.db.patch(a._id, { scheduledDate: nextDate });
+    activitiesUpdated += 1;
+  }
+
+  return {
+    planId: (
+      await ctx.db
+        .query("plans")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .first()
+    )?._id,
+    activitiesUpdated,
+    hadOnboarding: !!onboardingRow,
+  };
 }
 
 async function _seedPlanData(ctx, userId) {
@@ -272,6 +304,15 @@ async function _wipeUserData(ctx, userId) {
   }
 }
 
+export const reconcilePilotPlanSchedule = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    return await _reconcilePilotSchedule(ctx, userId);
+  },
+});
+
 export const seedJohnsPlan = mutation({
   args: {},
   handler: async (ctx) => {
@@ -289,7 +330,10 @@ export const seedJohnsPlan = mutation({
       .query("plans")
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .first();
-    if (existingPlan) throw new Error("Plan already exists for this user");
+    if (existingPlan) {
+      await _reconcilePilotSchedule(ctx, userId);
+      return existingPlan._id;
+    }
 
     return await _seedPlanData(ctx, userId);
   },

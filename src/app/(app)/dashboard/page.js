@@ -55,7 +55,9 @@ export default function DashboardPage() {
   const stakeholders = useQuery(api.stakeholders.list);
   const seedPlan = useMutation(api.seed.seedJohnsPlan);
   const resetAndReseed = useMutation(api.seed.resetAndReseed);
+  const reconcilePilotPlanSchedule = useMutation(api.seed.reconcilePilotPlanSchedule);
   const [resetting, setResetting] = useState(false);
+  const [pilotSyncing, setPilotSyncing] = useState(false);
   const { checked, toggle } = useChecklistState();
 
   if (!user) return null;
@@ -89,7 +91,7 @@ export default function DashboardPage() {
           </h2>
           <p className="font-space-grotesk text-sm text-[#A8A29E] max-w-md mx-auto">
             {user.isPilotUser
-              ? "Load your pre-built pilot workspace (same data as first-time signup)."
+              ? "Load your pre-built pilot workspace (same data as first-time signup). If you already have a plan, Load sample syncs dates to the pilot start calendar."
               : "Continue setup to generate a personalised 90-day plan tailored to your role."}
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -442,6 +444,34 @@ export default function DashboardPage() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {user.isPilotUser && plan && (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-[#1C1917] border border-[#44403C] rounded-xl p-4">
+          <div>
+            <p className="font-space-grotesk text-sm text-[#E7E5E4]">
+              Pilot calendar sync
+            </p>
+            <p className="font-space-grotesk text-xs text-[#57534E]">
+              Align onboarding start date and all tasks with a scheduled day to the pilot anchor (May 11, 2026).
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled={pilotSyncing}
+            onClick={async () => {
+              setPilotSyncing(true);
+              try {
+                await reconcilePilotPlanSchedule();
+              } finally {
+                setPilotSyncing(false);
+              }
+            }}
+            className="shrink-0 px-4 py-2 rounded-lg border border-[#44403C] font-space-grotesk text-xs text-[#A8A29E] hover:bg-[#292524] hover:text-[#E7E5E4] transition disabled:opacity-50"
+          >
+            {pilotSyncing ? "Syncing…" : "Sync pilot calendar"}
+          </button>
         </div>
       )}
     </div>

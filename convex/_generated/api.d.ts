@@ -16,6 +16,7 @@ import type * as http from "../http.js";
 import type * as knowledge from "../knowledge.js";
 import type * as lib_ai from "../lib/ai.js";
 import type * as lib_pilotUser from "../lib/pilotUser.js";
+import type * as lib_planDates from "../lib/planDates.js";
 import type * as logEntries from "../logEntries.js";
 import type * as onboarding from "../onboarding.js";
 import type * as planMutations from "../planMutations.js";
@@ -40,6 +41,7 @@ declare const fullApi: ApiFromModules<{
   knowledge: typeof knowledge;
   "lib/ai": typeof lib_ai;
   "lib/pilotUser": typeof lib_pilotUser;
+  "lib/planDates": typeof lib_planDates;
   logEntries: typeof logEntries;
   onboarding: typeof onboarding;
   planMutations: typeof planMutations;

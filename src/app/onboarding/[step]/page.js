@@ -167,12 +167,7 @@ export default function OnboardingStepPage({ params }) {
       }
 
       if (viewer?.isPilotUser) {
-        try {
-          await seedPlan();
-        } catch (seedErr) {
-          const msg = seedErr instanceof Error ? seedErr.message : String(seedErr);
-          if (!msg.includes("already exists")) throw seedErr;
-        }
+        await seedPlan();
       } else {
         if (!viewer?._id) throw new Error("Not signed in. Please refresh and try again.");
         await generatePlan({ userId: viewer._id });

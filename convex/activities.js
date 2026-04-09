@@ -1,16 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { auth } from "./auth";
-
-function ymdForPlanDay(startYmd, dayNum) {
-  const [y, m, d] = startYmd.split("-").map(Number);
-  const dt = new Date(y, m - 1, d);
-  dt.setDate(dt.getDate() + (dayNum - 1));
-  const yy = dt.getFullYear();
-  const mm = String(dt.getMonth() + 1).padStart(2, "0");
-  const dd = String(dt.getDate()).padStart(2, "0");
-  return `${yy}-${mm}-${dd}`;
-}
+import { scheduleYmd } from "./lib/planDates";
 
 export const getToday = query({
   args: {},
@@ -171,7 +162,7 @@ export const create = mutation({
 
     if (scheduledDay !== undefined) {
       scheduledDate =
-        scheduledDate ?? ymdForPlanDay(startYmd, scheduledDay);
+        scheduledDate ?? scheduleYmd(startYmd, scheduledDay);
       weekNumber = Math.min(
         Math.max(Math.ceil(scheduledDay / 7), 1),
         12
@@ -243,7 +234,7 @@ export const update = mutation({
       const startYmd =
         onboarding?.startDate ?? new Date().toISOString().split("T")[0];
       filtered.scheduledDay = scheduledDay;
-      filtered.scheduledDate = ymdForPlanDay(startYmd, scheduledDay);
+      filtered.scheduledDate = scheduleYmd(startYmd, scheduledDay);
       const wn = Math.min(Math.max(Math.ceil(scheduledDay / 7), 1), 12);
       const week = await ctx.db
         .query("weeks")

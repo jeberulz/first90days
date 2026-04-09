@@ -1,10 +1,10 @@
 "use client";
 
 import { useConvexAuth } from "convex/react";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import AppSidebar from "@/components/app/AppSidebar";
 import MobileBottomNav from "@/components/app/MobileBottomNav";
 import QuickAddFAB from "@/components/app/QuickAddFAB";
@@ -13,6 +13,9 @@ export default function AppLayout({ children }) {
   const { isAuthenticated, isLoading } = useConvexAuth();
   const router = useRouter();
   const user = useQuery(api.users.viewer);
+  const plan = useQuery(api.plans.get);
+  const reconcilePilotSchedule = useMutation(api.seed.reconcilePilotPlanSchedule);
+  const pilotReconcileOnce = useRef(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -25,6 +28,15 @@ export default function AppLayout({ children }) {
       router.push("/onboarding");
     }
   }, [user, router]);
+
+  useEffect(() => {
+    if (!user?.isPilotUser || plan === undefined || plan === null) return;
+    if (pilotReconcileOnce.current) return;
+    pilotReconcileOnce.current = true;
+    reconcilePilotSchedule().catch(() => {
+      pilotReconcileOnce.current = false;
+    });
+  }, [user?.isPilotUser, plan, reconcilePilotSchedule]);
 
   if (isLoading) {
     return (
