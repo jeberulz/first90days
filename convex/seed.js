@@ -226,9 +226,30 @@ async function _seedPlanData(ctx, userId) {
 }
 
 async function _wipeUserData(ctx, userId) {
+  const activityRows = await ctx.db
+    .query("activities")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .collect();
+  for (const row of activityRows) {
+    await ctx.db.delete(row._id);
+  }
+
+  // Weeks: query by plan (by_plan). Avoids weeks.by_user, which can be unavailable during index backfill.
+  const planRows = await ctx.db
+    .query("plans")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .collect();
+  for (const plan of planRows) {
+    const weekRows = await ctx.db
+      .query("weeks")
+      .withIndex("by_plan", (q) => q.eq("planId", plan._id))
+      .collect();
+    for (const row of weekRows) {
+      await ctx.db.delete(row._id);
+    }
+  }
+
   const tables = [
-    "activities",
-    "weeks",
     "phases",
     "plans",
     "goals",
