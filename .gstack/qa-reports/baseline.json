@@ -1,0 +1,35 @@
+{
+  "date": "2026-04-09",
+  "url": "http://localhost:3002/",
+  "healthScore": 83,
+  "issues": [
+    {
+      "id": "ISSUE-001",
+      "title": "Dark mode lead copy contrast",
+      "severity": "medium",
+      "category": "accessibility"
+    },
+    {
+      "id": "ISSUE-002",
+      "title": "Placeholder hash links",
+      "severity": "medium",
+      "category": "functional"
+    },
+    {
+      "id": "ISSUE-003",
+      "title": "Footer year 2024",
+      "severity": "low",
+      "category": "content"
+    }
+  ],
+  "categoryScores": {
+    "console": 85,
+    "links": 70,
+    "visual": 88,
+    "functional": 85,
+    "ux": 80,
+    "performance": 90,
+    "content": 82,
+    "accessibility": 85
+  }
+}

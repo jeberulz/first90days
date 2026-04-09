@@ -4,21 +4,46 @@
 
 @layer base {
   :root {
-    --background: #050505;
-    --foreground: #ededed;
+    --background: #F5F2E8;
+    --foreground: #1C1917;
+  }
+
+  .dark {
+    --background: #0F0E0D;
+    --foreground: #E7E5E4;
   }
 
   body {
     color: var(--foreground);
-    background: var(--background);
+    background-color: var(--background);
     background-image:
-      radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.03) 0px, transparent 50%),
-      radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.03) 0px, transparent 50%);
-    @apply font-sans antialiased text-neutral-400 selection:bg-white/20 selection:text-white;
+      radial-gradient(at 0% 0%, rgba(217, 119, 87, 0.03) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, rgba(217, 119, 87, 0.03) 0px, transparent 50%);
+    transition: background-color 0.3s ease, color 0.3s ease;
+    @apply font-sans antialiased;
+  }
+
+  .dark body {
+    background-image:
+      radial-gradient(at 0% 0%, rgba(217, 119, 87, 0.06) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, rgba(217, 119, 87, 0.06) 0px, transparent 50%);
   }
 }
 
 @layer utilities {
+  .bg-grid-pattern {
+    background-image:
+      linear-gradient(to right, rgba(128, 128, 128, 0.04) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(128, 128, 128, 0.04) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  .dark .bg-grid-pattern {
+    background-image:
+      linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  }
+
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
@@ -28,13 +53,12 @@
     scrollbar-width: none;
   }
 
-  /* Custom Checkbox Animation */
-  .custom-checkbox input:checked+div {
-    @apply bg-white border-white;
+  .custom-checkbox input:checked + div {
+    @apply bg-accent border-accent;
   }
 
-  .custom-checkbox input:checked+div svg {
+  .custom-checkbox input:checked + div svg {
     display: block;
-    @apply text-black;
+    @apply text-white;
   }
 }

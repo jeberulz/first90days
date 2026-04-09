@@ -1,13 +1,36 @@
-import { Inter } from "next/font/google"; // Using Inter as requested
+import Script from "next/script";
+import { Inter, Instrument_Serif, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
-  display: 'swap',
+  display: "swap",
 });
 
-// We can load other fonts if needed, but Inter is the primary one requested.
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  weight: ["400"],
+  variable: "--font-instrument-serif",
+  display: "swap",
+});
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-space-grotesk",
+  display: "swap",
+});
+
+const themeInit = `
+try {
+  if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    document.documentElement.classList.add('dark');
+  } else {
+    document.documentElement.classList.remove('dark');
+  }
+} catch (e) {}
+`;
 
 export const metadata = {
   title: "First90 - AI Onboarding Planner",
@@ -16,8 +39,13 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
-      <body className={`${inter.variable} font-sans`}>
+    <html lang="en" className="scroll-smooth" suppressHydrationWarning>
+      <body
+        className={`${inter.variable} ${instrumentSerif.variable} ${spaceGrotesk.variable} font-sans antialiased selection:bg-[#D97757]/20 selection:text-[#D97757] text-[#1C1917] dark:text-[#E7E5E4]`}
+      >
+        <Script id="theme-init" strategy="beforeInteractive">
+          {themeInit}
+        </Script>
         {children}
       </body>
     </html>
