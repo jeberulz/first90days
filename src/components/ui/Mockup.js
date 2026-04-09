@@ -3,7 +3,10 @@ import { DashboardProgressChart } from "@/components/ui/DashboardProgressChart";
 
 export function Mockup() {
   return (
-    <div className="md:mt-16 md:h-[900px] isolate animate-fade-up flex overflow-hidden md:px-8 w-full h-[800px] mt-16 pr-4 pl-4 relative items-center justify-center" style={{ animationDelay: "0.5s" }}>
+    <div
+      className="md:mt-16 isolate animate-fade-up flex w-full min-h-0 min-w-0 overflow-x-hidden md:px-8 mt-16 pr-4 pl-4 relative items-center justify-center py-8 md:py-12"
+      style={{ animationDelay: "0.5s" }}
+    >
       <div className="-z-10 flex pointer-events-none w-full h-full absolute inset-0 items-center justify-center">
         <div className="-translate-x-1/2 -translate-y-1/2 blur-[120px] bg-accent/20 w-[80%] h-[70%] rounded-full absolute top-1/2 left-1/2" />
       </div>
@@ -136,8 +139,8 @@ export function Mockup() {
       </div>
 
       {/* Main window */}
-      <div className="z-10 transition-transform duration-500 w-full max-w-5xl mx-auto px-4 relative">
-        <div className="rounded-xl border dark:border-white/15 bg-[#0A0A0A] dark:bg-[#141414] shadow-2xl dark:shadow-[0_0_50px_-12px_rgba(0,0,0,0.7)] overflow-hidden relative backdrop-blur-sm ring-1 dark:ring-white/5 border-white/10 ring-black/5">
+      <div className="z-10 transition-transform duration-500 w-full min-w-0 max-w-5xl mx-auto px-4 relative shrink">
+        <div className="rounded-xl border dark:border-white/15 bg-[#0A0A0A] dark:bg-[#141414] shadow-2xl dark:shadow-[0_0_50px_-12px_rgba(0,0,0,0.7)] overflow-x-hidden overflow-y-visible relative backdrop-blur-sm ring-1 dark:ring-white/5 border-white/10 ring-black/5 max-w-full">
           <div className="h-10 border-b dark:border-white/10 bg-white/[0.02] flex items-center px-4 gap-3 border-white/5">
             <div className="flex gap-1.5">
               <div className="w-2.5 h-2.5 rounded-full bg-[#262626] border border-white/5" />
@@ -152,7 +155,7 @@ export function Mockup() {
             </div>
           </div>
 
-          <div className="grid grid-cols-12 min-h-[650px]">
+          <div className="grid grid-cols-12 min-h-0 min-w-0 md:min-h-[650px]">
             <div className="col-span-3 lg:col-span-3 border-r dark:border-white/10 bg-white/[0.01] dark:bg-[#111111] p-5 hidden lg:flex flex-col border-white/5">
               <div className="flex items-center gap-3 mb-8 text-neutral-200">
                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent to-accent-hover flex items-center justify-center text-xs font-semibold font-space-grotesk shadow-inner border text-white border-white/10">
@@ -205,7 +208,7 @@ export function Mockup() {
               </div>
             </div>
 
-            <div className="col-span-12 lg:col-span-9 md:p-10 dark:bg-[#141414] bg-[#0A0A0A] pt-6 pr-6 pb-6 pl-6">
+            <div className="col-span-12 lg:col-span-9 min-w-0 md:p-10 dark:bg-[#141414] bg-[#0A0A0A] pt-6 pr-4 pb-6 pl-4 sm:pr-6 sm:pl-6">
               <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 animate-fade-up">
                 <div>
                   <h2 className="text-3xl font-medium tracking-tight font-instrument-serif text-white">
@@ -294,8 +297,8 @@ export function Mockup() {
                 className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 animate-fade-up"
                 style={{ animationDelay: "0.2s" }}
               >
-                <div className="lg:col-span-2 p-6 rounded-xl border bg-white/[0.02] border-white/5">
-                  <div className="flex items-center justify-between mb-6">
+                <div className="lg:col-span-2 min-w-0 p-4 sm:p-6 rounded-xl border bg-white/[0.02] border-white/5">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
                     <div>
                       <h3 className="text-sm font-semibold font-space-grotesk text-white">
                         Performance Velocity

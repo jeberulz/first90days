@@ -122,8 +122,8 @@ export function DashboardProgressChart() {
   }, []);
 
   return (
-    <div className="h-64 w-full relative">
-      <canvas ref={canvasRef} className="max-h-64" />
+    <div className="h-64 w-full max-w-full min-w-0 relative">
+      <canvas ref={canvasRef} className="max-h-64 max-w-full" />
     </div>
   );
 }
