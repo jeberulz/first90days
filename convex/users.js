@@ -27,26 +27,44 @@ export const getDayNumber = query({
 
     if (!onboarding) return null;
 
-    const start = new Date(onboarding.startDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    start.setHours(0, 0, 0, 0);
+    const [sy, sm, sd] = onboarding.startDate.split("-").map(Number);
+    const start = new Date(sy, sm - 1, sd);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
     const diffMs = today.getTime() - start.getTime();
-    const dayNumber = Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
+    const rawDay = Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
 
-    const phase =
-      dayNumber <= 30 ? 1 : dayNumber <= 60 ? 2 : dayNumber <= 90 ? 3 : 3;
+    const hasStarted = rawDay >= 1;
+    const daysUntilStart = hasStarted ? 0 : Math.abs(rawDay) + 1;
+
+    if (!hasStarted) {
+      return {
+        dayNumber: 0,
+        daysUntilStart,
+        hasStarted: false,
+        totalDays: 90,
+        phase: 0,
+        phaseName: "Pre-boarding",
+        startDate: onboarding.startDate,
+        weekNumber: 0,
+      };
+    }
+
+    const clamped = Math.min(rawDay, 90);
+    const phase = clamped <= 30 ? 1 : clamped <= 60 ? 2 : 3;
     const phaseName =
       phase === 1 ? "Learn" : phase === 2 ? "Contribute" : "Lead";
 
     return {
-      dayNumber: Math.min(Math.max(dayNumber, 1), 90),
+      dayNumber: clamped,
+      daysUntilStart: 0,
+      hasStarted: true,
       totalDays: 90,
       phase,
       phaseName,
       startDate: onboarding.startDate,
-      weekNumber: Math.min(Math.ceil(dayNumber / 7), 12),
+      weekNumber: Math.min(Math.ceil(clamped / 7), 12),
     };
   },
 });

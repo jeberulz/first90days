@@ -1,99 +1,59 @@
-# QA Report — First90 landing (localhost)
+# QA Report — First90Days
 
-**Date:** 2026-04-09  
-**URL:** `http://localhost:3002/` (Next dev for this repo; `:3000` was a different project.)  
-**Framework:** Next.js 16 (Turbopack)  
-**Tier:** Standard  
-**Working tree:** Dirty at run time (gstack prefers clean tree for isolated fix commits).
+- **Date:** 2026-04-09
+- **URL:** http://localhost:3002
+- **Branch:** main
+- **Tier:** Standard (browser smoke + changed-area focus)
+- **Auth:** Existing session (iseghohi.john@gmail.com)
+- **Duration:** ~10 min
 
-## Summary
+## gstack policy note
 
-| Metric | Value |
-|--------|--------|
-| Pages exercised | 1 (`/`) |
-| Issues found | 4 |
-| Fixes applied | 1 (ISSUE-001 contrast) |
-| Deferred / info | 3 |
+**Working tree was dirty** (6 modified files: `convex/seed.js`, `convex/users.js`, dashboard/plan/tasks/today pages). Full /qa fix-loop with one-commit-per-fix expects a clean tree first.
 
-**PR line:** QA on landing: dark-mode body/nav contrast improved (`#A8A29E` → `#D6D3D1` on primary reading); nav/theme/tabs verified; placeholder `#` links and Cursor-only hydration noise called out.
+## Pages exercised
 
-## Console (localhost:3002)
+| Route | Result |
+|-------|--------|
+| `/dashboard` | Loads: journey strip, day counter, goals, stakeholders, pilot Reset workspace |
+| `/today` | Loads: Day 1 header, 2 activities, progress 0/2, reflection CTA |
+| `/plan` | Loads: 59 activities / 12 weeks, week links, phase headers |
+| `/tasks` | Loads: filters, 59 upcoming, goals section |
 
-- **React DevTools** suggestion (warning, expected in dev).
-- **HMR / Fast Refresh** (warning).
-- **Hydration mismatch (debug):** Diff shows `data-cursor-ref` attributes only in Cursor IDE browser snapshots. Not reproduced as an app bug outside automation; treat as **tooling noise**.
-- No Chart.js or Iconify runtime errors observed after interactions.
+## Console (aggregate)
 
-## Interactions verified
+- **Next.js dev:** `Detected scroll-behavior: smooth on <html>` — suggest adding `data-scroll-behavior="smooth"` per Next docs (noise, not user-visible break).
+- **Fast Refresh:** occasional “unrecoverable error” then rebuild — dev-only churn.
+- No app-throwing React error boundaries observed on the tested pages after load.
 
-- **Dark / light toggle** (navbar): updates theme, focus state OK.
-- **FeatureIntelligence tabs** (Intelligence → Market Data): panel swaps to “Market Benchmarks” / compensation copy; tab `active` state OK.
-- **Charts:** page loads with mock dashboard; no console errors tied to Chart.js on this pass.
+## Findings
 
-## Issues
+### ISSUE-001 — Reset control obscured by FAB (Low / UX)
 
-### ISSUE-001 — Dark mode: hero and section lead copy too low contrast (accessibility)
+- **Where:** `/dashboard`, pilot “Reset workspace” row, narrow/mobile width.
+- **Symptom:** Orange “+” FAB overlaps the secondary button; label truncates (“Reset & re-s…”).
+- **Severity:** Low (desktop likely fine; pilot-only control).
+- **Fix status:** deferred (not Standard-tier blocker).
 
-- **Severity:** Medium  
-- **Category:** Accessibility / Visual  
-- **Evidence:** Initial screenshot (dark): hero subhead and similar `text-lg` intros used `dark:text-[#A8A29E]` on `#0F0E0D`.  
-- **Fix:** Applied `dark:text-[#D6D3D1]` for hero badge, hero paragraph, secondary CTA, navbar chrome, four feature section intros, CTA blurb in `page.js`.  
-- **Files:** `Hero.js`, `Navbar.js`, `FeatureIntelligence.js`, `FeatureManagerSync.js`, `FeatureProgress.js`, `FeatureKnowledge.js`, `page.js`  
-- **Fix status:** verified in code (re-check in browser after refresh).
+### ISSUE-002 — Pre-boarding flow not exercised (Coverage gap)
 
-### ISSUE-002 — Navigation and footer links are placeholders (`href="#"`)
+- **Where:** Dashboard / Today / Plan / Tasks pre-start UI.
+- **Reason:** Local Convex data + `startDate` for this user yields **Day 1 / `hasStarted: true`**, so countdown, T-minus Today, and pre-start banners did not appear.
+- **Severity:** N/A (test gap, not necessarily a code bug).
+- **Recommendation:** Re-test with `onboardingData.startDate` in the future (or pilot reset after setting May 11, 2026 in DB / fresh seed).
 
-- **Severity:** Medium  
-- **Category:** Functional / UX  
-- **Note:** Methodology / Examples / Pricing / footer columns all point to `#`. Expected for mock landing, but real users get no navigation.  
-- **Fix status:** deferred (needs route map or external URLs).
+## Health score (rough)
 
-### ISSUE-003 — Footer copyright year
+- **Functional:** high for core navigation and lists (~90)
+- **Console:** docked for Next scroll warning (~75)
+- **Overall (informal):** ~**85/100** for this smoke pass
 
-- **Severity:** Low  
-- **Category:** Content  
-- **Note:** “© 2024 First90 Inc.” while system date is 2026.  
-- **Fix status:** deferred.
+## PR-style one-liner
 
-### ISSUE-004 — Local dev port / lockfile noise
+> QA (localhost:3002): dashboard, today, plan, tasks load for pilot session; no critical regressions; mobile FAB overlaps reset button; pre-boarding states need a future start date to verify.
 
-- **Severity:** Info  
-- **Category:** Operational  
-- **Note:** This repo’s `next dev` held lock on `.next/dev` (PID ~76884) and listened on **3002**; `:3000` served another app. Parent `package-lock.json` triggered Turbopack workspace-root warning.  
-- **Fix status:** n/a (document only).
+## Status
 
-## Health score (approximate)
+**DONE_WITH_CONCERNS**
 
-| Category | Score | Notes |
-|----------|-------|--------|
-| Console | 85 | Dev-only warnings; hydration debug is Cursor snapshot artifact |
-| Links | 70 | All `#` placeholders |
-| Visual | 88 | After contrast patch |
-| Functional | 85 | Theme + tabs OK |
-| UX | 80 | Placeholder links |
-| Performance | 90 | Single-page marketing |
-| Content | 82 | © year |
-| Accessibility | 85 | Contrast patch addresses main find |
-
-**Weighted estimate:** ~83 (before patch ~78).
-
-## Top 3 follow-ups
-
-1. Replace `#` hrefs with real routes or remove until routes exist.  
-2. Ship contrast changes with the rest of the redesign in one or more commits (tree was dirty).  
-3. Update footer year and re-run quick a11y pass (axe) in both themes.
-
-## Baseline snapshot (`baseline.json`)
-
-```json
-{
-  "date": "2026-04-09",
-  "url": "http://localhost:3002/",
-  "healthScore": 83,
-  "issues": [
-    { "id": "ISSUE-001", "title": "Dark mode lead copy contrast", "severity": "medium", "category": "accessibility" },
-    { "id": "ISSUE-002", "title": "Placeholder hash links", "severity": "medium", "category": "functional" },
-    { "id": "ISSUE-003", "title": "Footer year 2024", "severity": "low", "category": "content" }
-  ]
-}
-```
+- Concerns: dirty git tree; pre-boarding UX unverified; ISSUE-001 deferred.

@@ -31,6 +31,18 @@ export default function PlanPage() {
     weekActivities[a.weekNumber].push(a);
   }
 
+  const preBoarding = dayInfo && !dayInfo.hasStarted;
+
+  function formatStartDate(ymd) {
+    const [y, m, d] = ymd.split("-").map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
+  }
+
   return (
     <div className="space-y-8">
       <div>
@@ -41,6 +53,19 @@ export default function PlanPage() {
           {fullPlan.activities.length} activities across 12 weeks
         </p>
       </div>
+
+      {preBoarding && (
+        <div className="bg-[#D97757]/10 border border-[#D97757]/30 rounded-xl px-5 py-4 flex items-start gap-3">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#D97757" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 mt-0.5">
+            <circle cx="10" cy="10" r="9" />
+            <path d="M10 6v4M10 14h.01" />
+          </svg>
+          <p className="font-space-grotesk text-sm text-[#E7E5E4]">
+            Your plan starts <span className="font-medium text-[#D97757]">{formatStartDate(dayInfo.startDate)}</span>.
+            Activities will appear on Today&apos;s View once you begin. Feel free to review and edit your plan now.
+          </p>
+        </div>
+      )}
 
       {/* Phase progress */}
       <div className="flex items-center gap-2">

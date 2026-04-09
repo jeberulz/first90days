@@ -3,6 +3,7 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { useState } from "react";
+import Link from "next/link";
 
 const categoryColors = {
   learning: { bg: "bg-blue-500/10", border: "border-l-blue-500", text: "text-blue-400" },
@@ -10,6 +11,16 @@ const categoryColors = {
   relationships: { bg: "bg-amber-500/10", border: "border-l-amber-500", text: "text-amber-400" },
   influence: { bg: "bg-purple-500/10", border: "border-l-purple-500", text: "text-purple-400" },
 };
+
+function formatStartDate(ymd) {
+  const [y, m, d] = ymd.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
 
 export default function TodayPage() {
   const dayInfo = useQuery(api.users.getDayNumber);
@@ -32,6 +43,73 @@ export default function TodayPage() {
     );
   }
 
+  /* ── Pre-boarding state ── */
+  if (!dayInfo.hasStarted) {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="font-instrument-serif text-4xl tracking-[-0.9px] leading-[40px]">
+            T-minus {dayInfo.daysUntilStart}
+          </h1>
+          <p className="mt-2 font-space-grotesk text-base text-[#A8A29E]">
+            {formatStartDate(dayInfo.startDate)}
+          </p>
+        </div>
+
+        <div className="bg-gradient-to-br from-[#1C1917] to-[#292524] border border-[#2C2825] rounded-xl p-8 text-center">
+          <p className="font-instrument-serif text-6xl text-[#D97757] leading-none">
+            {dayInfo.daysUntilStart}
+          </p>
+          <p className="mt-2 font-space-grotesk text-sm text-[#A8A29E]">
+            {dayInfo.daysUntilStart === 1 ? "day" : "days"} until Day 1
+          </p>
+        </div>
+
+        <div className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-6 space-y-4">
+          <h2 className="font-instrument-serif text-xl text-[#E7E5E4]">
+            Your plan starts on {formatStartDate(dayInfo.startDate)}
+          </h2>
+          <p className="font-space-grotesk text-sm text-[#A8A29E]">
+            Use this time to prepare. Activities will appear here once your plan begins.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+            <Link
+              href="/dashboard"
+              className="flex flex-col items-center gap-2 bg-[#292524]/50 rounded-lg p-4 hover:bg-[#292524] transition"
+            >
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#D97757" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 7l7-4 7 4v8a1 1 0 01-1 1H4a1 1 0 01-1-1V7z" />
+                <path d="M8 16V10h4v6" />
+              </svg>
+              <span className="font-space-grotesk text-xs text-[#E7E5E4]">Pre-boarding checklist</span>
+            </Link>
+            <Link
+              href="/stakeholders"
+              className="flex flex-col items-center gap-2 bg-[#292524]/50 rounded-lg p-4 hover:bg-[#292524] transition"
+            >
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#D97757" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="10" cy="7" r="3" />
+                <path d="M4 17v-1a4 4 0 014-4h4a4 4 0 014 4v1" />
+              </svg>
+              <span className="font-space-grotesk text-xs text-[#E7E5E4]">Research stakeholders</span>
+            </Link>
+            <Link
+              href="/knowledge"
+              className="flex flex-col items-center gap-2 bg-[#292524]/50 rounded-lg p-4 hover:bg-[#292524] transition"
+            >
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#D97757" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 4h12a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z" />
+                <path d="M7 1v3M13 1v3M3 8h14" />
+              </svg>
+              <span className="font-space-grotesk text-xs text-[#E7E5E4]">Start knowledge base</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── Active plan state ── */
   async function handleComplete(id) {
     if (completingId === id) {
       await completeActivity({ id, completionNotes: noteText || undefined });

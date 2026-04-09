@@ -1,8 +1,51 @@
 "use client";
 
-import { useQuery } from "convex/react";
-import { useMutation } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
+import { useState, useEffect } from "react";
+
+const PRE_BOARDING_CHECKLIST = [
+  { id: "news", label: "Research company recent news, earnings, product launches" },
+  { id: "culture", label: "Read Glassdoor / Blind reviews for culture signals" },
+  { id: "linkedin", label: "Connect with future manager on LinkedIn — send intro message" },
+  { id: "workspace", label: "Set up your workspace (laptop, tools, badge if remote)" },
+  { id: "learning", label: "Draft your \"learning agenda\" — 5 questions you want answered by day 30" },
+  { id: "people", label: "Identify 3 people you want to meet in week 1" },
+  { id: "stars", label: "Review your STARS situation and what it means for your approach" },
+];
+
+function useChecklistState() {
+  const [checked, setChecked] = useState({});
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("preboarding_checklist");
+      if (stored) setChecked(JSON.parse(stored));
+    } catch {}
+  }, []);
+
+  function toggle(id) {
+    setChecked((prev) => {
+      const next = { ...prev, [id]: !prev[id] };
+      try {
+        localStorage.setItem("preboarding_checklist", JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }
+
+  return { checked, toggle };
+}
+
+function formatStartDate(ymd) {
+  const [y, m, d] = ymd.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
 
 export default function DashboardPage() {
   const user = useQuery(api.users.viewer);
@@ -11,21 +54,30 @@ export default function DashboardPage() {
   const goals = useQuery(api.goals.list);
   const stakeholders = useQuery(api.stakeholders.list);
   const seedPlan = useMutation(api.seed.seedJohnsPlan);
+  const resetAndReseed = useMutation(api.seed.resetAndReseed);
+  const [resetting, setResetting] = useState(false);
+  const { checked, toggle } = useChecklistState();
 
   if (!user) return null;
+
+  const preBoarding = plan && dayInfo && !dayInfo.hasStarted;
 
   return (
     <div className="space-y-8">
       {/* Header */}
       <div>
         <h1 className="font-instrument-serif text-4xl tracking-[-0.9px] leading-[40px]">
-          Welcome to your First 90 Days
+          {preBoarding
+            ? "Preparing for Day 1"
+            : "Welcome to your First 90 Days"}
         </h1>
         <p className="mt-2 font-space-grotesk text-base text-[#A8A29E]">
           {user.name ? `Hi ${user.name.split(" ")[0]}, ` : ""}
-          {dayInfo
-            ? `you're on Day ${dayInfo.dayNumber} — ${dayInfo.phaseName} phase`
-            : "let's get started"}
+          {preBoarding
+            ? `your journey begins on ${formatStartDate(dayInfo.startDate)}`
+            : dayInfo && dayInfo.hasStarted
+              ? `you're on Day ${dayInfo.dayNumber} — ${dayInfo.phaseName} phase`
+              : "let's get started"}
         </p>
       </div>
 
@@ -62,8 +114,147 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Plan overview */}
-      {plan && dayInfo && (
+      {/* ── Pre-boarding state ── */}
+      {preBoarding && (
+        <>
+          {/* Countdown hero */}
+          <div className="bg-gradient-to-br from-[#1C1917] to-[#292524] border border-[#2C2825] rounded-xl p-8 text-center">
+            <p className="font-space-grotesk text-xs font-medium uppercase tracking-[0.6px] text-[#A8A29E] mb-2">
+              Your journey begins in
+            </p>
+            <p className="font-instrument-serif text-7xl text-[#D97757] leading-none">
+              {dayInfo.daysUntilStart}
+            </p>
+            <p className="mt-2 font-instrument-serif text-xl text-[#E7E5E4]">
+              {dayInfo.daysUntilStart === 1 ? "day" : "days"}
+            </p>
+            <p className="mt-3 font-space-grotesk text-sm text-[#A8A29E]">
+              {formatStartDate(dayInfo.startDate)}
+            </p>
+          </div>
+
+          {/* Phase bar — all grayed out */}
+          <div className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-6">
+            <h3 className="font-space-grotesk text-sm font-medium text-[#A8A29E] mb-4">
+              Onboarding Journey
+            </h3>
+            <div className="flex items-center gap-2 mb-3">
+              {[
+                { name: "Pre-boarding", days: `T-${dayInfo.daysUntilStart}`, active: true },
+                { name: "Learn", days: "Days 1-30", active: false },
+                { name: "Contribute", days: "Days 31-60", active: false },
+                { name: "Lead", days: "Days 61-90", active: false },
+              ].map((phase) => (
+                <div key={phase.name} className="flex-1">
+                  <div
+                    className={`h-1 rounded-full ${
+                      phase.active ? "bg-[#D97757]" : "bg-[#292524]"
+                    }`}
+                  />
+                  <div className="mt-2 flex items-center justify-between">
+                    <span className="font-space-grotesk text-xs font-medium text-[#E7E5E4]">
+                      {phase.name}
+                    </span>
+                    <span className="font-space-grotesk text-xs text-[#A8A29E]">
+                      {phase.days}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Pre-boarding checklist */}
+          <div className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-6">
+            <h3 className="font-space-grotesk text-sm font-medium text-[#A8A29E] mb-1">
+              Pre-Boarding Checklist
+            </h3>
+            <p className="font-space-grotesk text-xs text-[#57534E] mb-4">
+              Get a head start before Day 1. Progress saves locally.
+            </p>
+            <div className="space-y-3">
+              {PRE_BOARDING_CHECKLIST.map((item) => (
+                <label
+                  key={item.id}
+                  className="flex items-start gap-3 cursor-pointer group"
+                >
+                  <button
+                    type="button"
+                    onClick={() => toggle(item.id)}
+                    className={`mt-0.5 w-5 h-5 rounded flex-shrink-0 border-2 transition-colors flex items-center justify-center ${
+                      checked[item.id]
+                        ? "bg-[#D97757] border-[#D97757]"
+                        : "border-[#44403C] group-hover:border-[#D97757]"
+                    }`}
+                  >
+                    {checked[item.id] && (
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 12 12"
+                        fill="none"
+                        stroke="white"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M2 6l3 3 5-5" />
+                      </svg>
+                    )}
+                  </button>
+                  <span
+                    className={`font-space-grotesk text-sm ${
+                      checked[item.id]
+                        ? "text-[#A8A29E] line-through"
+                        : "text-[#E7E5E4]"
+                    }`}
+                  >
+                    {item.label}
+                  </span>
+                </label>
+              ))}
+            </div>
+            <p className="mt-4 font-space-grotesk text-xs text-[#57534E]">
+              {Object.values(checked).filter(Boolean).length} /{" "}
+              {PRE_BOARDING_CHECKLIST.length} completed
+            </p>
+          </div>
+
+          {/* Reset workspace (pilot only) */}
+          {user.isPilotUser && (
+            <div className="flex items-center justify-between bg-[#1C1917] border border-[#2C2825] rounded-xl p-4">
+              <div>
+                <p className="font-space-grotesk text-sm text-[#E7E5E4]">
+                  Reset workspace
+                </p>
+                <p className="font-space-grotesk text-xs text-[#57534E]">
+                  Wipe all data and re-seed from scratch (pilot only).
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={resetting}
+                onClick={async () => {
+                  if (!confirm("This deletes all your data and re-seeds. Continue?"))
+                    return;
+                  setResetting(true);
+                  try {
+                    await resetAndReseed();
+                  } finally {
+                    setResetting(false);
+                  }
+                }}
+                className="px-4 py-2 rounded-lg border border-[#44403C] font-space-grotesk text-xs text-[#A8A29E] hover:bg-[#292524] hover:text-[#E7E5E4] transition disabled:opacity-50"
+              >
+                {resetting ? "Resetting…" : "Reset & re-seed"}
+              </button>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ── Active plan state ── */}
+      {plan && dayInfo && dayInfo.hasStarted && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Onboarding Journey Progress */}
           <div className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-6 col-span-full">
@@ -75,7 +266,7 @@ export default function DashboardPage() {
                 { name: "Learn", days: "Days 1-30", active: dayInfo.phase >= 1 },
                 { name: "Contribute", days: "Days 31-60", active: dayInfo.phase >= 2 },
                 { name: "Lead", days: "Days 61-90", active: dayInfo.phase >= 3 },
-              ].map((phase, i) => (
+              ].map((phase) => (
                 <div key={phase.name} className="flex-1">
                   <div
                     className={`h-1 rounded-full ${
@@ -140,6 +331,37 @@ export default function DashboardPage() {
                 : ""}
             </p>
           </div>
+
+          {/* Reset workspace (pilot, active plan) */}
+          {user.isPilotUser && (
+            <div className="col-span-full flex items-center justify-between bg-[#1C1917] border border-[#2C2825] rounded-xl p-4">
+              <div>
+                <p className="font-space-grotesk text-sm text-[#E7E5E4]">
+                  Reset workspace
+                </p>
+                <p className="font-space-grotesk text-xs text-[#57534E]">
+                  Wipe all data and re-seed from scratch (pilot only).
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={resetting}
+                onClick={async () => {
+                  if (!confirm("This deletes all your data and re-seeds. Continue?"))
+                    return;
+                  setResetting(true);
+                  try {
+                    await resetAndReseed();
+                  } finally {
+                    setResetting(false);
+                  }
+                }}
+                className="px-4 py-2 rounded-lg border border-[#44403C] font-space-grotesk text-xs text-[#A8A29E] hover:bg-[#292524] hover:text-[#E7E5E4] transition disabled:opacity-50"
+              >
+                {resetting ? "Resetting…" : "Reset & re-seed"}
+              </button>
+            </div>
+          )}
         </div>
       )}
 
