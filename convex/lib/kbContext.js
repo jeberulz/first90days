@@ -28,8 +28,12 @@ import {
   CONTEXT_TOP_K_DEFAULT,
   CONTEXT_OVERFETCH_MULTIPLIER,
   CHUNK_MAX_PER_DOC_IN_CONTEXT,
+  RERANK_IMPORTANCE_WEIGHT,
+  RERANK_RECENCY_WEIGHT,
+  RERANK_RECENCY_HALFLIFE_DAYS,
 } from "./kbRetrievalConfig.js";
 import { groupResultsByDocument } from "./kbRetrievalGrouping.js";
+import { rerankCitations } from "./kbReranker.js";
 
 // Re-export so callers that previously imported from kbContext still work.
 export { groupResultsByDocument };
@@ -124,14 +128,20 @@ export async function fetchContextForPlanning(ctx, args) {
   //    deduplicated by entryId and carries the user-visible `key` (= our
   //    documentId). We want: for each document, its top N chunks by score,
   //    capped at CHUNK_MAX_PER_DOC_IN_CONTEXT.
-  const citations = groupResultsByDocument({
+  //
+  //    We deliberately over-fetch documents (topK * OVERFETCH_MULTIPLIER)
+  //    so the re-ranker below has a wider candidate pool to promote
+  //    high-importance / recent docs that wouldn't otherwise crack topK
+  //    on pure similarity.
+  const groupedCitations = groupResultsByDocument({
     searchResult,
     maxPerDoc: CHUNK_MAX_PER_DOC_IN_CONTEXT,
-    maxDocs: topK,
+    maxDocs: topK * CONTEXT_OVERFETCH_MULTIPLIER,
   });
 
-  // 3. Join documents for metadata (title, summary, keyFacts, category).
-  const documentIds = citations
+  // 3. Join documents for metadata (title, summary, keyFacts, category,
+  //    importance, _creationTime). The last two feed the re-ranker.
+  const documentIds = groupedCitations
     .map((c) => c.documentId)
     .filter((id) => id);
   let docsById = {};
@@ -144,13 +154,15 @@ export async function fetchContextForPlanning(ctx, args) {
   }
 
   // Hydrate citations with doc metadata + fallback snippet.
-  for (const c of citations) {
+  for (const c of groupedCitations) {
     const doc = c.documentId ? docsById[c.documentId] : null;
     c.title = doc?.title ?? c.title ?? "(untitled)";
     c.sourceType = doc?.sourceType ?? "unknown";
     c.category = doc?.category ?? null;
     c.summary = doc?.summary ?? null;
     c.keyFacts = doc?.keyFacts ?? null;
+    c.importance = doc?.importance;
+    c._creationTime = doc?._creationTime;
     // Legacy snippet kept as fallback for pre-chunking docs until backfill.
     if (c.chunks.length === 0 && doc?.content) {
       c.chunks = [
@@ -163,6 +175,18 @@ export async function fetchContextForPlanning(ctx, args) {
       ];
     }
   }
+
+  // 3b. Blend similarity with importance + recency and trim to final topK.
+  //     See kbReranker.js for the scoring formula and kbRetrievalConfig.js
+  //     for the weight semantics.
+  const citations = rerankCitations({
+    citations: groupedCitations,
+    nowMs: Date.now(),
+    importanceWeight: RERANK_IMPORTANCE_WEIGHT,
+    recencyWeight: RERANK_RECENCY_WEIGHT,
+    recencyHalflifeDays: RERANK_RECENCY_HALFLIFE_DAYS,
+    maxDocs: topK,
+  });
 
   // 4. Memories. If entity scoping is provided, narrow to that entity.
   let memories = [];
@@ -226,13 +250,15 @@ export async function semanticSearch(ctx, args) {
         : {}),
     });
 
-    const citations = groupResultsByDocument({
+    const groupedCitations = groupResultsByDocument({
       searchResult: result,
       maxPerDoc: CHUNK_MAX_PER_DOC_IN_CONTEXT,
-      maxDocs: limit,
+      maxDocs: limit * CONTEXT_OVERFETCH_MULTIPLIER,
     });
 
-    const documentIds = citations.map((c) => c.documentId).filter(Boolean);
+    const documentIds = groupedCitations
+      .map((c) => c.documentId)
+      .filter(Boolean);
     let docsById = {};
     if (documentIds.length > 0) {
       const docs = await ctx.runQuery(
@@ -241,6 +267,22 @@ export async function semanticSearch(ctx, args) {
       );
       docsById = Object.fromEntries(docs.map((d) => [d._id, d]));
     }
+
+    // Hydrate + re-rank so Cmd+K surfaces high-importance / recent docs the
+    // same way the planning context does.
+    for (const c of groupedCitations) {
+      const doc = c.documentId ? docsById[c.documentId] : null;
+      c.importance = doc?.importance;
+      c._creationTime = doc?._creationTime;
+    }
+    const citations = rerankCitations({
+      citations: groupedCitations,
+      nowMs: Date.now(),
+      importanceWeight: RERANK_IMPORTANCE_WEIGHT,
+      recencyWeight: RERANK_RECENCY_WEIGHT,
+      recencyHalflifeDays: RERANK_RECENCY_HALFLIFE_DAYS,
+      maxDocs: limit,
+    });
 
     const matches = citations.map((c) => {
       const doc = c.documentId ? docsById[c.documentId] : null;
