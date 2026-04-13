@@ -4,7 +4,7 @@ import { use, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "convex/react";
 import { Icon } from "@iconify/react";
-import { api } from "../../../../../convex/_generated/api";
+import { api } from "../../../../../../convex/_generated/api";
 import {
   KB_CATEGORY_BY_SLUG,
   ACCENT_CLASSES,
