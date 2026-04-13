@@ -30,13 +30,25 @@ export default function AppLayout({ children }) {
   }, [user, router]);
 
   useEffect(() => {
-    if (!user?.isPilotUser || plan === undefined || plan === null) return;
+    if (!user || !user.isPilotUser) return;
+    if (plan === undefined || plan === null) return;
     if (pilotReconcileOnce.current) return;
-    pilotReconcileOnce.current = true;
-    reconcilePilotSchedule().catch(() => {
-      pilotReconcileOnce.current = false;
-    });
-  }, [user?.isPilotUser, plan, reconcilePilotSchedule]);
+
+    let cancelled = false;
+    (async () => {
+      try {
+        await reconcilePilotSchedule();
+        if (!cancelled) pilotReconcileOnce.current = true;
+      } catch (err) {
+        console.error("[pilot-reconcile] failed", err);
+        // leave ref false so a later re-render can retry
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user, plan, reconcilePilotSchedule]);
 
   if (isLoading) {
     return (

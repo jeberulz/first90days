@@ -1,7 +1,12 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { auth } from "./auth";
-import { isPilotEmail } from "./lib/pilotUser";
+import { isPilotEmail, PILOT_PLAN_START_DATE } from "./lib/pilotUser";
+import {
+  resolveUserTimezone,
+  tzTodayYmd,
+  diffCalendarDays,
+} from "./lib/planDates";
 
 export const viewer = query({
   args: {},
@@ -20,6 +25,9 @@ export const getDayNumber = query({
     const userId = await auth.getUserId(ctx);
     if (!userId) return null;
 
+    const user = await ctx.db.get(userId);
+    if (!user) return null;
+
     const onboarding = await ctx.db
       .query("onboardingData")
       .withIndex("by_user", (q) => q.eq("userId", userId))
@@ -27,13 +35,15 @@ export const getDayNumber = query({
 
     if (!onboarding) return null;
 
-    const [sy, sm, sd] = onboarding.startDate.split("-").map(Number);
-    const start = new Date(sy, sm - 1, sd);
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    // Pilot read-path override: canonical anchor wins even if DB row is stale.
+    const isPilot = isPilotEmail(user.email);
+    const effectiveStartYmd = isPilot
+      ? PILOT_PLAN_START_DATE
+      : onboarding.startDate;
 
-    const diffMs = today.getTime() - start.getTime();
-    const rawDay = Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
+    const tz = resolveUserTimezone(user);
+    const todayYmd = tzTodayYmd(tz);
+    const rawDay = diffCalendarDays(effectiveStartYmd, todayYmd) + 1;
 
     const hasStarted = rawDay >= 1;
     const daysUntilStart = hasStarted ? 0 : Math.abs(rawDay) + 1;
@@ -46,7 +56,7 @@ export const getDayNumber = query({
         totalDays: 90,
         phase: 0,
         phaseName: "Pre-boarding",
-        startDate: onboarding.startDate,
+        startDate: effectiveStartYmd,
         weekNumber: 0,
       };
     }
@@ -63,7 +73,7 @@ export const getDayNumber = query({
       totalDays: 90,
       phase,
       phaseName,
-      startDate: onboarding.startDate,
+      startDate: effectiveStartYmd,
       weekNumber: Math.min(Math.ceil(clamped / 7), 12),
     };
   },

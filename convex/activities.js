@@ -1,7 +1,11 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { auth } from "./auth";
-import { scheduleYmd } from "./lib/planDates";
+import {
+  scheduleYmd,
+  resolveUserTimezone,
+  tzTodayYmd,
+} from "./lib/planDates";
 
 export const getToday = query({
   args: {},
@@ -9,7 +13,9 @@ export const getToday = query({
     const userId = await auth.getUserId(ctx);
     if (!userId) return [];
 
-    const today = new Date().toISOString().split("T")[0];
+    const user = await ctx.db.get(userId);
+    const today = tzTodayYmd(resolveUserTimezone(user));
+
     return await ctx.db
       .query("activities")
       .withIndex("by_user_date", (q) =>
