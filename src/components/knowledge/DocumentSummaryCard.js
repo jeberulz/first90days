@@ -81,11 +81,15 @@ export default function DocumentSummaryCard({ doc }) {
         </div>
       )}
 
-      {doc.lastError && (
-        <div className="text-xs text-red-400 bg-red-950/20 border border-red-900/40 rounded-md p-2">
-          {doc.lastError}
-        </div>
-      )}
+      {/* Only show errors when a pipeline stage actually failed. A leftover
+          lastError from a prior best-effort step (e.g. memory consolidation)
+          shouldn't surface here when enrichment + embedding succeeded. */}
+      {doc.lastError &&
+        (doc.embeddingStatus === "failed" || doc.enrichmentStatus === "failed") && (
+          <div className="text-xs text-red-400 bg-red-950/20 border border-red-900/40 rounded-md p-2">
+            {doc.lastError}
+          </div>
+        )}
     </div>
   );
 }
