@@ -31,6 +31,9 @@ import {
   RERANK_IMPORTANCE_WEIGHT,
   RERANK_RECENCY_WEIGHT,
   RERANK_RECENCY_HALFLIFE_DAYS,
+  SEARCH_TYPE_DEFAULT,
+  HYBRID_TEXT_WEIGHT,
+  HYBRID_VECTOR_WEIGHT,
 } from "./kbRetrievalConfig.js";
 import { groupResultsByDocument } from "./kbRetrievalGrouping.js";
 import { rerankCitations } from "./kbReranker.js";
@@ -104,6 +107,13 @@ export async function fetchContextForPlanning(ctx, args) {
       query,
       limit: topK * CONTEXT_OVERFETCH_MULTIPLIER,
       vectorScoreThreshold: CONTEXT_SIMILARITY_THRESHOLD_DEFAULT,
+      searchType: SEARCH_TYPE_DEFAULT,
+      ...(SEARCH_TYPE_DEFAULT === "hybrid"
+        ? {
+            textWeight: HYBRID_TEXT_WEIGHT,
+            vectorWeight: HYBRID_VECTOR_WEIGHT,
+          }
+        : {}),
       ...(categories && categories.length > 0
         ? {
             // RAG accepts a single filter or an array (OR semantics).
@@ -245,6 +255,13 @@ export async function semanticSearch(ctx, args) {
       query,
       limit: limit * CONTEXT_OVERFETCH_MULTIPLIER,
       vectorScoreThreshold: SEARCH_SIMILARITY_THRESHOLD_DEFAULT,
+      searchType: SEARCH_TYPE_DEFAULT,
+      ...(SEARCH_TYPE_DEFAULT === "hybrid"
+        ? {
+            textWeight: HYBRID_TEXT_WEIGHT,
+            vectorWeight: HYBRID_VECTOR_WEIGHT,
+          }
+        : {}),
       ...(categories && categories.length > 0
         ? { filters: categories.map((c) => ({ name: "category", value: c })) }
         : {}),

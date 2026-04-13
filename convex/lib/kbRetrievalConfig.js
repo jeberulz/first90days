@@ -38,6 +38,28 @@ export const CONTEXT_OVERFETCH_MULTIPLIER = 2;
 export const CONTEXT_MAX_MEMORIES_DEFAULT = 8;
 
 // ---------------------------------------------------------------------------
+// Hybrid search (Priority 4)
+// ---------------------------------------------------------------------------
+
+/**
+ * Which retrieval mode to use by default.
+ *   "vector" — cosine similarity only (original behavior)
+ *   "text"   — full-text only, no embedding lookup
+ *   "hybrid" — RRF-fused vector + text, position-based scores in [0,1]
+ * Hybrid catches exact-name / acronym queries that cosine similarity tends
+ * to miss (e.g. "OKR Q3" landing on a doc that doesn't say "objective key
+ * result" anywhere). Returns position-based scores (1.0 for top) which
+ * our reranker consumes the same way as cosine scores.
+ */
+export const SEARCH_TYPE_DEFAULT = "hybrid";
+
+/** Weight for the text leg of hybrid RRF. Higher = favor exact-match hits. */
+export const HYBRID_TEXT_WEIGHT = 1;
+
+/** Weight for the vector leg of hybrid RRF. Higher = favor semantic hits. */
+export const HYBRID_VECTOR_WEIGHT = 1;
+
+// ---------------------------------------------------------------------------
 // Re-ranking (Priority 2)
 // ---------------------------------------------------------------------------
 
