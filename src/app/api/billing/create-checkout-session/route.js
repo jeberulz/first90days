@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { fetchQuery, fetchAction } from "convex/nextjs";
-import { api } from "../../../../../../convex/_generated/api";
+import { api } from "../../../../../convex/_generated/api";
 import { getStripe } from "@/lib/stripe";
 
 const TRIAL_DAYS = 14;
