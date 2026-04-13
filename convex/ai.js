@@ -2,13 +2,26 @@
 
 import { v } from "convex/values";
 import { action } from "./_generated/server";
-import { api, internal } from "./_generated/api";
+import { api } from "./_generated/api";
 import {
   generateText,
   WATKINS_SYSTEM_PROMPT,
   ACTIVITY_SUGGESTION_PROMPT,
   WEEKLY_INSIGHT_PROMPT,
 } from "./lib/ai";
+import {
+  fetchContextForPlanning,
+  recordRetrieval,
+} from "./lib/kbContext.js";
+
+const ALL_KB_CATEGORIES = [
+  "company_context",
+  "team_people",
+  "product_technology",
+  "processes_workflows",
+  "goals_notes",
+  "industry_market",
+];
 
 export const generatePlan = action({
   args: { userId: v.id("users") },
@@ -51,6 +64,23 @@ ${onboardingData.challenges ? `Known Challenges: ${onboardingData.challenges}` :
 ${onboardingData.successDefinition ? `Success Definition: ${onboardingData.successDefinition}` : ""}
 `.trim();
 
+    // Pull KB context — the unlock. Every existing KB doc + memory now flows
+    // into the plan prompt so the plan is grounded in what we already know
+    // about this user's company, team, and notes.
+    const kbContext = await fetchContextForPlanning(ctx, {
+      userId: args.userId,
+      query: userContext,
+      categories: ALL_KB_CATEGORIES,
+      topK: 12,
+      includeMemories: true,
+    });
+
+    // Build a system prompt that includes the KB context block above the
+    // base Watkins prompt — context first so the model anchors on it.
+    const systemPrompt = kbContext.contextText
+      ? `${kbContext.contextText}\n\n${WATKINS_SYSTEM_PROMPT}`
+      : WATKINS_SYSTEM_PROMPT;
+
     const phases = [
       { number: 1, name: "Learn", startDay: 1, endDay: 30 },
       { number: 2, name: "Contribute", startDay: 31, endDay: 60 },
@@ -76,7 +106,7 @@ Generate exactly 20 activities for this phase. Return ONLY a JSON array where ea
 
 Distribute activities evenly across the days. Include a mix of all categories appropriate for this phase.`;
 
-      const response = await generateText(WATKINS_SYSTEM_PROMPT, prompt);
+      const response = await generateText(systemPrompt, prompt);
 
       try {
         const jsonMatch = response.match(/\[[\s\S]*\]/);
@@ -99,7 +129,27 @@ Distribute activities evenly across the days. Include a mix of all categories ap
       activities: allActivities,
     });
 
-    return { activitiesGenerated: allActivities.length };
+    // Audit: record that the plan generation pulled this context
+    if (kbContext.citations.length > 0 || kbContext.memories.length > 0) {
+      try {
+        await recordRetrieval(ctx, {
+          userId: args.userId,
+          feature: "plan_generation",
+          documentIds: kbContext.citations
+            .map((c) => c.documentId)
+            .filter(Boolean),
+          memoryIds: kbContext.memories.map((m) => m._id),
+        });
+      } catch (e) {
+        console.warn("[generatePlan] recordRetrieval failed", e?.message);
+      }
+    }
+
+    return {
+      activitiesGenerated: allActivities.length,
+      kbDocsUsed: kbContext.citations.length,
+      kbMemoriesUsed: kbContext.memories.length,
+    };
   },
 });
 
@@ -107,12 +157,24 @@ Distribute activities evenly across the days. Include a mix of all categories ap
 
 export const suggestActivities = action({
   args: {
+    userId: v.optional(v.id("users")),
     context: v.string(),
   },
   handler: async (ctx, args) => {
+    let kbBlock = "";
+    if (args.userId) {
+      const kbContext = await fetchContextForPlanning(ctx, {
+        userId: args.userId,
+        query: args.context,
+        topK: 6,
+        includeMemories: true,
+      });
+      if (kbContext.contextText) kbBlock = `${kbContext.contextText}\n\n`;
+    }
+
     const response = await generateText(
       WATKINS_SYSTEM_PROMPT,
-      `${ACTIVITY_SUGGESTION_PROMPT}\n\nUser's current context:\n${args.context}\n\nRespond with ONLY a JSON array.`
+      `${kbBlock}${ACTIVITY_SUGGESTION_PROMPT}\n\nUser's current context:\n${args.context}\n\nRespond with ONLY a JSON array.`
     );
 
     try {
@@ -129,12 +191,24 @@ export const suggestActivities = action({
 
 export const generateWeeklyInsight = action({
   args: {
+    userId: v.optional(v.id("users")),
     weekData: v.string(),
   },
   handler: async (ctx, args) => {
+    let kbBlock = "";
+    if (args.userId) {
+      const kbContext = await fetchContextForPlanning(ctx, {
+        userId: args.userId,
+        query: args.weekData,
+        topK: 6,
+        includeMemories: true,
+      });
+      if (kbContext.contextText) kbBlock = `${kbContext.contextText}\n\n`;
+    }
+
     const response = await generateText(
       WATKINS_SYSTEM_PROMPT,
-      `${WEEKLY_INSIGHT_PROMPT}\n\nWeek data:\n${args.weekData}`
+      `${kbBlock}${WEEKLY_INSIGHT_PROMPT}\n\nWeek data:\n${args.weekData}`
     );
     return response;
   },

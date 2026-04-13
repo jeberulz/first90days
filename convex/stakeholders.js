@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { auth } from "./auth";
 
 export const list = query({
@@ -183,13 +184,18 @@ export const addInteraction = mutation({
       throw new Error("Stakeholder not found");
     }
 
-    await ctx.db.insert("interactions", {
+    const interactionId = await ctx.db.insert("interactions", {
       ...args,
       userId,
     });
 
     await ctx.db.patch(args.stakeholderId, {
       lastInteractionDate: args.date,
+    });
+
+    // Auto-capture into the KB brain (opt-out via users.settings.kb.autoIngestInteractions).
+    await ctx.scheduler.runAfter(0, internal.kbAutoCapture.fromInteraction, {
+      interactionId,
     });
   },
 });

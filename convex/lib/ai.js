@@ -5,6 +5,39 @@ function getProvider() {
   return process.env.AI_PROVIDER || "claude";
 }
 
+// Embeddings are pinned to OpenAI text-embedding-3-small (1536d) regardless
+// of AI_PROVIDER. Anthropic doesn't ship embeddings, and switching providers
+// later would require re-embedding every kbDocument. Generation stays
+// pluggable via AI_PROVIDER; embeddings do not.
+export const EMBEDDING_MODEL = "text-embedding-3-small";
+export const EMBEDDING_DIMENSION = 1536;
+
+let _openaiClient = null;
+function openaiClient() {
+  if (!_openaiClient) {
+    _openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return _openaiClient;
+}
+
+/**
+ * Embed a single piece of text. Returns a Float32 array of 1536 dimensions.
+ * Used by KB memory consolidation for one-off similarity checks; bulk
+ * embedding flows through @convex-dev/rag instead.
+ */
+export async function embedText(input) {
+  const text = (input || "").toString();
+  if (!text.trim()) {
+    return new Array(EMBEDDING_DIMENSION).fill(0);
+  }
+  const client = openaiClient();
+  const response = await client.embeddings.create({
+    model: EMBEDDING_MODEL,
+    input: text,
+  });
+  return response.data[0].embedding;
+}
+
 async function callClaude(systemPrompt, userPrompt) {
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   const response = await client.messages.create({

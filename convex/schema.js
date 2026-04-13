@@ -20,6 +20,19 @@ export default defineSchema({
         weekStartDay: v.optional(v.string()),
         emailNotifications: v.optional(v.boolean()),
         pushNotifications: v.optional(v.boolean()),
+        dailyDigest: v.optional(v.boolean()),
+        stakeholderUpdates: v.optional(v.boolean()),
+        milestoneReminders: v.optional(v.boolean()),
+        kb: v.optional(
+          v.object({
+            autoIngestReflections: v.optional(v.boolean()),
+            autoIngestInteractions: v.optional(v.boolean()),
+            autoIngestActivityNotes: v.optional(v.boolean()),
+            enrichmentEnabled: v.optional(v.boolean()),
+            enrichmentBudgetUsedToday: v.optional(v.number()),
+            enrichmentBudgetResetDate: v.optional(v.string()),
+          })
+        ),
       })
     ),
   }).index("by_email", ["email"]),
@@ -214,4 +227,202 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_user_category", ["userId", "category"]),
+
+  kbSources: defineTable({
+    userId: v.id("users"),
+    provider: v.union(
+      v.literal("manual"),
+      v.literal("upload"),
+      v.literal("reflection_autocapture"),
+      v.literal("interaction_autocapture"),
+      v.literal("activity_completion_autocapture"),
+      v.literal("ai_generated")
+    ),
+    displayName: v.string(),
+    status: v.union(
+      v.literal("not_connected"),
+      v.literal("connecting"),
+      v.literal("connected"),
+      v.literal("error"),
+      v.literal("disabled")
+    ),
+    account: v.optional(v.string()),
+    lastSyncAt: v.optional(v.number()),
+    syncedDocCount: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_provider", ["userId", "provider"]),
+
+  kbDocuments: defineTable({
+    userId: v.id("users"),
+
+    title: v.string(),
+    content: v.string(),
+    contentHash: v.string(),
+    legacyKnowledgeEntryId: v.optional(v.id("knowledgeEntries")),
+
+    category: v.union(
+      v.literal("company_context"),
+      v.literal("team_people"),
+      v.literal("product_technology"),
+      v.literal("processes_workflows"),
+      v.literal("goals_notes"),
+      v.literal("industry_market")
+    ),
+    categoryConfidence: v.optional(v.number()),
+    importance: v.optional(v.number()),
+
+    sourceId: v.id("kbSources"),
+    sourceType: v.union(
+      v.literal("manual"),
+      v.literal("upload"),
+      v.literal("reflection_autocapture"),
+      v.literal("interaction_autocapture"),
+      v.literal("activity_completion_autocapture"),
+      v.literal("ai_generated")
+    ),
+    externalId: v.optional(v.string()),
+    externalUrl: v.optional(v.string()),
+    externalUpdatedAt: v.optional(v.number()),
+
+    storageId: v.optional(v.id("_storage")),
+    mimeType: v.optional(v.string()),
+
+    ingestionStatus: v.union(
+      v.literal("pending"),
+      v.literal("extracting"),
+      v.literal("ready"),
+      v.literal("failed")
+    ),
+    embeddingStatus: v.union(
+      v.literal("pending"),
+      v.literal("running"),
+      v.literal("done"),
+      v.literal("failed"),
+      v.literal("skipped")
+    ),
+    enrichmentStatus: v.union(
+      v.literal("pending"),
+      v.literal("running"),
+      v.literal("done"),
+      v.literal("failed"),
+      v.literal("skipped")
+    ),
+    lastError: v.optional(v.string()),
+    lastEmbeddedHash: v.optional(v.string()),
+
+    summary: v.optional(v.string()),
+    keyFacts: v.optional(v.array(v.string())),
+    entityLinks: v.optional(
+      v.array(
+        v.object({
+          type: v.union(
+            v.literal("stakeholder"),
+            v.literal("goal"),
+            v.literal("activity")
+          ),
+          id: v.string(),
+        })
+      )
+    ),
+
+    ragEntryId: v.optional(v.string()),
+
+    type: v.union(
+      v.literal("ai_enriched"),
+      v.literal("ai_generated"),
+      v.literal("imported"),
+      v.literal("draft")
+    ),
+    archivedAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_category", ["userId", "category"])
+    .index("by_user_source", ["userId", "sourceId"])
+    .index("by_user_status", ["userId", "ingestionStatus"])
+    .index("by_user_legacy", ["userId", "legacyKnowledgeEntryId"])
+    .index("by_user_external", ["userId", "sourceType", "externalId"]),
+
+  kbMemories: defineTable({
+    userId: v.id("users"),
+
+    text: v.string(),
+    type: v.union(
+      v.literal("behavioral"),
+      v.literal("people"),
+      v.literal("technical"),
+      v.literal("goal"),
+      v.literal("process"),
+      v.literal("cultural")
+    ),
+
+    confidence: v.number(),
+    status: v.union(
+      v.literal("candidate"),
+      v.literal("active"),
+      v.literal("superseded"),
+      v.literal("dismissed")
+    ),
+
+    entityType: v.optional(
+      v.union(
+        v.literal("stakeholder"),
+        v.literal("goal"),
+        v.literal("company"),
+        v.literal("team"),
+        v.literal("product"),
+        v.literal("none")
+      )
+    ),
+    entityId: v.optional(v.string()),
+
+    sourceDocumentIds: v.array(v.id("kbDocuments")),
+    sourceChunkRefs: v.optional(
+      v.array(
+        v.object({
+          documentId: v.id("kbDocuments"),
+          chunkIndex: v.number(),
+          snippet: v.string(),
+        })
+      )
+    ),
+    extractedBy: v.union(
+      v.literal("claude"),
+      v.literal("openai"),
+      v.literal("user")
+    ),
+
+    supersededBy: v.optional(v.id("kbMemories")),
+    supersedes: v.optional(v.array(v.id("kbMemories"))),
+
+    visibleInStream: v.boolean(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_status", ["userId", "status"])
+    .index("by_user_entity", ["userId", "entityType", "entityId"])
+    .index("by_user_visible", ["userId", "visibleInStream"]),
+
+  kbEnrichmentJobs: defineTable({
+    userId: v.id("users"),
+    documentId: v.id("kbDocuments"),
+    kind: v.union(
+      v.literal("embed"),
+      v.literal("enrich"),
+      v.literal("memory_consolidate"),
+      v.literal("extract_text")
+    ),
+    status: v.union(
+      v.literal("queued"),
+      v.literal("running"),
+      v.literal("done"),
+      v.literal("failed")
+    ),
+    attempts: v.number(),
+    startedAt: v.optional(v.number()),
+    finishedAt: v.optional(v.number()),
+    error: v.optional(v.string()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_status", ["userId", "status"])
+    .index("by_document", ["documentId"]),
 });

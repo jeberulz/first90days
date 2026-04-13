@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { auth } from "./auth";
 import {
   scheduleYmd,
@@ -86,6 +87,15 @@ export const complete = mutation({
       completedAt: new Date().toISOString(),
       completionNotes: args.completionNotes,
     });
+
+    // Auto-capture into the KB brain when there are non-empty completion notes.
+    if (args.completionNotes && args.completionNotes.trim()) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.kbAutoCapture.fromActivityCompletion,
+        { activityId: args.id }
+      );
+    }
   },
 });
 

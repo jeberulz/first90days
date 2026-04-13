@@ -1,3 +1,10 @@
+// DEPRECATED: legacy CRUD against the `knowledgeEntries` table.
+// All UI now reads from convex/kb.js and the new kbDocuments/kbMemories
+// schema. This file remains so the legacy table stays queryable until the
+// migration is verified in production. Run the migration once after deploy:
+//   npx convex run migrations/legacyKnowledgeToDocuments:migrateAllUsers
+// Then remove this file and the knowledgeEntries table in a follow-up release.
+
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { auth } from "./auth";

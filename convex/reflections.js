@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { auth } from "./auth";
 
 export const getStreak = query({
@@ -75,15 +76,23 @@ export const saveDailyReflection = mutation({
       )
       .first();
 
+    let reflectionId;
     if (existing) {
       await ctx.db.patch(existing._id, args);
-      return existing._id;
+      reflectionId = existing._id;
+    } else {
+      reflectionId = await ctx.db.insert("dailyReflections", {
+        userId,
+        ...args,
+      });
     }
 
-    return await ctx.db.insert("dailyReflections", {
-      userId,
-      ...args,
+    // Auto-capture into the KB brain (opt-out via users.settings.kb.autoIngestReflections).
+    await ctx.scheduler.runAfter(0, internal.kbAutoCapture.fromReflection, {
+      reflectionId,
     });
+
+    return reflectionId;
   },
 });
 
