@@ -12,6 +12,16 @@ export default defineSchema({
     image: v.optional(v.string()),
     isAnonymous: v.optional(v.boolean()),
     onboardingComplete: v.optional(v.boolean()),
+    billingTier: v.optional(
+      v.union(
+        v.literal("free"),
+        v.literal("pro"),
+        v.literal("pro_legacy")
+      )
+    ),
+    stripeCustomerId: v.optional(v.string()),
+    trialUsedAt: v.optional(v.number()),
+    grandfatheredAt: v.optional(v.number()),
     settings: v.optional(
       v.object({
         timezone: v.optional(v.string()),
@@ -425,4 +435,35 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_user_status", ["userId", "status"])
     .index("by_document", ["documentId"]),
+
+  billingSubscriptions: defineTable({
+    userId: v.id("users"),
+    stripeCustomerId: v.string(),
+    stripeSubscriptionId: v.string(),
+    priceId: v.string(),
+    status: v.union(
+      v.literal("trialing"),
+      v.literal("active"),
+      v.literal("past_due"),
+      v.literal("canceled"),
+      v.literal("incomplete"),
+      v.literal("incomplete_expired"),
+      v.literal("unpaid")
+    ),
+    currentPeriodEnd: v.number(),
+    trialEnd: v.optional(v.number()),
+    cancelAtPeriodEnd: v.boolean(),
+    stripeUpdatedAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_stripe_customer", ["stripeCustomerId"])
+    .index("by_stripe_subscription", ["stripeSubscriptionId"]),
+
+  billingWebhookLog: defineTable({
+    eventId: v.string(),
+    eventType: v.string(),
+    processedAt: v.number(),
+    error: v.optional(v.string()),
+  }).index("by_event", ["eventId"]),
 });
