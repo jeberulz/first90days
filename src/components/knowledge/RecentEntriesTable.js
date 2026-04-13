@@ -135,7 +135,7 @@ export default function RecentEntriesTable() {
           rows={docs || []}
           getRowKey={(d) => d._id}
           loading={docs === undefined}
-          emptyLabel="No entries yet."
+          emptyLabel="No entries yet. Click Add Knowledge above to seed the brain."
         />
       </div>
     </section>
