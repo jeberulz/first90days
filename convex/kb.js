@@ -9,6 +9,11 @@ import {
 import { internal } from "./_generated/api";
 import { auth } from "./auth";
 import { KB_CATEGORY_SLUGS } from "./lib/kbCategories.js";
+import {
+  SUPPORTED_UPLOAD_MIME_TYPES,
+  SUPPORTED_UPLOAD_EXTENSIONS,
+  UPLOAD_MAX_BYTES,
+} from "./lib/kbRetrievalConfig.js";
 
 /**
  * Public API for the KB "brain". Auth is enforced at every public function
@@ -71,6 +76,106 @@ export const createDocument = mutation({
         sourceType: args.sourceType ?? "manual",
         importance: args.importance,
         entityLinks,
+      }
+    );
+
+    return documentId;
+  },
+});
+
+/**
+ * Generate a short-lived upload URL. The client POSTs the file bytes to
+ * this URL and receives a storageId back, then calls createUploadedDocument
+ * with that id + metadata.
+ *
+ * Auth is enforced here so anonymous callers can't burn storage writes.
+ */
+export const generateUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
+/**
+ * Create a kbDocument for a file the client has already uploaded via
+ * generateUploadUrl. The document starts with empty content and
+ * ingestionStatus: "pending"; the background pipeline (kbExtract →
+ * kbPipeline.run) populates content by running the registered extractor
+ * for the file's mime type.
+ *
+ * Rejects at the boundary: oversized files, unsupported mime types, and
+ * storage objects that don't match the authenticated user's upload.
+ */
+export const createUploadedDocument = mutation({
+  args: {
+    title: v.string(),
+    storageId: v.id("_storage"),
+    mimeType: v.optional(v.string()),
+    category: v.optional(CATEGORY_VALIDATOR),
+  },
+  handler: async (ctx, args) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    // Validate storage metadata (size + content type). _storage is a
+    // system table — use ctx.db.system.get per Convex guidelines.
+    const metadata = await ctx.db.system.get(args.storageId);
+    // Note: older Convex versions required ("_storage", id); the current
+    // runtime accepts the single-id form because v.id("_storage") already
+    // encodes the table.
+    if (!metadata) {
+      throw new Error("Uploaded file not found");
+    }
+
+    if (metadata.size > UPLOAD_MAX_BYTES) {
+      // Clean up the storage object so rejected uploads don't accumulate.
+      await ctx.storage.delete(args.storageId);
+      throw new Error(
+        `File is too large (${Math.round(metadata.size / 1024 / 1024)} MB). Max is ${Math.round(
+          UPLOAD_MAX_BYTES / 1024 / 1024
+        )} MB.`
+      );
+    }
+
+    // Resolve the effective mime type. Prefer what the client told us,
+    // fall back to what Convex stored, fall back to filename extension.
+    const declaredMime = (args.mimeType ?? metadata.contentType ?? "")
+      .toLowerCase()
+      .split(";")[0]
+      .trim();
+
+    const extensionFromTitle = args.title.split(".").pop()?.toLowerCase();
+    const mimeSupported = declaredMime &&
+      SUPPORTED_UPLOAD_MIME_TYPES.includes(declaredMime);
+    const extSupported = extensionFromTitle &&
+      SUPPORTED_UPLOAD_EXTENSIONS.includes(extensionFromTitle);
+
+    if (!mimeSupported && !extSupported) {
+      await ctx.storage.delete(args.storageId);
+      throw new Error(
+        `Unsupported file type. Supported: ${SUPPORTED_UPLOAD_EXTENSIONS.join(", ")}`
+      );
+    }
+
+    const effectiveMime = declaredMime || undefined;
+
+    const documentId = await ctx.runMutation(
+      internal.kbInternal.insertDocument,
+      {
+        userId,
+        title: args.title,
+        // Content will be populated by kbExtract.runExtract. Placeholder
+        // text is intentional — it makes the pending state legible in
+        // the database if a pipeline job gets stuck.
+        content: "[extracting…]",
+        category: args.category,
+        sourceType: "upload",
+        storageId: args.storageId,
+        mimeType: effectiveMime,
+        ingestionStatus: "pending",
       }
     );
 

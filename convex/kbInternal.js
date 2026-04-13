@@ -298,6 +298,17 @@ export const insertDocument = internalMutation({
     legacyKnowledgeEntryId: v.optional(v.id("knowledgeEntries")),
     storageId: v.optional(v.id("_storage")),
     mimeType: v.optional(v.string()),
+    // Upload path uses "pending" so the pipeline will route through
+    // kbExtract before embed/enrich. All non-upload callers omit this
+    // and inherit the legacy default of "ready".
+    ingestionStatus: v.optional(
+      v.union(
+        v.literal("pending"),
+        v.literal("extracting"),
+        v.literal("ready"),
+        v.literal("failed")
+      )
+    ),
     skipPipeline: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
@@ -344,7 +355,7 @@ export const insertDocument = internalMutation({
       sourceType: args.sourceType,
       storageId: args.storageId,
       mimeType: args.mimeType,
-      ingestionStatus: "ready",
+      ingestionStatus: args.ingestionStatus ?? "ready",
       embeddingStatus: "pending",
       enrichmentStatus: "pending",
       type: args.type ?? "draft",
@@ -357,7 +368,20 @@ export const insertDocument = internalMutation({
       lastSyncAt: Date.now(),
     });
 
-    // Queue jobs (always — pipeline action checks status before working)
+    // Queue jobs (always — pipeline action checks status before working).
+    // Upload-path docs start with ingestionStatus: "pending" and also get
+    // an extract_text job so the pipeline orchestrator can track the M0
+    // stage. Non-upload docs skip this because their content is already
+    // materialized at insert time.
+    if ((args.ingestionStatus ?? "ready") === "pending") {
+      await ctx.db.insert("kbEnrichmentJobs", {
+        userId: args.userId,
+        documentId,
+        kind: "extract_text",
+        status: "queued",
+        attempts: 0,
+      });
+    }
     await ctx.db.insert("kbEnrichmentJobs", {
       userId: args.userId,
       documentId,
@@ -476,6 +500,31 @@ export const patchDocumentEnrichment = internalMutation({
     if (Object.keys(updates).length > 0) {
       await ctx.db.patch(documentId, updates);
     }
+  },
+});
+
+/**
+ * Populate a kbDocument's content field after M0 extraction has completed.
+ * Rehashes the content so the M1 embed dedup check (lastEmbeddedHash ===
+ * contentHash) works correctly when the file is re-uploaded unchanged.
+ *
+ * Also flips ingestionStatus to "ready" so kbPipeline.run will proceed
+ * past the M0 check on its next pass.
+ */
+export const setExtractedContent = internalMutation({
+  args: {
+    documentId: v.id("kbDocuments"),
+    content: v.string(),
+  },
+  handler: async (ctx, { documentId, content }) => {
+    const doc = await ctx.db.get(documentId);
+    if (!doc) return;
+    await ctx.db.patch(documentId, {
+      content,
+      contentHash: computeContentHash(content),
+      ingestionStatus: "ready",
+      lastError: undefined,
+    });
   },
 });
 

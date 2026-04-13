@@ -27,6 +27,12 @@ import { computeQuotaState } from "./lib/billing.js";
 
 const embedPool = new Workpool(components.embedPool, { maxParallelism: 8 });
 const enrichPool = new Workpool(components.enrichPool, { maxParallelism: 2 });
+// Extraction is CPU-bound (pdf-parse parses page geometry in-process).
+// Low parallelism bounds worst-case CPU on adversarial uploads and keeps a
+// single user's bulk upload from starving interactive users.
+const extractPool = new Workpool(components.extractPool, {
+  maxParallelism: 2,
+});
 
 // ---------- Orchestrator ----------
 
@@ -38,6 +44,26 @@ export const run = internalAction({
     });
     if (!doc) {
       console.warn(`[kbPipeline.run] document ${documentId} not found`);
+      return;
+    }
+
+    // 0. Extraction step (M0). If the doc is backed by an uploaded file
+    //    and still has ingestionStatus "pending", we need to pull text
+    //    out of the file before embed/enrich have anything to work with.
+    //    runExtract re-kicks this same action when it's done.
+    if (doc.storageId && doc.ingestionStatus === "pending") {
+      await extractPool.enqueueAction(
+        ctx,
+        internal.kbExtract.runExtract,
+        { documentId },
+        { retry: true }
+      );
+      return;
+    }
+
+    // If extraction failed upstream, don't waste cycles trying to embed
+    // empty content — the failure is already surfaced on the doc.
+    if (doc.ingestionStatus === "failed") {
       return;
     }
 
