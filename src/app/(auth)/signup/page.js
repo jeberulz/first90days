@@ -32,10 +32,10 @@ export default function SignupPage() {
   return (
     <div className="space-y-8">
       <div className="text-center">
-        <h1 className="font-instrument-serif text-4xl text-[#1C1917] tracking-[-0.9px] leading-[40px]">
+        <h1 className="font-instrument-serif text-3xl sm:text-4xl text-[#1C1917] tracking-[-0.5px] sm:tracking-[-0.9px] leading-tight">
           Start your journey
         </h1>
-        <p className="mt-3 font-space-grotesk text-base text-[#57534E]">
+        <p className="mt-3 font-space-grotesk text-sm sm:text-base text-[#57534E]">
           Create your account to plan your first 90 days
         </p>
       </div>

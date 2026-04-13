@@ -3,12 +3,20 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { useState } from "react";
+import { ResponsiveModal, ScrollableTabs } from "@/components/primitives";
 
 const typeConfig = {
   win: { label: "Wins", emoji: "🏆", color: "text-green-400" },
   learning: { label: "Learnings", emoji: "💡", color: "text-blue-400" },
   mistake: { label: "Mistakes", emoji: "📝", color: "text-amber-400" },
 };
+
+const TAB_ITEMS = [
+  { key: "all", label: "All" },
+  { key: "win", label: "🏆 Wins" },
+  { key: "learning", label: "💡 Learnings" },
+  { key: "mistake", label: "📝 Mistakes" },
+];
 
 export default function LogPage() {
   const allEntries = useQuery(api.logEntries.list, {});
@@ -43,45 +51,31 @@ export default function LogPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="font-instrument-serif text-4xl tracking-[-0.9px] leading-[40px]">
+    <div className="space-y-6 sm:space-y-8">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <h1 className="font-instrument-serif tracking-[-0.5px] sm:tracking-[-0.9px] text-2xl sm:text-3xl md:text-4xl leading-tight">
             Wins & Learnings
           </h1>
-          <p className="mt-2 font-space-grotesk text-base text-[#A8A29E]">
+          <p className="mt-2 font-space-grotesk text-sm sm:text-base text-[#A8A29E]">
             {entries.length} entries logged
           </p>
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="bg-[#D97757] hover:bg-[#C26242] text-white rounded-lg px-4 py-2 font-space-grotesk text-sm font-medium transition shadow-sm"
+          className="bg-accent hover:bg-accent-hover text-white rounded-lg px-3 sm:px-4 py-2 font-space-grotesk text-sm font-medium transition shadow-sm shrink-0 min-h-11"
         >
           Add entry
         </button>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2">
-        {[
-          { key: "all", label: "All" },
-          { key: "win", label: "🏆 Wins" },
-          { key: "learning", label: "💡 Learnings" },
-          { key: "mistake", label: "📝 Mistakes" },
-        ].map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={`px-3 py-1.5 rounded-lg font-space-grotesk text-xs transition ${
-              activeTab === tab.key
-                ? "bg-[#D97757] text-white"
-                : "bg-[#1C1917] text-[#A8A29E] border border-[#2C2825] hover:border-[#44403C]"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      <ScrollableTabs
+        items={TAB_ITEMS}
+        activeKey={activeTab}
+        onChange={setActiveTab}
+        ariaLabel="Filter entries by type"
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
@@ -143,71 +137,82 @@ export default function LogPage() {
         })}
       </div>
 
-      {/* Add entry modal */}
-      {showForm && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-end lg:items-center justify-center p-4">
-          <form
-            onSubmit={handleCreate}
-            className="bg-[#1C1917] border border-[#2C2825] rounded-xl w-full max-w-md p-6 space-y-4"
-          >
-            <h3 className="font-instrument-serif text-xl text-[#E7E5E4]">
-              Log Entry
-            </h3>
-            <div className="flex gap-2">
-              {Object.entries(typeConfig).map(([key, config]) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setForm({ ...form, type: key })}
-                  className={`flex-1 px-3 py-2 rounded-lg font-space-grotesk text-xs text-center transition ${
-                    form.type === key
-                      ? "bg-[#D97757] text-white"
-                      : "bg-[#292524] text-[#A8A29E] border border-[#44403C]"
-                  }`}
-                >
-                  {config.emoji} {config.label.slice(0, -1)}
-                </button>
-              ))}
-            </div>
-            <div className="space-y-1.5">
-              <label className="font-space-grotesk text-xs font-medium text-[#A8A29E]">Title</label>
-              <input
-                value={form.title}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
-                className="w-full bg-[#292524] border border-[#44403C] rounded-lg px-3 py-2 font-space-grotesk text-sm text-[#E7E5E4] placeholder:text-[#57534E] focus:outline-none focus:ring-1 focus:ring-[#D97757]"
-                placeholder="What happened?"
-                required
-                autoFocus
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="font-space-grotesk text-xs font-medium text-[#A8A29E]">Details</label>
-              <textarea
-                value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
-                className="w-full bg-[#292524] border border-[#44403C] rounded-lg px-3 py-2 font-space-grotesk text-sm text-[#E7E5E4] placeholder:text-[#57534E] resize-none focus:outline-none focus:ring-1 focus:ring-[#D97757]"
-                rows={2}
-                placeholder="Optional details..."
-              />
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
+      <ResponsiveModal
+        open={showForm}
+        onClose={() => setShowForm(false)}
+        title="Log Entry"
+        size="md"
+        footer={
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              className="px-4 py-2 font-space-grotesk text-sm text-warm-300 hover:bg-warm-surfaceDark rounded-lg transition min-h-11"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="log-entry-form"
+              className="bg-accent hover:bg-accent-hover text-white rounded-lg px-4 py-2 font-space-grotesk text-sm font-medium transition min-h-11"
+            >
+              Save
+            </button>
+          </div>
+        }
+      >
+        <form id="log-entry-form" onSubmit={handleCreate} className="space-y-4">
+          <div className="flex gap-2">
+            {Object.entries(typeConfig).map(([key, config]) => (
               <button
+                key={key}
                 type="button"
-                onClick={() => setShowForm(false)}
-                className="px-4 py-2 font-space-grotesk text-sm text-[#A8A29E] hover:bg-[#292524] rounded-lg transition"
+                onClick={() => setForm({ ...form, type: key })}
+                className={`flex-1 px-3 py-2 rounded-lg font-space-grotesk text-xs text-center transition min-h-10 ${
+                  form.type === key
+                    ? "bg-accent text-white"
+                    : "bg-warm-surfaceDark text-warm-300 border border-warm-borderMuted"
+                }`}
               >
-                Cancel
+                {config.emoji} {config.label.slice(0, -1)}
               </button>
-              <button
-                type="submit"
-                className="bg-[#D97757] hover:bg-[#C26242] text-white rounded-lg px-4 py-2 font-space-grotesk text-sm font-medium transition"
-              >
-                Save
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+            ))}
+          </div>
+          <div className="space-y-1.5">
+            <label
+              htmlFor="log-title"
+              className="font-space-grotesk text-xs font-medium text-warm-300"
+            >
+              Title
+            </label>
+            <input
+              id="log-title"
+              data-autofocus
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              className="w-full bg-warm-surfaceDark border border-warm-borderMuted rounded-lg px-3 py-2.5 font-space-grotesk text-sm text-warm-line placeholder:text-warm-500 focus:outline-none focus:ring-1 focus:ring-accent"
+              placeholder="What happened?"
+              required
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label
+              htmlFor="log-details"
+              className="font-space-grotesk text-xs font-medium text-warm-300"
+            >
+              Details
+            </label>
+            <textarea
+              id="log-details"
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              className="w-full bg-warm-surfaceDark border border-warm-borderMuted rounded-lg px-3 py-2.5 font-space-grotesk text-sm text-warm-line placeholder:text-warm-500 resize-none focus:outline-none focus:ring-1 focus:ring-accent"
+              rows={3}
+              placeholder="Optional details..."
+            />
+          </div>
+        </form>
+      </ResponsiveModal>
     </div>
   );
 }

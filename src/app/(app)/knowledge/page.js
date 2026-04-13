@@ -30,21 +30,28 @@ export default function KnowledgeBasePage() {
   }, []);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       {/* Page header */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-        <div>
-          <h1 className="font-instrument-serif text-4xl tracking-[-0.9px] leading-[40px] text-white">
+        <div className="min-w-0">
+          <h1 className="font-instrument-serif tracking-[-0.5px] sm:tracking-[-0.9px] text-2xl sm:text-3xl md:text-4xl leading-tight text-white">
             Knowledge Base
           </h1>
-          <p className="text-sm text-[#A8A29E] mt-1">
+          <p className="text-xs sm:text-sm text-[#A8A29E] mt-1">
             Your AI-enriched memory — everything First90 knows about your onboarding context.
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setSearchOpen(true)}
-            className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg border border-[#2C2825] bg-[#1C1917] text-sm text-[#A8A29E] hover:border-[#D97757]/30"
+            aria-label="Search knowledge"
+            className="flex sm:hidden items-center justify-center w-11 h-11 rounded-lg border border-[#2C2825] bg-[#1C1917] text-[#A8A29E] hover:border-[#D97757]/30"
+          >
+            <Icon icon="solar:magnifer-linear" width={18} />
+          </button>
+          <button
+            onClick={() => setSearchOpen(true)}
+            className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg border border-[#2C2825] bg-[#1C1917] text-sm text-[#A8A29E] hover:border-[#D97757]/30 min-h-11"
           >
             <Icon icon="solar:magnifer-linear" width={16} />
             <span>Search knowledge…</span>
@@ -54,10 +61,11 @@ export default function KnowledgeBasePage() {
           </button>
           <button
             onClick={() => setAddOpen(true)}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-[#D97757] hover:bg-[#C26242] text-white text-sm font-medium transition-colors shadow-sm"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-accent hover:bg-accent-hover text-white text-sm font-medium transition-colors shadow-sm min-h-11"
           >
             <Icon icon="solar:add-circle-linear" width={16} />
-            Add Knowledge
+            <span className="hidden xs:inline">Add Knowledge</span>
+            <span className="xs:hidden">Add</span>
           </button>
         </div>
       </div>

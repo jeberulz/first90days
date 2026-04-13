@@ -63,7 +63,7 @@ export default function MobileBottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="lg:hidden fixed bottom-0 inset-x-0 bg-[#0F0E0D] border-t border-[#2C2825] z-50">
+    <nav className="lg:hidden fixed bottom-0 inset-x-0 bg-paper-dark border-t border-warm-borderDark z-[56] pb-[env(safe-area-inset-bottom)]">
       <div className="flex items-center justify-around h-16 px-2">
         {tabs.map((tab) => {
           const isActive =

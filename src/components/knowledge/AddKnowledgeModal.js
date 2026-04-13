@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { useMutation } from "convex/react";
-import { Icon } from "@iconify/react";
 import { api } from "../../../convex/_generated/api";
 import { KB_CATEGORIES } from "@/lib/kbCategories";
+import { ResponsiveModal } from "@/components/primitives";
 
 export default function AddKnowledgeModal({ open, onClose, defaultCategory }) {
   const createDocument = useMutation(api.kb.createDocument);
@@ -12,8 +12,6 @@ export default function AddKnowledgeModal({ open, onClose, defaultCategory }) {
   const [content, setContent] = useState("");
   const [category, setCategory] = useState(defaultCategory || "goals_notes");
   const [submitting, setSubmitting] = useState(false);
-
-  if (!open) return null;
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -37,89 +35,25 @@ export default function AddKnowledgeModal({ open, onClose, defaultCategory }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end lg:items-center justify-center p-4">
-      <form
-        onSubmit={handleSubmit}
-        className="bg-[#1C1917] border border-[#2C2825] rounded-xl w-full max-w-2xl p-6 space-y-4 shadow-2xl"
-      >
-        <div className="flex items-start justify-between">
-          <div>
-            <h3 className="font-instrument-serif text-2xl text-white tracking-[-0.4px]">
-              Add to Knowledge Base
-            </h3>
-            <p className="text-xs text-[#A8A29E] mt-1">
-              Embedding + AI enrichment runs in the background. The brain learns from this entry within ~30 seconds.
-            </p>
-          </div>
+    <ResponsiveModal
+      open={open}
+      onClose={onClose}
+      title="Add to Knowledge Base"
+      size="2xl"
+      footer={
+        <div className="flex justify-end gap-2">
           <button
             type="button"
             onClick={onClose}
-            className="text-[#A8A29E] hover:text-white p-1"
-          >
-            <Icon icon="solar:close-circle-linear" width={22} />
-          </button>
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="font-space-grotesk text-xs font-medium text-[#A8A29E]">
-            Title
-          </label>
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full bg-[#292524] border border-[#44403C] rounded-lg px-3 py-2 font-space-grotesk text-sm text-white placeholder:text-[#57534E] focus:outline-none focus:ring-1 focus:ring-[#D97757]"
-            placeholder="e.g. Marcus — communication preferences"
-            required
-            autoFocus
-          />
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="font-space-grotesk text-xs font-medium text-[#A8A29E]">
-            Content
-          </label>
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            className="w-full bg-[#292524] border border-[#44403C] rounded-lg px-3 py-2 font-space-grotesk text-sm text-white placeholder:text-[#57534E] resize-none focus:outline-none focus:ring-1 focus:ring-[#D97757]"
-            rows={10}
-            placeholder="Paste a doc, write notes, or describe context the AI brain should know about."
-            required
-          />
-          <p className="text-[10px] text-[#A8A29E]">
-            Tip: Entries shorter than 200 characters skip enrichment. Aim for at least a paragraph for the best AI memory extraction.
-          </p>
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="font-space-grotesk text-xs font-medium text-[#A8A29E]">
-            Category
-          </label>
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className="w-full bg-[#292524] border border-[#44403C] rounded-lg px-3 py-2 font-space-grotesk text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#D97757]"
-          >
-            {KB_CATEGORIES.map((c) => (
-              <option key={c.slug} value={c.slug}>
-                {c.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="flex justify-end gap-2 pt-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 font-space-grotesk text-sm text-[#A8A29E] hover:bg-[#292524] rounded-lg transition"
+            className="px-4 py-2 font-space-grotesk text-sm text-warm-300 hover:bg-warm-surfaceDark rounded-lg transition min-h-11"
           >
             Cancel
           </button>
           <button
             type="submit"
+            form="add-knowledge-form"
             disabled={submitting}
-            className="bg-[#D97757] hover:bg-[#C26242] disabled:opacity-50 text-white rounded-lg px-4 py-2 font-space-grotesk text-sm font-medium transition flex items-center gap-2"
+            className="bg-accent hover:bg-accent-hover disabled:opacity-50 text-white rounded-lg px-4 py-2 font-space-grotesk text-sm font-medium transition flex items-center gap-2 min-h-11"
           >
             {submitting ? (
               <>
@@ -131,7 +65,64 @@ export default function AddKnowledgeModal({ open, onClose, defaultCategory }) {
             )}
           </button>
         </div>
+      }
+    >
+      <form id="add-knowledge-form" onSubmit={handleSubmit} className="space-y-4">
+        <p className="text-xs text-warm-300">
+          Embedding + AI enrichment runs in the background. The brain learns from this entry within ~30 seconds.
+        </p>
+
+        <div className="space-y-1.5">
+          <label htmlFor="kb-title" className="font-space-grotesk text-xs font-medium text-warm-300">
+            Title
+          </label>
+          <input
+            id="kb-title"
+            data-autofocus
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="w-full bg-warm-surfaceDark border border-warm-borderMuted rounded-lg px-3 py-2.5 font-space-grotesk text-sm text-warm-line placeholder:text-warm-500 focus:outline-none focus:ring-1 focus:ring-accent"
+            placeholder="e.g. Marcus — communication preferences"
+            required
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label htmlFor="kb-content" className="font-space-grotesk text-xs font-medium text-warm-300">
+            Content
+          </label>
+          <textarea
+            id="kb-content"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            className="w-full bg-warm-surfaceDark border border-warm-borderMuted rounded-lg px-3 py-2.5 font-space-grotesk text-sm text-warm-line placeholder:text-warm-500 resize-y focus:outline-none focus:ring-1 focus:ring-accent min-h-[160px]"
+            rows={8}
+            placeholder="Paste a doc, write notes, or describe context the AI brain should know about."
+            required
+          />
+          <p className="text-xs text-warm-300">
+            Tip: Entries shorter than 200 characters skip enrichment. Aim for at least a paragraph for the best AI memory extraction.
+          </p>
+        </div>
+
+        <div className="space-y-1.5">
+          <label htmlFor="kb-category" className="font-space-grotesk text-xs font-medium text-warm-300">
+            Category
+          </label>
+          <select
+            id="kb-category"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="w-full bg-warm-surfaceDark border border-warm-borderMuted rounded-lg px-3 py-2.5 font-space-grotesk text-sm text-warm-line focus:outline-none focus:ring-1 focus:ring-accent"
+          >
+            {KB_CATEGORIES.map((c) => (
+              <option key={c.slug} value={c.slug}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+        </div>
       </form>
-    </div>
+    </ResponsiveModal>
   );
 }

@@ -3,27 +3,27 @@ import { Icon } from "@iconify/react";
 
 export function FeatureKnowledge() {
   return (
-    <section className="w-full relative overflow-hidden bg-[#F5F2E8] dark:bg-[#0F0E0D] border-t border-[#D1CDC7] dark:border-[#2C2825] transition-colors duration-300 group/section py-24 lg:py-32">
+    <section className="w-full relative overflow-hidden bg-[#F5F2E8] dark:bg-[#0F0E0D] border-t border-[#D1CDC7] dark:border-[#2C2825] transition-colors duration-300 group/section py-16 sm:py-24 lg:py-32">
       <div className="absolute inset-0 bg-grid-pattern pointer-events-none" />
       <div className="absolute top-1/2 right-0 w-[600px] h-[600px] bg-accent/5 rounded-full blur-3xl translate-x-1/2 -translate-y-1/2 pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-3xl -translate-x-1/3 translate-y-1/3 pointer-events-none" />
 
-      <div className="w-full max-w-[1800px] mx-auto px-6 md:px-12 relative z-10">
-        <div className="grid lg:grid-cols-12 gap-12 lg:gap-24 items-center">
+      <div className="w-full max-w-[1800px] mx-auto px-4 sm:px-6 md:px-12 relative z-10">
+        <div className="grid lg:grid-cols-12 gap-8 sm:gap-12 lg:gap-24 items-center">
           <div className="lg:col-span-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-accent/20 bg-accent/5 text-[10px] uppercase tracking-wider font-bold text-accent mb-8 font-space-grotesk animate-fade-up">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-accent/20 bg-accent/5 text-[10px] uppercase tracking-wider font-bold text-accent mb-6 sm:mb-8 font-space-grotesk animate-fade-up">
               <Icon icon="solar:book-bookmark-linear" width={12} height={12} />
               Knowledge Acceleration
             </div>
             <h2
-              className="text-4xl md:text-6xl tracking-tight mb-6 font-instrument-serif font-normal text-[#1C1917] dark:text-white leading-[1.05] animate-fade-up"
+              className="t-display-lg tracking-tight mb-5 sm:mb-6 text-[#1C1917] dark:text-white animate-fade-up"
               style={{ animationDelay: "0.1s" }}
             >
               Don&apos;t start{" "}
               <span className="text-[#78716C] dark:text-[#A8A29E]">from zero.</span>
             </h2>
             <p
-              className="text-lg text-[#57534E] dark:text-[#D6D3D1] leading-relaxed mb-10 font-space-grotesk font-light animate-fade-up"
+              className="text-base sm:text-lg text-[#57534E] dark:text-[#D6D3D1] leading-relaxed mb-8 sm:mb-10 font-space-grotesk font-light animate-fade-up"
               style={{ animationDelay: "0.2s" }}
             >
               Most employees spend their first month just finding the files. First90 automatically

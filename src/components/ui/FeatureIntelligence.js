@@ -14,18 +14,18 @@ export function FeatureIntelligence() {
 
   return (
     <div className="border-b border-[#E7E5E4] dark:border-[#2C2825]">
-      <div className="w-full max-w-[1800px] mx-auto px-6 md:px-12 py-24 lg:py-32">
-        <div className="grid lg:grid-cols-12 gap-12 lg:gap-24 items-start">
-          <div className="lg:col-span-4 lg:sticky lg:top-32 pt-8">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-accent/20 bg-accent/5 text-[10px] uppercase tracking-wider font-bold text-accent mb-8 font-space-grotesk">
+      <div className="w-full max-w-[1800px] mx-auto px-4 sm:px-6 md:px-12 py-16 sm:py-24 lg:py-32">
+        <div className="grid lg:grid-cols-12 gap-8 sm:gap-12 lg:gap-24 items-start">
+          <div className="lg:col-span-4 lg:sticky lg:top-32 lg:pt-8">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-accent/20 bg-accent/5 text-[10px] uppercase tracking-wider font-bold text-accent mb-6 sm:mb-8 font-space-grotesk">
               <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
               Analysis Engine v2.0
             </div>
-            <h2 className="text-4xl md:text-6xl tracking-tight mb-6 font-instrument-serif font-normal text-[#1C1917] dark:text-white leading-[1.05]">
+            <h2 className="t-display-lg tracking-tight mb-5 sm:mb-6 text-[#1C1917] dark:text-white">
               Role-specific intelligence,{" "}
               <span className="text-[#78716C] dark:text-[#A8A29E]">decoded instantly.</span>
             </h2>
-            <p className="text-lg text-[#57534E] dark:text-[#D6D3D1] leading-relaxed mb-10 font-space-grotesk font-light">
+            <p className="text-base sm:text-lg text-[#57534E] dark:text-[#D6D3D1] leading-relaxed mb-8 sm:mb-10 font-space-grotesk font-light">
               Our AI doesn&apos;t just read your job description; it understands the implicit
               expectations. We parse thousands of seniority-specific datapoints to visualize the
               milestones that actually matter for your success.

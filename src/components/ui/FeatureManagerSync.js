@@ -12,18 +12,18 @@ export function FeatureManagerSync() {
       />
       <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-accent/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
 
-      <div className="w-full max-w-[1800px] mx-auto px-6 md:px-12 py-24 lg:py-32 relative z-10">
-        <div className="grid lg:grid-cols-12 gap-12 lg:gap-24 items-start">
-          <div className="lg:col-span-4 lg:sticky lg:top-32 pt-8">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-accent/20 bg-accent/5 text-[10px] uppercase tracking-wider font-bold text-accent mb-8 font-space-grotesk">
+      <div className="w-full max-w-[1800px] mx-auto px-4 sm:px-6 md:px-12 py-16 sm:py-24 lg:py-32 relative z-10">
+        <div className="grid lg:grid-cols-12 gap-8 sm:gap-12 lg:gap-24 items-start">
+          <div className="lg:col-span-4 lg:sticky lg:top-32 lg:pt-8">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-accent/20 bg-accent/5 text-[10px] uppercase tracking-wider font-bold text-accent mb-6 sm:mb-8 font-space-grotesk">
               <Icon icon="solar:users-group-two-rounded-linear" width={12} height={12} />
               Manager Alignment
             </div>
-            <h2 className="text-4xl md:text-6xl tracking-tight mb-6 font-instrument-serif font-normal text-[#1C1917] dark:text-white leading-[1.05]">
+            <h2 className="t-display-lg tracking-tight mb-5 sm:mb-6 text-[#1C1917] dark:text-white">
               Align expectations{" "}
               <span className="text-[#78716C] dark:text-[#A8A29E]">before day one.</span>
             </h2>
-            <p className="text-lg text-[#57534E] dark:text-[#D6D3D1] leading-relaxed mb-10 font-space-grotesk font-light">
+            <p className="text-base sm:text-lg text-[#57534E] dark:text-[#D6D3D1] leading-relaxed mb-8 sm:mb-10 font-space-grotesk font-light">
               Misalignment is the #1 cause of onboarding failure. Create a shared workspace for
               you and your manager to review goals, timelines, and success metrics together.
             </p>

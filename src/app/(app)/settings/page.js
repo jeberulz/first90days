@@ -407,55 +407,59 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       {/* Page header */}
-      <div className="border-b border-[#2C2825] pb-6">
-        <h1 className="font-instrument-serif text-4xl tracking-[-0.9px] leading-[44px] text-white">
+      <div className="border-b border-[#2C2825] pb-5 sm:pb-6">
+        <h1 className="font-instrument-serif tracking-[-0.5px] sm:tracking-[-0.9px] text-2xl sm:text-3xl md:text-4xl leading-tight text-white">
           Settings
         </h1>
-        <p className="font-space-grotesk text-sm text-[#A8A29E] mt-1">
+        <p className="font-space-grotesk text-xs sm:text-sm text-[#A8A29E] mt-1">
           Your profile, schedule, and what we email you about.
         </p>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-8">
+      <div className="flex flex-col md:flex-row gap-6 md:gap-8">
         {/* Tab nav with proper ARIA tablist semantics */}
         <aside className="w-full md:w-48 shrink-0">
-          <nav
-            role="tablist"
-            aria-label="Settings sections"
-            aria-orientation="vertical"
-            className="flex md:flex-col gap-1 overflow-x-auto md:overflow-visible pb-2 md:pb-0"
-          >
-            {TABS.map((tab, idx) => {
-              const active = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  id={tabId(tab.id)}
-                  role="tab"
-                  type="button"
-                  aria-selected={active}
-                  aria-controls={panelId(tab.id)}
-                  tabIndex={active ? 0 : -1}
-                  onClick={() => setActiveTab(tab.id)}
-                  onKeyDown={(e) => handleTabKeyDown(e, idx)}
-                  className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-space-grotesk whitespace-nowrap transition-colors ${FOCUS_RING} ${
-                    active
-                      ? "bg-[#D97757]/10 text-[#D97757] font-medium"
-                      : "text-[#A8A29E] hover:bg-[#1C1917] hover:text-[#E7E5E4] font-normal"
-                  }`}
-                >
-                  <Icon name={tab.icon} size={16} />
-                  {tab.label}
-                </button>
-              );
-            })}
-          </nav>
+          <div className="relative -mx-4 sm:mx-0 md:mx-0">
+            <nav
+              role="tablist"
+              aria-label="Settings sections"
+              aria-orientation="vertical"
+              className="no-scrollbar flex md:flex-col gap-1 overflow-x-auto md:overflow-visible scroll-smooth snap-x snap-mandatory px-4 sm:px-0 pb-2 md:pb-0"
+            >
+              {TABS.map((tab, idx) => {
+                const active = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    id={tabId(tab.id)}
+                    role="tab"
+                    type="button"
+                    aria-selected={active}
+                    aria-controls={panelId(tab.id)}
+                    tabIndex={active ? 0 : -1}
+                    onClick={() => setActiveTab(tab.id)}
+                    onKeyDown={(e) => handleTabKeyDown(e, idx)}
+                    className={`snap-start shrink-0 flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-space-grotesk whitespace-nowrap transition-colors min-h-11 ${FOCUS_RING} ${
+                      active
+                        ? "bg-[#D97757]/10 text-[#D97757] font-medium"
+                        : "text-[#A8A29E] hover:bg-[#1C1917] hover:text-[#E7E5E4] font-normal"
+                    }`}
+                  >
+                    <Icon name={tab.icon} size={16} />
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </nav>
+            <div className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-paper-dark to-transparent md:hidden" />
+            <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-paper-dark to-transparent md:hidden" />
+          </div>
         </aside>
 
         {/* Panels */}
-        <div className="flex-1 max-w-2xl space-y-8 pb-12 min-w-0">
+        <div className="flex-1 md:max-w-2xl space-y-6 sm:space-y-8 pb-12 min-w-0">
           {activeTab === "profile" && (
             <div
               role="tabpanel"

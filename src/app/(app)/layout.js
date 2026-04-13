@@ -52,8 +52,8 @@ export default function AppLayout({ children }) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#0F0E0D] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[#D97757] border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-[100dvh] bg-paper-dark flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -61,11 +61,11 @@ export default function AppLayout({ children }) {
   if (!isAuthenticated) return null;
 
   return (
-    <div className="min-h-screen min-w-0 bg-[#0F0E0D] text-[#E7E5E4] dark">
+    <div className="min-h-[100dvh] min-w-0 bg-paper-dark text-warm-line dark">
       <div className="flex min-w-0">
         <AppSidebar />
-        <main className="flex-1 min-w-0 ml-0 lg:ml-64 min-h-screen pb-20 lg:pb-0">
-          <div className="w-full min-w-0 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main className="flex-1 min-w-0 ml-0 lg:ml-64 min-h-[100dvh] pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0">
+          <div className="w-full min-w-0 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
             {children}
           </div>
         </main>
