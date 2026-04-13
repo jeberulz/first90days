@@ -76,6 +76,10 @@ export default defineSchema({
     endDay: v.number(),
     milestone: v.string(),
     status: v.string(),
+    // Timestamp when the user dismissed the phase-completion celebration
+    // modal. Null/undefined means the modal should still fire once the
+    // user passes this phase's endDay. Set once, never cleared.
+    milestoneAcknowledgedAt: v.optional(v.number()),
   })
     .index("by_plan", ["planId"])
     .index("by_user", ["userId"]),

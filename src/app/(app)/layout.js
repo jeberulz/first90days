@@ -4,10 +4,11 @@ import { useConvexAuth } from "convex/react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import AppSidebar from "@/components/app/AppSidebar";
 import MobileBottomNav from "@/components/app/MobileBottomNav";
 import QuickAddFAB from "@/components/app/QuickAddFAB";
+import PhaseCompletionModal from "@/components/milestones/PhaseCompletionModal";
 
 export default function AppLayout({ children }) {
   const { isAuthenticated, isLoading } = useConvexAuth();
@@ -16,6 +17,16 @@ export default function AppLayout({ children }) {
   const plan = useQuery(api.plans.get);
   const reconcilePilotSchedule = useMutation(api.seed.reconcilePilotPlanSchedule);
   const pilotReconcileOnce = useRef(false);
+
+  // Phase-completion celebration: the query returns the first
+  // unacknowledged phase the user has already passed, or null.
+  // `dismissedInSession` is a local cache so closing the modal hides
+  // it immediately even before the mutation round-trips.
+  const pendingMilestone = useQuery(
+    api.milestones.getPendingMilestone,
+    isAuthenticated ? {} : "skip"
+  );
+  const [dismissedMilestoneId, setDismissedMilestoneId] = useState(null);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -72,6 +83,13 @@ export default function AppLayout({ children }) {
       </div>
       <MobileBottomNav />
       <QuickAddFAB />
+      {pendingMilestone &&
+        pendingMilestone.phaseId !== dismissedMilestoneId && (
+          <PhaseCompletionModal
+            milestone={pendingMilestone}
+            onClose={() => setDismissedMilestoneId(pendingMilestone.phaseId)}
+          />
+        )}
     </div>
   );
 }
