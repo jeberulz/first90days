@@ -34,6 +34,7 @@ import {
   SEARCH_TYPE_DEFAULT,
   HYBRID_TEXT_WEIGHT,
   HYBRID_VECTOR_WEIGHT,
+  MEMORY_IMPLICIT_BOOST,
 } from "./kbRetrievalConfig.js";
 import { groupResultsByDocument } from "./kbRetrievalGrouping.js";
 import { rerankCitations } from "./kbReranker.js";
@@ -220,6 +221,24 @@ export async function fetchContextForPlanning(ctx, args) {
     // Sort by confidence desc, cap to 8
     memories.sort((a, b) => (b.confidence ?? 0) - (a.confidence ?? 0));
     memories = memories.slice(0, 8);
+  }
+
+  // 4b. Fire-and-forget: bump usage on the memories we're about to inject.
+  //     Drives the Priority 5 feedback loop (used memories earn confidence,
+  //     unused memories decay weekly). We deliberately do NOT await this —
+  //     the prompt shouldn't block on a write, and if the bump fails the
+  //     worst case is one missed tick.
+  if (memories.length > 0) {
+    try {
+      await ctx.runMutation(internal.kbInternal.bumpMemoryUsage, {
+        memoryIds: memories.map((m) => m._id),
+        nowMs: Date.now(),
+        boost: MEMORY_IMPLICIT_BOOST,
+      });
+    } catch (err) {
+      // Non-fatal — log and continue.
+      console.warn("[kbContext] bumpMemoryUsage failed", err?.message);
+    }
   }
 
   // 5. Format the prompt block

@@ -13,6 +13,7 @@ import {
   SUPPORTED_UPLOAD_MIME_TYPES,
   SUPPORTED_UPLOAD_EXTENSIONS,
   UPLOAD_MAX_BYTES,
+  MEMORY_EXPLICIT_BOOST,
 } from "./lib/kbRetrievalConfig.js";
 
 /**
@@ -272,6 +273,43 @@ export const dismissMemory = mutation({
       status: "dismissed",
       visibleInStream: false,
     });
+  },
+});
+
+/**
+ * Priority 5 — explicit confirmation. When the user clicks "confirm" on a
+ * memory in the drawer, bump confidence by MEMORY_EXPLICIT_BOOST (much
+ * larger than the implicit used-in-prompt boost), stamp lastConfirmedAt,
+ * and promote candidates to active so they start showing up in the
+ * visible stream.
+ *
+ * Confirming an already-active memory is idempotent aside from the
+ * confidence bump — allowed so the user can manually reinforce signals
+ * that matter to them.
+ */
+export const confirmMemory = mutation({
+  args: { memoryId: v.id("kbMemories") },
+  handler: async (ctx, args) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const memory = await ctx.db.get(args.memoryId);
+    if (!memory || memory.userId !== userId) throw new Error("Not found");
+
+    const nextConfidence = Math.min(
+      1,
+      Math.max(0, (memory.confidence ?? 0) + MEMORY_EXPLICIT_BOOST)
+    );
+    const patch = {
+      confidence: nextConfidence,
+      lastConfirmedAt: Date.now(),
+    };
+    if (memory.status === "candidate" || memory.status === "dismissed") {
+      patch.status = "active";
+      patch.visibleInStream = true;
+    }
+    await ctx.db.patch(args.memoryId, patch);
+    return { confidence: nextConfidence };
   },
 });
 

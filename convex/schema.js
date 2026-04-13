@@ -493,6 +493,20 @@ export default defineSchema({
     supersedes: v.optional(v.array(v.id("kbMemories"))),
 
     visibleInStream: v.boolean(),
+
+    // ── Feedback-loop fields (Priority 5) ────────────────────────────────
+    // Set by `bumpMemoryUsage` whenever a memory gets injected into an AI
+    // prompt. Drives decay (recently-used = kept alive) and analytics
+    // ("you've used this memory 12 times in the last month").
+    lastUsedAt: v.optional(v.number()),
+    usageCount: v.optional(v.number()),
+    // Set by the public `confirmMemory` mutation when a user explicitly
+    // clicks "confirm" in the memory drawer. Earns a larger confidence
+    // boost than implicit usage. Reset by dismiss.
+    lastConfirmedAt: v.optional(v.number()),
+    // Set by the weekly decay cron so re-runs within the same window are
+    // a no-op. See convex/kbMemoryDecay.js.
+    lastDecayedAt: v.optional(v.number()),
   })
     .index("by_user", ["userId"])
     .index("by_user_status", ["userId", "status"])

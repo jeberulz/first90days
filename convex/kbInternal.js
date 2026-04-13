@@ -767,3 +767,88 @@ export const supersedeMemory = internalMutation({
     });
   },
 });
+
+/**
+ * Priority 5 — implicit memory usage tracking.
+ *
+ * Called fire-and-forget from kbContext.fetchContextForPlanning whenever
+ * memories are injected into an AI prompt. For each memory it bumps
+ * `usageCount`, stamps `lastUsedAt`, and nudges `confidence` by
+ * MEMORY_IMPLICIT_BOOST (clamped to 1.0). The decay cron uses
+ * `lastUsedAt` to decide which memories to age out.
+ *
+ * Safe to call with stale ids (dismissed / superseded memories still get
+ * bumped — harmless) to avoid forcing callers to re-query status.
+ */
+export const bumpMemoryUsage = internalMutation({
+  args: {
+    memoryIds: v.array(v.id("kbMemories")),
+    nowMs: v.number(),
+    boost: v.number(),
+  },
+  handler: async (ctx, { memoryIds, nowMs, boost }) => {
+    for (const memoryId of memoryIds) {
+      const m = await ctx.db.get(memoryId);
+      if (!m) continue;
+      const nextConfidence = Math.min(
+        1,
+        Math.max(0, (m.confidence ?? 0) + boost)
+      );
+      await ctx.db.patch(memoryId, {
+        lastUsedAt: nowMs,
+        usageCount: (m.usageCount ?? 0) + 1,
+        confidence: nextConfidence,
+      });
+    }
+  },
+});
+
+/**
+ * Priority 5 — list memories that are candidates for decay. Used by the
+ * weekly cron to avoid scanning the full table per user.
+ *
+ * We filter by status="active" (candidates + dismissed + superseded are
+ * skipped) and return lightweight rows. The caller then runs the pure
+ * decay math in an action and patches only the rows that actually
+ * changed.
+ */
+export const listActiveMemoriesForDecay = internalQuery({
+  args: { limit: v.number() },
+  handler: async (ctx, { limit }) => {
+    return await ctx.db
+      .query("kbMemories")
+      // No by_status global index, but active memories should be a small
+      // fraction of the table overall and this runs once a week. Revisit
+      // if it becomes a hotspot.
+      .filter((q) => q.eq(q.field("status"), "active"))
+      .take(limit);
+  },
+});
+
+/**
+ * Priority 5 — apply a computed decay result to a single memory.
+ * Separated from the math so `kbMemoryDecayMath.js` stays a pure,
+ * unit-testable helper.
+ */
+export const applyMemoryDecay = internalMutation({
+  args: {
+    memoryId: v.id("kbMemories"),
+    newConfidence: v.number(),
+    nowMs: v.number(),
+    hideFloor: v.number(),
+  },
+  handler: async (ctx, { memoryId, newConfidence, nowMs, hideFloor }) => {
+    const m = await ctx.db.get(memoryId);
+    if (!m) return;
+    const patch = {
+      confidence: newConfidence,
+      lastDecayedAt: nowMs,
+    };
+    // Hide decayed-to-dust memories from the visible stream, but keep
+    // the row so the user can still find it via search.
+    if (newConfidence <= hideFloor && m.visibleInStream) {
+      patch.visibleInStream = false;
+    }
+    await ctx.db.patch(memoryId, patch);
+  },
+});
