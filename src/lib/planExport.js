@@ -19,10 +19,14 @@ const PHASE_LABELS = {
   3: { name: "Lead", desc: "Own outcomes", days: "Days 61-90" },
 };
 
+// GFM only recognises `[ ]` and `[x]` checkboxes. We render skipped
+// activities as an unchecked box and strike the title through so any
+// renderer (GitHub, Obsidian, Notion) shows them as intentionally
+// dropped without breaking the task list.
 const STATUS_CHECKBOX = {
   completed: "[x]",
   upcoming: "[ ]",
-  skipped: "[~]", // tilde = intentionally skipped, not done
+  skipped: "[ ]",
   in_progress: "[ ]",
 };
 
@@ -183,7 +187,14 @@ export function buildPlanMarkdown({ plan, goals, onboarding, exportedAt }) {
       }
       for (const a of acts) {
         const box = STATUS_CHECKBOX[a.status] || "[ ]";
-        lines.push(`- ${box} **${safeString(a.title, "Activity")}**`);
+        const rawTitle = safeString(a.title, "Activity");
+        // Skipped → strike the title through so reviewers can tell at
+        // a glance the user intentionally dropped it.
+        const title =
+          a.status === "skipped"
+            ? `~~${rawTitle}~~`
+            : `**${rawTitle}**`;
+        lines.push(`- ${box} ${title}`);
         if (safeString(a.description)) {
           lines.push(`  ${a.description}`);
         }
@@ -199,7 +210,7 @@ export function buildPlanMarkdown({ plan, goals, onboarding, exportedAt }) {
           lines.push(`  ✓ ${a.completionNotes}`);
         }
         if (a.status === "skipped" && safeString(a.skipReason)) {
-          lines.push(`  ~ skipped: ${a.skipReason}`);
+          lines.push(`  _Skipped: ${a.skipReason}_`);
         }
       }
       lines.push("");

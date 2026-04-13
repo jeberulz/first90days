@@ -3,11 +3,7 @@ import { query, mutation, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { auth } from "./auth";
 import { isPilotEmail, PILOT_PLAN_START_DATE } from "./lib/pilotUser";
-import {
-  resolveUserTimezone,
-  tzTodayYmd,
-  diffCalendarDays,
-} from "./lib/planDates";
+import { computePlanDayInfo } from "./lib/planDates";
 
 export const viewer = query({
   args: {},
@@ -51,49 +47,27 @@ export const getDayNumber = query({
       .query("onboardingData")
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .first();
-
     if (!onboarding) return null;
 
     // Pilot read-path override: canonical anchor wins even if DB row is stale.
-    const isPilot = isPilotEmail(user.email);
-    const effectiveStartYmd = isPilot
-      ? PILOT_PLAN_START_DATE
-      : onboarding.startDate;
+    const info = computePlanDayInfo({
+      user,
+      onboarding,
+      isPilot: isPilotEmail(user.email),
+      pilotStartYmd: PILOT_PLAN_START_DATE,
+    });
+    if (!info) return null;
 
-    const tz = resolveUserTimezone(user);
-    const todayYmd = tzTodayYmd(tz);
-    const rawDay = diffCalendarDays(effectiveStartYmd, todayYmd) + 1;
-
-    const hasStarted = rawDay >= 1;
-    const daysUntilStart = hasStarted ? 0 : Math.abs(rawDay) + 1;
-
-    if (!hasStarted) {
-      return {
-        dayNumber: 0,
-        daysUntilStart,
-        hasStarted: false,
-        totalDays: 90,
-        phase: 0,
-        phaseName: "Pre-boarding",
-        startDate: effectiveStartYmd,
-        weekNumber: 0,
-      };
-    }
-
-    const clamped = Math.min(rawDay, 90);
-    const phase = clamped <= 30 ? 1 : clamped <= 60 ? 2 : 3;
-    const phaseName =
-      phase === 1 ? "Learn" : phase === 2 ? "Contribute" : "Lead";
-
+    // Public shape — keep the original field set for backwards compat.
     return {
-      dayNumber: clamped,
-      daysUntilStart: 0,
-      hasStarted: true,
-      totalDays: 90,
-      phase,
-      phaseName,
-      startDate: effectiveStartYmd,
-      weekNumber: Math.min(Math.ceil(clamped / 7), 12),
+      dayNumber: info.dayNumber,
+      daysUntilStart: info.daysUntilStart,
+      hasStarted: info.hasStarted,
+      totalDays: info.totalDays,
+      phase: info.phase,
+      phaseName: info.phaseName,
+      startDate: info.startDate,
+      weekNumber: info.weekNumber,
     };
   },
 });

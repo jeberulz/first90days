@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { auth } from "./auth";
-import { resolveUserTimezone, tzTodayYmd, diffCalendarDays } from "./lib/planDates";
+import { computePlanDayInfo, scheduleYmd } from "./lib/planDates";
 import { isPilotEmail, PILOT_PLAN_START_DATE } from "./lib/pilotUser";
 
 /**
@@ -22,40 +22,30 @@ import { isPilotEmail, PILOT_PLAN_START_DATE } from "./lib/pilotUser";
 
 const PHASE_NAMES = { 1: "Learn", 2: "Contribute", 3: "Lead" };
 
-/**
- * Compute the user's current day number using the same rules as
- * users.getDayNumber so both queries agree on "has this phase ended?".
- * Returns null if the user isn't set up or hasn't started yet.
- */
-async function resolveDayNumber(ctx, userId) {
-  const user = await ctx.db.get(userId);
-  if (!user) return null;
-
-  const onboarding = await ctx.db
-    .query("onboardingData")
-    .withIndex("by_user", (q) => q.eq("userId", userId))
-    .first();
-  if (!onboarding) return null;
-
-  const effectiveStartYmd = isPilotEmail(user.email)
-    ? PILOT_PLAN_START_DATE
-    : onboarding.startDate;
-
-  const tz = resolveUserTimezone(user);
-  const todayYmd = tzTodayYmd(tz);
-  const rawDay = diffCalendarDays(effectiveStartYmd, todayYmd) + 1;
-  if (rawDay < 1) return 0;
-  return Math.min(rawDay, 90);
-}
-
 export const getPendingMilestone = query({
   args: {},
   handler: async (ctx) => {
     const userId = await auth.getUserId(ctx);
     if (!userId) return null;
 
-    const dayNumber = await resolveDayNumber(ctx, userId);
-    if (!dayNumber || dayNumber < 1) return null;
+    const user = await ctx.db.get(userId);
+    if (!user) return null;
+
+    const onboarding = await ctx.db
+      .query("onboardingData")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+    if (!onboarding) return null;
+
+    const info = computePlanDayInfo({
+      user,
+      onboarding,
+      isPilot: isPilotEmail(user.email),
+      pilotStartYmd: PILOT_PLAN_START_DATE,
+    });
+    if (!info || !info.hasStarted) return null;
+    const dayNumber = info.dayNumber;
+    const planStart = info.startDate;
 
     const phases = await ctx.db
       .query("phases")
@@ -95,13 +85,22 @@ export const getPendingMilestone = query({
     // Wins + learnings logged during the phase. logEntries uses a
     // free-form `date` string (YYYY-MM-DD), so we can't index on it —
     // small client-side filter instead, bounded by the user's log
-    // volume which is tiny in practice.
+    // volume which is tiny in practice. Filter by the phase date
+    // window so each celebration only counts entries from that phase.
+    const phaseStartYmd = scheduleYmd(planStart, pending.startDay);
+    const phaseEndYmd = scheduleYmd(planStart, pending.endDay);
     const logs = await ctx.db
       .query("logEntries")
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .collect();
-    const winsCount = logs.filter((l) => l.type === "win").length;
-    const learningsCount = logs.filter((l) => l.type === "learning").length;
+    const inPhase = logs.filter(
+      (l) =>
+        typeof l.date === "string" &&
+        l.date >= phaseStartYmd &&
+        l.date <= phaseEndYmd
+    );
+    const winsCount = inPhase.filter((l) => l.type === "win").length;
+    const learningsCount = inPhase.filter((l) => l.type === "learning").length;
 
     const goals = await ctx.db
       .query("goals")

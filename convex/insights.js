@@ -1,11 +1,7 @@
 import { query } from "./_generated/server";
 import { auth } from "./auth";
 import { isPilotEmail, PILOT_PLAN_START_DATE } from "./lib/pilotUser";
-import {
-  resolveUserTimezone,
-  tzTodayYmd,
-  diffCalendarDays,
-} from "./lib/planDates";
+import { computePlanDayInfo } from "./lib/planDates";
 
 /**
  * Velocity / pace insights for the Progress page.
@@ -44,16 +40,14 @@ export const getVelocity = query({
       .first();
     if (!plan) return null;
 
-    const isPilot = isPilotEmail(user.email);
-    const effectiveStartYmd = isPilot
-      ? PILOT_PLAN_START_DATE
-      : onboarding.startDate;
-
-    const tz = resolveUserTimezone(user);
-    const todayYmd = tzTodayYmd(tz);
-    const rawDay = diffCalendarDays(effectiveStartYmd, todayYmd) + 1;
-    const dayNumber = Math.max(0, Math.min(rawDay, 90));
-    const hasStarted = rawDay >= 1;
+    const info = computePlanDayInfo({
+      user,
+      onboarding,
+      isPilot: isPilotEmail(user.email),
+      pilotStartYmd: PILOT_PLAN_START_DATE,
+    });
+    if (!info) return null;
+    const { dayNumber, hasStarted } = info;
 
     const activities = await ctx.db
       .query("activities")

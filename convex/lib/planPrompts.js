@@ -116,36 +116,85 @@ export const PHASES = [
 ];
 
 /**
- * Pull a JSON array or object out of a model response that may have
- * leading/trailing whitespace or markdown fences. Returns null if no
- * JSON can be extracted.
+ * Strip ```json … ``` (or plain ``` … ```) code fences if present, so the
+ * JSON extractors below see naked content. We only peel the first matched
+ * fence — if the model emits multiple, the surrounding-bracket scanner
+ * will still find the outermost JSON value inside.
  */
+function stripCodeFences(response) {
+  const fenceMatch = response.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  return fenceMatch ? fenceMatch[1] : response;
+}
+
+/**
+ * Walk the string and return the first balanced JSON value of the
+ * requested kind ("object" or "array"). Tracks string boundaries (and
+ * escapes) so braces inside string literals don't corrupt the depth
+ * counter. More forgiving than a greedy regex when the model emits
+ * stray { } in surrounding prose.
+ */
+function findBalancedJson(input, kind) {
+  const open = kind === "object" ? "{" : "[";
+  const close = kind === "object" ? "}" : "]";
+  for (let start = 0; start < input.length; start++) {
+    if (input[start] !== open) continue;
+    let depth = 0;
+    let inString = false;
+    let escape = false;
+    for (let i = start; i < input.length; i++) {
+      const ch = input[i];
+      if (inString) {
+        if (escape) {
+          escape = false;
+        } else if (ch === "\\") {
+          escape = true;
+        } else if (ch === '"') {
+          inString = false;
+        }
+        continue;
+      }
+      if (ch === '"') {
+        inString = true;
+        continue;
+      }
+      if (ch === open) depth++;
+      else if (ch === close) {
+        depth--;
+        if (depth === 0) return input.slice(start, i + 1);
+      }
+    }
+  }
+  return null;
+}
+
 /**
  * Pull a JSON object out of a model response that may have leading /
- * trailing prose or markdown fences. Greedy-matches the outermost
- * braces.
+ * trailing prose or markdown fences. Uses a string-aware balanced scan
+ * so prose with stray braces doesn't break parsing.
  */
 export function extractJsonObject(response) {
   if (!response || typeof response !== "string") return null;
-  const match = response.match(/\{[\s\S]*\}/);
-  if (!match) return null;
+  const cleaned = stripCodeFences(response);
+  const candidate = findBalancedJson(cleaned, "object");
+  if (!candidate) return null;
   try {
-    return JSON.parse(match[0]);
+    return JSON.parse(candidate);
   } catch {
     return null;
   }
 }
 
 /**
- * Pull a JSON array out of a model response. Greedy-matches the
- * outermost brackets.
+ * Pull a JSON array out of a model response. Uses a string-aware
+ * balanced scan so prose with stray brackets doesn't break parsing.
  */
 export function extractJsonArray(response) {
   if (!response || typeof response !== "string") return null;
-  const match = response.match(/\[[\s\S]*\]/);
-  if (!match) return null;
+  const cleaned = stripCodeFences(response);
+  const candidate = findBalancedJson(cleaned, "array");
+  if (!candidate) return null;
   try {
-    return JSON.parse(match[0]);
+    return JSON.parse(candidate);
   } catch {
     return null;
   }

@@ -36,24 +36,28 @@ export function resolveThresholds(stakeholder) {
   return { greenDays: 7, yellowDays: 14, source: "priority" };
 }
 
+import { addDays, diffCalendarDays, tzTodayYmd } from "./planDates.js";
+
 /**
- * Count whole days from `lastInteractionDate` (YYYY-MM-DD) to `now`.
- * Returns null when there's no recorded interaction.
+ * Count whole calendar days from `lastInteractionDate` (YYYY-MM-DD) to
+ * `todayYmd`. Returns null when there's no recorded interaction.
+ *
+ * Pure YMD math — no Date object means no DST or tz drift around the
+ * day boundary.
  */
-export function daysSinceInteraction(stakeholder, now = new Date()) {
+export function daysSinceInteraction(stakeholder, todayYmd) {
   if (!stakeholder.lastInteractionDate) return null;
-  const last = new Date(stakeholder.lastInteractionDate);
-  if (Number.isNaN(last.getTime())) return null;
-  return Math.floor((now.getTime() - last.getTime()) / (1000 * 60 * 60 * 24));
+  if (typeof stakeholder.lastInteractionDate !== "string") return null;
+  return diffCalendarDays(stakeholder.lastInteractionDate, todayYmd);
 }
 
 /**
  * Compute a health summary for a stakeholder.
  * @returns {{health: "none"|"green"|"yellow"|"red", daysSince: number|null, thresholds: {greenDays:number, yellowDays:number}}}
  */
-export function computeHealth(stakeholder, now = new Date()) {
+export function computeHealth(stakeholder, todayYmd) {
   const thresholds = resolveThresholds(stakeholder);
-  const daysSince = daysSinceInteraction(stakeholder, now);
+  const daysSince = daysSinceInteraction(stakeholder, todayYmd);
   if (daysSince === null) {
     return { health: "none", daysSince: null, thresholds };
   }
@@ -65,20 +69,27 @@ export function computeHealth(stakeholder, now = new Date()) {
 }
 
 /**
- * Format `date` as a local YYYY-MM-DD so comparisons with
- * stakeholder.nudgeSnoozedUntil (also YYYY-MM-DD) are lexical-safe.
+ * Today's YYYY-MM-DD in the given IANA timezone. Re-exported here so
+ * stakeholder callers can stay inside this module and still get a
+ * tz-aware "today".
  */
-export function toYmd(date = new Date()) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
+export function todayYmdInTz(tz) {
+  return tzTodayYmd(tz);
 }
 
 /**
- * True if nudges for this stakeholder should be suppressed today.
+ * Compute the snooze target YYYY-MM-DD by adding `days` to today in the
+ * user's timezone. Pure string math — DST-safe.
  */
-export function isSnoozed(stakeholder, todayYmd = toYmd()) {
+export function snoozeUntilYmd(tz, days) {
+  return addDays(tzTodayYmd(tz), days);
+}
+
+/**
+ * True if nudges for this stakeholder should be suppressed on the given
+ * tz-aware today.
+ */
+export function isSnoozed(stakeholder, todayYmd) {
   const until = stakeholder.nudgeSnoozedUntil;
   if (!until) return false;
   return todayYmd <= until;

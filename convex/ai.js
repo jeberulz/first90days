@@ -262,8 +262,9 @@ export const suggestActivities = action({
   },
   handler: async (ctx, args) => {
     let kbBlock = "";
+    let kbContext = null;
     if (args.userId) {
-      const kbContext = await fetchContextForPlanning(ctx, {
+      kbContext = await fetchContextForPlanning(ctx, {
         userId: args.userId,
         query: args.context,
         topK: 6,
@@ -277,15 +278,29 @@ export const suggestActivities = action({
       `${kbBlock}${ACTIVITY_SUGGESTION_PROMPT}\n\nUser's current context:\n${args.context}\n\nRespond with ONLY a JSON array.`
     );
 
-    try {
-      const jsonMatch = response.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
+    // Audit: record the retrieval the same way generatePlan and
+    // generateWeeklySummary do, so the KB usage log is complete.
+    if (
+      args.userId &&
+      kbContext &&
+      (kbContext.citations.length > 0 || kbContext.memories.length > 0)
+    ) {
+      try {
+        await recordRetrieval(ctx, {
+          userId: args.userId,
+          feature: "activity_suggestions",
+          documentIds: kbContext.citations
+            .map((c) => c.documentId)
+            .filter(Boolean),
+          memoryIds: kbContext.memories.map((m) => m._id),
+        });
+      } catch (e) {
+        console.warn("[suggestActivities] recordRetrieval failed", e?.message);
       }
-    } catch (e) {
-      console.error("Failed to parse suggestions:", e);
     }
-    return [];
+
+    const parsed = extractJsonArray(response);
+    return Array.isArray(parsed) ? parsed : [];
   },
 });
 
@@ -296,8 +311,9 @@ export const generateWeeklyInsight = action({
   },
   handler: async (ctx, args) => {
     let kbBlock = "";
+    let kbContext = null;
     if (args.userId) {
-      const kbContext = await fetchContextForPlanning(ctx, {
+      kbContext = await fetchContextForPlanning(ctx, {
         userId: args.userId,
         query: args.weekData,
         topK: 6,
@@ -310,6 +326,29 @@ export const generateWeeklyInsight = action({
       WATKINS_SYSTEM_PROMPT,
       `${kbBlock}${WEEKLY_INSIGHT_PROMPT}\n\nWeek data:\n${args.weekData}`
     );
+
+    if (
+      args.userId &&
+      kbContext &&
+      (kbContext.citations.length > 0 || kbContext.memories.length > 0)
+    ) {
+      try {
+        await recordRetrieval(ctx, {
+          userId: args.userId,
+          feature: "weekly_insight",
+          documentIds: kbContext.citations
+            .map((c) => c.documentId)
+            .filter(Boolean),
+          memoryIds: kbContext.memories.map((m) => m._id),
+        });
+      } catch (e) {
+        console.warn(
+          "[generateWeeklyInsight] recordRetrieval failed",
+          e?.message
+        );
+      }
+    }
+
     return response;
   },
 });
@@ -411,23 +450,34 @@ export const generateWeeklySummary = internalAction({
       return;
     }
 
-    const review = await ctx.runQuery(
-      internal.reflections.getWeeklyReviewInternal,
-      { reviewId }
-    );
-    if (!review) {
-      console.warn("[generateWeeklySummary] review row vanished", reviewId);
-      return;
-    }
-
-    const activities = await ctx.runQuery(
-      internal.reflections.getActivitiesForWeekInternal,
-      { userId: review.userId, weekNumber: review.weekNumber }
-    );
-
-    const weekData = formatWeekDataForPrompt(review, activities);
-
+    // Single try/catch around every read + generate step so any failure
+    // — vanished row, query error, KB hiccup, model timeout — lands the
+    // review in a terminal "failed" status instead of leaving the UI
+    // spinning on "generating" forever.
     try {
+      const review = await ctx.runQuery(
+        internal.reflections.getWeeklyReviewInternal,
+        { reviewId }
+      );
+      if (!review) {
+        console.warn("[generateWeeklySummary] review row vanished", reviewId);
+        // Best-effort: mark failed if the row reappeared between the
+        // read and now. setWeeklySummary will no-op for a missing row.
+        await ctx.runMutation(internal.reflections.setWeeklySummary, {
+          reviewId,
+          status: "failed",
+          error: "Review not found",
+        });
+        return;
+      }
+
+      const activities = await ctx.runQuery(
+        internal.reflections.getActivitiesForWeekInternal,
+        { userId: review.userId, weekNumber: review.weekNumber }
+      );
+
+      const weekData = formatWeekDataForPrompt(review, activities);
+
       const kbContext = await fetchContextForPlanning(ctx, {
         userId: review.userId,
         query: weekData,
@@ -469,11 +519,19 @@ export const generateWeeklySummary = internalAction({
       }
     } catch (err) {
       console.error("[generateWeeklySummary] generation failed", err);
-      await ctx.runMutation(internal.reflections.setWeeklySummary, {
-        reviewId,
-        status: "failed",
-        error: err instanceof Error ? err.message : "Generation failed",
-      });
+      try {
+        await ctx.runMutation(internal.reflections.setWeeklySummary, {
+          reviewId,
+          status: "failed",
+          error: err instanceof Error ? err.message : "Generation failed",
+        });
+      } catch (markErr) {
+        // We tried our best — the review row may genuinely be gone.
+        console.error(
+          "[generateWeeklySummary] could not record failure",
+          markErr
+        );
+      }
     }
   },
 });

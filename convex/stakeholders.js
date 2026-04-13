@@ -5,11 +5,12 @@ import { auth } from "./auth";
 import {
   computeHealth,
   isSnoozed,
-  toYmd,
+  todayYmdInTz,
+  snoozeUntilYmd,
   describeNudge,
   compareNudgeUrgency,
-  resolveThresholds,
 } from "./lib/stakeholderCadence.js";
+import { resolveUserTimezone } from "./lib/planDates.js";
 
 export const list = query({
   args: {},
@@ -17,14 +18,16 @@ export const list = query({
     const userId = await auth.getUserId(ctx);
     if (!userId) return [];
 
+    const user = await ctx.db.get(userId);
+    const todayYmd = todayYmdInTz(resolveUserTimezone(user));
+
     const stakeholders = await ctx.db
       .query("stakeholders")
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .collect();
 
-    const now = new Date();
     return stakeholders.map((s) => {
-      const { health, daysSince, thresholds } = computeHealth(s, now);
+      const { health, daysSince, thresholds } = computeHealth(s, todayYmd);
       return { ...s, health, daysSince, thresholds };
     });
   },
@@ -41,18 +44,18 @@ export const listNudges = query({
     const userId = await auth.getUserId(ctx);
     if (!userId) return [];
 
+    const user = await ctx.db.get(userId);
+    const today = todayYmdInTz(resolveUserTimezone(user));
+
     const stakeholders = await ctx.db
       .query("stakeholders")
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .collect();
 
-    const now = new Date();
-    const today = toYmd(now);
-
     const enriched = stakeholders
       .filter((s) => !isSnoozed(s, today))
       .map((s) => {
-        const { health, daysSince, thresholds } = computeHealth(s, now);
+        const { health, daysSince, thresholds } = computeHealth(s, today);
         return { s, health, daysSince, thresholds };
       })
       .filter(
@@ -301,11 +304,10 @@ export const snoozeNudge = mutation({
     }
 
     const days = Math.max(1, Math.min(30, Math.round(args.days ?? 3)));
-    const until = new Date();
-    until.setDate(until.getDate() + days);
-    const y = until.getFullYear();
-    const m = String(until.getMonth() + 1).padStart(2, "0");
-    const d = String(until.getDate()).padStart(2, "0");
-    await ctx.db.patch(args.id, { nudgeSnoozedUntil: `${y}-${m}-${d}` });
+    const user = await ctx.db.get(userId);
+    const tz = resolveUserTimezone(user);
+    await ctx.db.patch(args.id, {
+      nudgeSnoozedUntil: snoozeUntilYmd(tz, days),
+    });
   },
 });

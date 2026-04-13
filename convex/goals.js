@@ -143,6 +143,11 @@ async function loadGoalAsReviewer(ctx, goalId) {
   if (access.role === "owner") {
     throw new Error("The plan owner can't approve their own goals");
   }
+  // Sign-off is a manager-only privilege. Viewers can read shared goals
+  // but cannot approve or send them back for changes.
+  if (access.role !== "manager") {
+    throw new Error("Only managers can sign off on goals");
+  }
 
   return { userId, goal, plan, role: access.role };
 }

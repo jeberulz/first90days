@@ -181,6 +181,20 @@ export const removeCollaborator = mutation({
       throw new Error("Only the plan owner can remove collaborators");
     }
 
+    // Sweep comments authored by the removed collaborator on this plan
+    // (or anything within it) so their voice doesn't linger after the
+    // owner has explicitly cut access. Walk by_author and filter to the
+    // plan in memory — comments-per-user is small in practice.
+    const authored = await ctx.db
+      .query("planComments")
+      .withIndex("by_author", (q) => q.eq("authorUserId", row.collaboratorUserId))
+      .collect();
+    for (const c of authored) {
+      if (c.planId === row.planId) {
+        await ctx.db.delete(c._id);
+      }
+    }
+
     await ctx.db.delete(args.collaboratorRowId);
   },
 });
