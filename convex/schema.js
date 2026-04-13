@@ -129,6 +129,24 @@ export default defineSchema({
     status: v.string(),
     completedAt: v.optional(v.string()),
     notes: v.optional(v.string()),
+
+    // Manager sign-off — captures explicit approval on a goal so success
+    // criteria aren't fuzzy later. approvalStatus moves through the cycle:
+    //   "none" (default) → "requested" → "approved" or "changes_requested"
+    // The owner can resubmit after a "changes_requested" verdict, which
+    // resets back to "requested".
+    approvalStatus: v.optional(
+      v.union(
+        v.literal("none"),
+        v.literal("requested"),
+        v.literal("approved"),
+        v.literal("changes_requested")
+      )
+    ),
+    approvalRequestedAt: v.optional(v.number()),
+    approvalDecidedAt: v.optional(v.number()),
+    approvalDecidedByUserId: v.optional(v.id("users")),
+    approvalNote: v.optional(v.string()),
   }).index("by_user", ["userId"]),
 
   stakeholders: defineTable({

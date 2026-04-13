@@ -5,6 +5,10 @@ import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import CommentThread from "@/components/plan/CommentThread";
+import {
+  GoalApprovalBadge,
+  GoalApprovalActions,
+} from "@/components/plan/GoalApproval";
 
 const phaseLabels = {
   1: { name: "Learn", desc: "Absorb context", days: "Days 1-30" },
@@ -22,6 +26,9 @@ export default function SharedPlanPage({ params }) {
   const { planId } = use(params);
   const plan = useQuery(api.plans.getSharedFull, { planId });
   const planComments = useQuery(api.planComments.listForPlan, { planId });
+  // Goals come from a dedicated query so each row is enriched with the
+  // approver display name and viewerRole used by GoalApprovalActions.
+  const sharedGoals = useQuery(api.goals.listForPlan, { planId });
 
   if (plan === undefined) {
     return (
@@ -84,13 +91,13 @@ export default function SharedPlanPage({ params }) {
         </p>
       </div>
 
-      {plan.goals && plan.goals.length > 0 && (
+      {sharedGoals && sharedGoals.length > 0 && (
         <div className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-6">
           <h2 className="font-space-grotesk text-sm font-medium text-[#A8A29E] mb-4">
             Goals
           </h2>
           <ul className="space-y-3">
-            {plan.goals.map((g) => (
+            {sharedGoals.map((g) => (
               <li key={g._id}>
                 <div className="flex items-start gap-3">
                   <div
@@ -102,13 +109,20 @@ export default function SharedPlanPage({ params }) {
                           : "bg-[#292524] border border-[#44403C]"
                     }`}
                   />
-                  <div className="flex-1">
-                    <p className="font-space-grotesk text-sm text-[#E7E5E4]">
-                      {g.title}
-                    </p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-space-grotesk text-sm text-[#E7E5E4]">
+                        {g.title}
+                      </p>
+                      <GoalApprovalBadge goal={g} />
+                    </div>
                     <p className="font-space-grotesk text-xs text-[#A8A29E]">
                       Phase {g.targetPhase} · {g.category}
                     </p>
+                    <GoalApprovalActions
+                      goal={g}
+                      viewerRole={g.viewerRole}
+                    />
                     <CommentThread
                       planId={plan._id}
                       targetType="goal"

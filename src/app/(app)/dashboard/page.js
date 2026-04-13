@@ -3,6 +3,10 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { useState, useEffect } from "react";
+import {
+  GoalApprovalBadge,
+  GoalApprovalActions,
+} from "@/components/plan/GoalApproval";
 
 const PRE_BOARDING_CHECKLIST = [
   { id: "news", label: "Research company recent news, earnings, product launches" },
@@ -388,13 +392,17 @@ export default function DashboardPage() {
                         : "bg-[#292524] border border-[#44403C]"
                   }`}
                 />
-                <div>
-                  <p className="font-space-grotesk text-sm text-[#E7E5E4]">
-                    {goal.title}
-                  </p>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-space-grotesk text-sm text-[#E7E5E4]">
+                      {goal.title}
+                    </p>
+                    <GoalApprovalBadge goal={goal} />
+                  </div>
                   <p className="font-space-grotesk text-xs text-[#A8A29E]">
                     Phase {goal.targetPhase} · {goal.category}
                   </p>
+                  <GoalApprovalActions goal={goal} viewerRole="owner" />
                 </div>
               </div>
             ))}
