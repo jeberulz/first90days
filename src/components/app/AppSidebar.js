@@ -50,6 +50,16 @@ const navItems = [
     ),
   },
   {
+    label: "Progress",
+    href: "/progress",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M2 15l4-6 4 3 6-8" />
+        <path d="M2 17h14" />
+      </svg>
+    ),
+  },
+  {
     label: "Stakeholders",
     href: "/stakeholders",
     icon: (

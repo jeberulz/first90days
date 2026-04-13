@@ -61,3 +61,62 @@ export function diffCalendarDays(startYmd, endYmd) {
 export function scheduleYmd(startDate, dayNumber) {
   return addDays(startDate, dayNumber - 1);
 }
+
+/**
+ * Compute a user's current day number in their plan.
+ *
+ * Single source of truth shared by users.getDayNumber, milestones.js,
+ * and insights.js so all three queries agree on "what day is it?".
+ *
+ * Returns one of:
+ *   - null   → no user, no onboarding, or onboarding hasn't synced
+ *   - { dayNumber: 0, hasStarted: false, ... }  → pre-boarding
+ *   - { dayNumber: 1..90, hasStarted: true, ... } → live
+ *
+ * Pass the already-loaded user + onboarding rows; the helper does no
+ * db reads itself so callers can reuse them for other work.
+ */
+export function computePlanDayInfo({ user, onboarding, isPilot, pilotStartYmd }) {
+  if (!user || !onboarding) return null;
+
+  const effectiveStartYmd = isPilot ? pilotStartYmd : onboarding.startDate;
+  const tz = resolveUserTimezone(user);
+  const todayYmd = tzTodayYmd(tz);
+  const rawDay = diffCalendarDays(effectiveStartYmd, todayYmd) + 1;
+  const hasStarted = rawDay >= 1;
+  const daysUntilStart = hasStarted ? 0 : Math.abs(rawDay) + 1;
+
+  if (!hasStarted) {
+    return {
+      dayNumber: 0,
+      rawDay,
+      hasStarted: false,
+      daysUntilStart,
+      totalDays: 90,
+      phase: 0,
+      phaseName: "Pre-boarding",
+      weekNumber: 0,
+      startDate: effectiveStartYmd,
+      tz,
+      todayYmd,
+    };
+  }
+
+  const clamped = Math.min(rawDay, 90);
+  const phase = clamped <= 30 ? 1 : clamped <= 60 ? 2 : 3;
+  const phaseName = phase === 1 ? "Learn" : phase === 2 ? "Contribute" : "Lead";
+
+  return {
+    dayNumber: clamped,
+    rawDay,
+    hasStarted: true,
+    daysUntilStart: 0,
+    totalDays: 90,
+    phase,
+    phaseName,
+    weekNumber: Math.min(Math.ceil(clamped / 7), 12),
+    startDate: effectiveStartYmd,
+    tz,
+    todayYmd,
+  };
+}

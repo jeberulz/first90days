@@ -86,6 +86,10 @@ export default defineSchema({
     endDay: v.number(),
     milestone: v.string(),
     status: v.string(),
+    // Timestamp when the user dismissed the phase-completion celebration
+    // modal. Null/undefined means the modal should still fire once the
+    // user passes this phase's endDay. Set once, never cleared.
+    milestoneAcknowledgedAt: v.optional(v.number()),
   })
     .index("by_plan", ["planId"])
     .index("by_user", ["userId"]),
@@ -100,6 +104,7 @@ export default defineSchema({
     reviewQuestions: v.array(v.string()),
   })
     .index("by_plan", ["planId"])
+    .index("by_plan_number", ["planId", "number"])
     .index("by_phase", ["phaseId"])
     .index("by_user_number", ["userId", "number"]),
 
@@ -128,8 +133,10 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_user_status", ["userId", "status"])
     .index("by_user_date", ["userId", "scheduledDate"])
+    .index("by_user_week", ["userId", "weekNumber"])
     .index("by_week", ["weekId"])
-    .index("by_plan", ["planId"]),
+    .index("by_plan", ["planId"])
+    .index("by_plan_week", ["planId", "weekNumber"]),
 
   goals: defineTable({
     userId: v.id("users"),
@@ -139,6 +146,24 @@ export default defineSchema({
     status: v.string(),
     completedAt: v.optional(v.string()),
     notes: v.optional(v.string()),
+
+    // Manager sign-off — captures explicit approval on a goal so success
+    // criteria aren't fuzzy later. approvalStatus moves through the cycle:
+    //   "none" (default) → "requested" → "approved" or "changes_requested"
+    // The owner can resubmit after a "changes_requested" verdict, which
+    // resets back to "requested".
+    approvalStatus: v.optional(
+      v.union(
+        v.literal("none"),
+        v.literal("requested"),
+        v.literal("approved"),
+        v.literal("changes_requested")
+      )
+    ),
+    approvalRequestedAt: v.optional(v.number()),
+    approvalDecidedAt: v.optional(v.number()),
+    approvalDecidedByUserId: v.optional(v.id("users")),
+    approvalNote: v.optional(v.string()),
   }).index("by_user", ["userId"]),
 
   stakeholders: defineTable({
@@ -158,6 +183,13 @@ export default defineSchema({
     email: v.optional(v.string()),
     location: v.optional(v.string()),
     lastInteractionDate: v.optional(v.string()),
+    // Custom cadence target in days (e.g. 7 = weekly). When set, overrides
+    // the priority-based default thresholds used to compute relationship
+    // health + nudges.
+    cadenceDays: v.optional(v.number()),
+    // YYYY-MM-DD. If today <= this date, nudges for this stakeholder are
+    // suppressed on the Today page.
+    nudgeSnoozedUntil: v.optional(v.string()),
   })
     .index("by_user", ["userId"])
     .index("by_user_priority", ["userId", "priority"]),
@@ -209,6 +241,20 @@ export default defineSchema({
     activitiesCompleted: v.number(),
     activitiesPlanned: v.number(),
     notes: v.optional(v.string()),
+    // AI-generated summary of the week. Runs asynchronously after the
+    // user submits the review — the status field lets the UI render a
+    // live loading state while the action is still generating.
+    aiSummary: v.optional(v.string()),
+    aiSummaryStatus: v.optional(
+      v.union(
+        v.literal("pending"),
+        v.literal("generating"),
+        v.literal("done"),
+        v.literal("failed")
+      )
+    ),
+    aiSummaryGeneratedAt: v.optional(v.number()),
+    aiSummaryError: v.optional(v.string()),
   })
     .index("by_user", ["userId"])
     .index("by_user_week", ["userId", "weekNumber"]),
@@ -435,6 +481,77 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_user_status", ["userId", "status"])
     .index("by_document", ["documentId"]),
+
+  // ── Manager-alignment workspace ─────────────────────────────────────────
+  // planInvitations: tokenized invites the plan owner sends to a manager.
+  // The owner generates a share link; the recipient lands on /invite/[token]
+  // signs in (or signs up), and the token is exchanged for a planCollaborators
+  // row. Tokens are single-use and may be revoked by the owner at any time.
+  planInvitations: defineTable({
+    planId: v.id("plans"),
+    ownerUserId: v.id("users"),
+    invitedEmail: v.string(),
+    token: v.string(),
+    role: v.union(v.literal("manager"), v.literal("viewer")),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("accepted"),
+      v.literal("revoked"),
+      v.literal("expired")
+    ),
+    message: v.optional(v.string()),
+    createdAt: v.number(),
+    expiresAt: v.number(),
+    acceptedAt: v.optional(v.number()),
+    acceptedByUserId: v.optional(v.id("users")),
+  })
+    .index("by_owner", ["ownerUserId"])
+    .index("by_plan", ["planId"])
+    .index("by_token", ["token"]),
+
+  // planCollaborators: accepted collaborators on a plan. Membership in this
+  // table is what grants a non-owner read access to the plan via shared
+  // queries; comment authoring is also gated on a row here.
+  planCollaborators: defineTable({
+    planId: v.id("plans"),
+    ownerUserId: v.id("users"),
+    collaboratorUserId: v.id("users"),
+    collaboratorEmail: v.optional(v.string()),
+    role: v.union(v.literal("manager"), v.literal("viewer")),
+    invitationId: v.optional(v.id("planInvitations")),
+    acceptedAt: v.number(),
+  })
+    .index("by_plan", ["planId"])
+    .index("by_owner", ["ownerUserId"])
+    .index("by_collaborator", ["collaboratorUserId"])
+    .index("by_plan_collaborator", ["planId", "collaboratorUserId"]),
+
+  // planComments: threaded comments on plan, phase, week, activity, or goal.
+  // targetId is stored as a string to keep one polymorphic table; the calling
+  // code uses targetType to interpret it as the matching Convex Id.
+  planComments: defineTable({
+    planId: v.id("plans"),
+    authorUserId: v.id("users"),
+    authorRole: v.union(
+      v.literal("owner"),
+      v.literal("manager"),
+      v.literal("viewer")
+    ),
+    targetType: v.union(
+      v.literal("plan"),
+      v.literal("phase"),
+      v.literal("week"),
+      v.literal("activity"),
+      v.literal("goal")
+    ),
+    targetId: v.string(),
+    body: v.string(),
+    resolvedAt: v.optional(v.number()),
+    resolvedByUserId: v.optional(v.id("users")),
+  })
+    .index("by_plan", ["planId"])
+    .index("by_target", ["planId", "targetType", "targetId"])
+    .index("by_author", ["authorUserId"]),
 
   billingSubscriptions: defineTable({
     userId: v.id("users"),

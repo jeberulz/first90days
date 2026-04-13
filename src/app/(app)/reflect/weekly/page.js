@@ -4,6 +4,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 const defaultQuestions = [
   "What were your biggest accomplishments this week?",
@@ -27,7 +28,6 @@ export default function WeeklyReviewPage() {
   );
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
 
   if (!dayInfo || !activities) {
     return (
@@ -46,42 +46,39 @@ export default function WeeklyReviewPage() {
   async function handleSubmit(e) {
     e.preventDefault();
     setSaving(true);
-    await saveReview({
-      weekNumber: dayInfo.weekNumber,
-      date: new Date().toISOString().split("T")[0],
-      rating,
-      questionResponses: responses,
-      activitiesCompleted: completed,
-      activitiesPlanned: planned,
-      notes: notes || undefined,
-    });
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => router.push("/dashboard"), 1500);
-  }
-
-  if (saved) {
-    return (
-      <div className="max-w-2xl mx-auto">
-        <div className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-8 text-center space-y-3">
-          <p className="text-4xl">🎯</p>
-          <p className="font-instrument-serif text-2xl text-[#E7E5E4]">
-            Week {dayInfo.weekNumber} review saved!
-          </p>
-        </div>
-      </div>
-    );
+    try {
+      await saveReview({
+        weekNumber: dayInfo.weekNumber,
+        date: new Date().toISOString().split("T")[0],
+        rating,
+        questionResponses: responses,
+        activitiesCompleted: completed,
+        activitiesPlanned: planned,
+        notes: notes || undefined,
+      });
+      router.push(`/reflect/summary/${dayInfo.weekNumber}`);
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 sm:space-y-8">
-      <div>
-        <h1 className="font-instrument-serif tracking-[-0.5px] sm:tracking-[-0.9px] text-2xl sm:text-3xl md:text-4xl leading-tight">
-          Week {dayInfo.weekNumber} Review
-        </h1>
-        <p className="mt-2 font-space-grotesk text-sm sm:text-base text-[#A8A29E]">
-          {dayInfo.phaseName} Phase
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="font-instrument-serif tracking-[-0.5px] sm:tracking-[-0.9px] text-2xl sm:text-3xl md:text-4xl leading-tight">
+            Week {dayInfo.weekNumber} Review
+          </h1>
+          <p className="mt-2 font-space-grotesk text-sm sm:text-base text-[#A8A29E]">
+            {dayInfo.phaseName} Phase
+          </p>
+        </div>
+        <Link
+          href="/reflect/summaries"
+          className="font-space-grotesk text-xs text-[#A8A29E] hover:text-[#E7E5E4] transition flex-shrink-0 mt-2"
+        >
+          Past summaries →
+        </Link>
       </div>
 
       {/* Auto stats */}
@@ -163,8 +160,12 @@ export default function WeeklyReviewPage() {
           disabled={saving}
           className="w-full bg-[#D97757] hover:bg-[#C26242] text-white rounded-lg px-6 py-3 font-space-grotesk text-sm font-medium transition disabled:opacity-50 shadow-sm"
         >
-          {saving ? "Saving..." : "Complete weekly review"}
+          {saving ? "Saving…" : "Save & generate summary"}
         </button>
+        <p className="text-center font-space-grotesk text-xs text-[#78716C]">
+          We&apos;ll draft an AI summary grounded in your completed activities
+          and knowledge base.
+        </p>
       </form>
     </div>
   );

@@ -3,6 +3,15 @@
 import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
+import SharePlanModal from "@/components/plan/SharePlanModal";
+import RegeneratePlanModal from "@/components/plan/RegeneratePlanModal";
+import {
+  buildPlanMarkdown,
+  buildPlanJson,
+  buildExportFilename,
+  downloadTextFile,
+} from "@/lib/planExport";
 
 const phaseLabels = {
   1: { name: "Learn", desc: "Absorb context", days: "Days 1-30" },
@@ -13,6 +22,70 @@ const phaseLabels = {
 export default function PlanPage() {
   const fullPlan = useQuery(api.plans.getFull);
   const dayInfo = useQuery(api.users.getDayNumber);
+  const viewer = useQuery(api.users.viewer);
+  const goals = useQuery(api.goals.list);
+  const onboarding = useQuery(api.onboarding.get);
+  const collaborators = useQuery(
+    api.collaboration.listCollaborators,
+    fullPlan ? { planId: fullPlan._id } : "skip"
+  );
+  const sharedWithMe = useQuery(api.collaboration.listSharedWithMe);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [regenOpen, setRegenOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const exportMenuRef = useRef(null);
+
+  // Close the export menu on outside click or Escape.
+  useEffect(() => {
+    if (!exportOpen) return;
+    function onClick(e) {
+      if (
+        exportMenuRef.current &&
+        !exportMenuRef.current.contains(e.target)
+      ) {
+        setExportOpen(false);
+      }
+    }
+    function onKey(e) {
+      if (e.key === "Escape") setExportOpen(false);
+    }
+    window.addEventListener("mousedown", onClick);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("mousedown", onClick);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [exportOpen]);
+
+  function handleExport(format) {
+    if (!fullPlan) return;
+    const payload = {
+      plan: fullPlan,
+      goals: goals || [],
+      onboarding: onboarding || null,
+      exportedAt: new Date(),
+    };
+    if (format === "markdown") {
+      downloadTextFile({
+        filename: buildExportFilename({
+          onboarding,
+          extension: "md",
+        }),
+        mimeType: "text/markdown;charset=utf-8",
+        content: buildPlanMarkdown(payload),
+      });
+    } else if (format === "json") {
+      downloadTextFile({
+        filename: buildExportFilename({
+          onboarding,
+          extension: "json",
+        }),
+        mimeType: "application/json;charset=utf-8",
+        content: buildPlanJson(payload),
+      });
+    }
+    setExportOpen(false);
+  }
 
   if (!fullPlan) {
     return (
@@ -45,14 +118,157 @@ export default function PlanPage() {
 
   return (
     <div className="space-y-6 sm:space-y-8">
-      <div>
-        <h1 className="font-instrument-serif tracking-[-0.5px] sm:tracking-[-0.9px] text-2xl sm:text-3xl md:text-4xl leading-tight">
-          Your 90-Day Trajectory
-        </h1>
-        <p className="mt-2 font-space-grotesk text-sm sm:text-base text-[#A8A29E]">
-          {fullPlan.activities.length} activities across 12 weeks
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div>
+          <h1 className="font-instrument-serif tracking-[-0.5px] sm:tracking-[-0.9px] text-2xl sm:text-3xl md:text-4xl leading-tight">
+            Your 90-Day Trajectory
+          </h1>
+          <p className="mt-2 font-space-grotesk text-sm sm:text-base text-[#A8A29E]">
+            {fullPlan.activities.length} activities across 12 weeks
+          </p>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="relative" ref={exportMenuRef}>
+            <button
+              type="button"
+              onClick={() => setExportOpen((v) => !v)}
+              className="font-space-grotesk text-sm px-3 py-2 rounded-lg border border-[#44403C] text-[#A8A29E] hover:text-[#E7E5E4] hover:bg-[#292524] transition inline-flex items-center gap-2"
+              title="Download your plan as Markdown or JSON"
+              aria-haspopup="menu"
+              aria-expanded={exportOpen}
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M7 1v8" />
+                <path d="M3.5 5.5L7 9l3.5-3.5" />
+                <path d="M2 12h10" />
+              </svg>
+              Export
+            </button>
+            {exportOpen && (
+              <div
+                role="menu"
+                className="absolute right-0 top-full mt-2 w-56 bg-[#1C1917] border border-[#2C2825] rounded-xl shadow-xl z-10 overflow-hidden"
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => handleExport("markdown")}
+                  className="w-full text-left px-4 py-3 hover:bg-[#292524] transition border-b border-[#2C2825]"
+                >
+                  <p className="font-space-grotesk text-sm text-[#E7E5E4]">
+                    Markdown (.md)
+                  </p>
+                  <p className="font-space-grotesk text-xs text-[#78716C] mt-0.5">
+                    Hand to your manager
+                  </p>
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => handleExport("json")}
+                  className="w-full text-left px-4 py-3 hover:bg-[#292524] transition"
+                >
+                  <p className="font-space-grotesk text-sm text-[#E7E5E4]">
+                    JSON (.json)
+                  </p>
+                  <p className="font-space-grotesk text-xs text-[#78716C] mt-0.5">
+                    Raw structured data
+                  </p>
+                </button>
+              </div>
+            )}
+          </div>
+          {viewer && !viewer.isPilotUser && (
+            <button
+              type="button"
+              onClick={() => setRegenOpen(true)}
+              className="font-space-grotesk text-sm px-3 py-2 rounded-lg border border-[#44403C] text-[#A8A29E] hover:text-[#E7E5E4] hover:bg-[#292524] transition inline-flex items-center gap-2"
+              title="Redraft goals, week themes, and activities from your onboarding context"
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M11.5 7a4.5 4.5 0 1 1-1.3-3.2" />
+                <path d="M11.5 2v2.5H9" />
+              </svg>
+              Regenerate
+            </button>
+          )}
+          {collaborators && collaborators.length > 0 && (
+            <div className="flex -space-x-2">
+              {collaborators.slice(0, 3).map((c) => (
+                <div
+                  key={c._id}
+                  title={c.name || c.email || "Collaborator"}
+                  className="w-7 h-7 rounded-full bg-gradient-to-br from-[#D97757] to-[#C26242] border-2 border-[#0F0E0D] flex items-center justify-center"
+                >
+                  <span className="text-white text-[10px] font-medium font-space-grotesk">
+                    {(c.name || c.email || "?")
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")
+                      .slice(0, 2)
+                      .toUpperCase()}
+                  </span>
+                </div>
+              ))}
+              {collaborators.length > 3 && (
+                <div className="w-7 h-7 rounded-full bg-[#292524] border-2 border-[#0F0E0D] flex items-center justify-center">
+                  <span className="text-[#A8A29E] text-[10px] font-medium font-space-grotesk">
+                    +{collaborators.length - 3}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => setShareOpen(true)}
+            className="font-space-grotesk text-sm px-4 py-2 rounded-lg bg-[#D97757] text-white hover:bg-[#C26242] transition inline-flex items-center gap-2"
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="3.5" cy="7" r="1.5" />
+              <circle cx="10.5" cy="3.5" r="1.5" />
+              <circle cx="10.5" cy="10.5" r="1.5" />
+              <path d="M5 6.2l4-2M5 7.8l4 2" />
+            </svg>
+            Share with manager
+          </button>
+        </div>
       </div>
+
+      {sharedWithMe && sharedWithMe.length > 0 && (
+        <div className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-4">
+          <p className="font-space-grotesk text-xs font-medium uppercase tracking-[0.6px] text-[#A8A29E] mb-2">
+            Shared with you
+          </p>
+          <ul className="space-y-1.5">
+            {sharedWithMe.map((s) => (
+              <li key={s._id}>
+                <Link
+                  href={`/shared/${s.planId}`}
+                  className="font-space-grotesk text-sm text-[#E7E5E4] hover:text-[#D97757] transition"
+                >
+                  {s.ownerName || s.ownerEmail || "Plan"}
+                  {s.roleTitle ? ` · ${s.roleTitle}` : ""}
+                  {s.companyName ? ` @ ${s.companyName}` : ""}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {shareOpen && (
+        <SharePlanModal
+          planId={fullPlan._id}
+          onClose={() => setShareOpen(false)}
+        />
+      )}
+
+      {regenOpen && (
+        <RegeneratePlanModal
+          onClose={() => setRegenOpen(false)}
+        />
+      )}
 
       {preBoarding && (
         <div className="bg-[#D97757]/10 border border-[#D97757]/30 rounded-xl px-5 py-4 flex items-start gap-3">

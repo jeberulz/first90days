@@ -1,8 +1,8 @@
 "use node";
 
 import { v } from "convex/values";
-import { action } from "./_generated/server";
-import { api } from "./_generated/api";
+import { action, internalAction } from "./_generated/server";
+import { api, internal } from "./_generated/api";
 import {
   generateText,
   WATKINS_SYSTEM_PROMPT,
@@ -13,6 +13,14 @@ import {
   fetchContextForPlanning,
   recordRetrieval,
 } from "./lib/kbContext.js";
+import {
+  buildUserContext,
+  buildMetaPrompt,
+  buildPhaseActivityPrompt,
+  extractJsonArray,
+  extractJsonObject,
+  PHASES,
+} from "./lib/planPrompts.js";
 
 const ALL_KB_CATEGORIES = [
   "company_context",
@@ -23,52 +31,53 @@ const ALL_KB_CATEGORIES = [
   "industry_market",
 ];
 
+/**
+ * Draft a full 90-day plan (goals, week themes, activities) for a user
+ * from their onboarding context + KB. Called from the onboarding flow
+ * (first run) and from the /plan page (regenerate).
+ *
+ * Failure behaviour: if any phase prompt fails to return parseable JSON
+ * OR the meta prompt can't produce goals, we fall through to
+ * `savePlanFallback` so the user never ends up with a broken/empty
+ * plan. Partial successes are allowed — if one phase parses cleanly
+ * and another doesn't, we save what we got rather than nuking the run.
+ */
 export const generatePlan = action({
-  args: { userId: v.id("users") },
+  args: {
+    userId: v.optional(v.id("users")),
+    regenerate: v.optional(v.boolean()),
+  },
   handler: async (ctx, args) => {
+    // Identity is derived strictly from the authenticated session — per
+    // convex/_generated/ai/guidelines.md, we never trust a caller-supplied
+    // userId for authorization. We resolve auth via a sibling query so the
+    // Node action doesn't need to import @convex-dev/auth directly.
+    const authUserId = await ctx.runQuery(
+      api.planMutations.getAuthenticatedUserId,
+      {}
+    );
+    if (!authUserId) throw new Error("Not authenticated");
+    // The legacy `userId` arg is kept only so existing callers don't
+    // break; if it's passed it must match auth, otherwise refuse.
+    if (args.userId && authUserId !== args.userId) {
+      throw new Error("Not authorized");
+    }
+    const userId = authUserId;
+
+    const regenerate = args.regenerate === true;
+
     const onboardingData = await ctx.runQuery(api.onboarding.getByUserId, {
-      userId: args.userId,
+      userId,
     });
     if (!onboardingData) throw new Error("No onboarding data found");
 
-    const goalLabels = {
-      relationships: "Build key relationships",
-      product_landscape: "Understand the product & tech landscape",
-      quick_win: "Deliver a quick win",
-      processes: "Define or refine team processes",
-      roadmap: "Build a strategic roadmap",
-      culture: "Learn the company culture",
-    };
+    const userContext = buildUserContext(onboardingData);
 
-    const selectedGoalsList = (onboardingData.selectedGoals || [])
-      .map((id) => goalLabels[id] || id)
-      .join(", ");
-
-    const userContext = `
-Role: ${onboardingData.roleTitle}
-Company: ${onboardingData.companyName} (${onboardingData.companySize}, ${onboardingData.companyStage})
-Role Type: ${onboardingData.roleType}
-Function: ${onboardingData.function_}
-Team Size: ${onboardingData.teamSize || "N/A"}
-Reports To: ${onboardingData.reportsTo || "Not specified"}
-New Team: ${onboardingData.isNewTeam ? "Yes" : "No"}
-Work Model: ${onboardingData.workModel}
-Industry: ${onboardingData.industry || "Not specified"}
-STARS Situation: ${onboardingData.starsSituation}
-Experience: ${onboardingData.experienceYears} years
-First at this level: ${onboardingData.isFirstRoleAtLevel ? "Yes" : "No"}
-Start Date: ${onboardingData.startDate}
-Priority Goals: ${selectedGoalsList || "Not specified"}
-${onboardingData.existingContext ? `Existing Knowledge: ${onboardingData.existingContext}` : ""}
-${onboardingData.challenges ? `Known Challenges: ${onboardingData.challenges}` : ""}
-${onboardingData.successDefinition ? `Success Definition: ${onboardingData.successDefinition}` : ""}
-`.trim();
-
-    // Pull KB context — the unlock. Every existing KB doc + memory now flows
+    // Pull KB context — the unlock. Every existing KB doc + memory flows
     // into the plan prompt so the plan is grounded in what we already know
     // about this user's company, team, and notes.
     const kbContext = await fetchContextForPlanning(ctx, {
-      userId: args.userId,
+      userId,
       query: userContext,
       categories: ALL_KB_CATEGORIES,
       topK: 12,
@@ -81,59 +90,147 @@ ${onboardingData.successDefinition ? `Success Definition: ${onboardingData.succe
       ? `${kbContext.contextText}\n\n${WATKINS_SYSTEM_PROMPT}`
       : WATKINS_SYSTEM_PROMPT;
 
-    const phases = [
-      { number: 1, name: "Learn", startDay: 1, endDay: 30 },
-      { number: 2, name: "Contribute", startDay: 31, endDay: 60 },
-      { number: 3, name: "Lead", startDay: 61, endDay: 90 },
-    ];
+    // ── Round-trip 1: goals + week themes ────────────────────────────
+    let goals = [];
+    let weekThemes = null;
+    try {
+      const metaResponse = await generateText(
+        systemPrompt,
+        buildMetaPrompt(userContext)
+      );
+      const parsed = extractJsonObject(metaResponse);
+      if (parsed && Array.isArray(parsed.goals) && parsed.goals.length > 0) {
+        goals = parsed.goals
+          .filter(
+            (g) =>
+              g &&
+              typeof g.title === "string" &&
+              typeof g.targetPhase === "number" &&
+              typeof g.category === "string"
+          )
+          .slice(0, 8)
+          .map((g) => ({
+            title: g.title.trim(),
+            targetPhase: Math.max(1, Math.min(3, Math.round(g.targetPhase))),
+            category: g.category.trim(),
+          }));
+      }
+      if (
+        parsed &&
+        Array.isArray(parsed.weekThemes) &&
+        parsed.weekThemes.length === 12 &&
+        parsed.weekThemes.every((t) => typeof t === "string" && t.trim())
+      ) {
+        weekThemes = parsed.weekThemes.map((t) => t.trim());
+      }
+    } catch (e) {
+      console.error("[generatePlan] meta prompt failed:", e?.message);
+    }
 
+    // If the model gave us no usable goals we can't ground the per-phase
+    // activity prompts, so fall through to the static template.
+    if (goals.length === 0) {
+      console.warn(
+        "[generatePlan] no goals produced — falling back to static template"
+      );
+      await ctx.runMutation(api.planMutations.savePlanFallback, {
+        userId,
+        regenerate,
+      });
+      return {
+        source: "fallback",
+        reason: "meta_parse_failed",
+        activitiesGenerated: 0,
+        kbDocsUsed: kbContext.citations.length,
+        kbMemoriesUsed: kbContext.memories.length,
+      };
+    }
+
+    // ── Round-trips 2-4: per-phase activities ────────────────────────
     let allActivities = [];
-
-    for (const phase of phases) {
-      const prompt = `Generate a detailed plan for Phase ${phase.number} (${phase.name}, days ${phase.startDay}-${phase.endDay}) for this professional:
-
-${userContext}
-
-Generate exactly 20 activities for this phase. Return ONLY a JSON array where each element has:
-{
-  "title": "string",
-  "description": "string",
-  "category": "learning" | "shipping" | "relationships" | "influence",
-  "estimatedTime": "string (e.g. 30m, 1h, 2h)",
-  "priority": "High" | "Medium" | "Low",
-  "scheduledDay": number (${phase.startDay}-${phase.endDay})
-}
-
-Distribute activities evenly across the days. Include a mix of all categories appropriate for this phase.`;
-
-      const response = await generateText(systemPrompt, prompt);
-
+    for (const phase of PHASES) {
       try {
-        const jsonMatch = response.match(/\[[\s\S]*\]/);
-        if (jsonMatch) {
-          const parsed = JSON.parse(jsonMatch[0]);
-          allActivities = allActivities.concat(
-            parsed.map((a) => ({
-              ...a,
-              phaseNumber: phase.number,
-            }))
-          );
+        const response = await generateText(
+          systemPrompt,
+          buildPhaseActivityPrompt(userContext, phase, goals)
+        );
+        const parsed = extractJsonArray(response);
+        if (Array.isArray(parsed)) {
+          const cleaned = parsed
+            .filter(
+              (a) =>
+                a &&
+                typeof a.title === "string" &&
+                typeof a.description === "string" &&
+                typeof a.category === "string" &&
+                typeof a.estimatedTime === "string" &&
+                typeof a.priority === "string" &&
+                typeof a.scheduledDay === "number"
+            )
+            .map((a) => {
+              const day = Math.max(
+                phase.startDay,
+                Math.min(phase.endDay, Math.round(a.scheduledDay))
+              );
+              const goalIndex =
+                typeof a.goalIndex === "number" &&
+                a.goalIndex >= 0 &&
+                a.goalIndex < goals.length
+                  ? a.goalIndex
+                  : null;
+              return {
+                title: a.title.trim(),
+                description: a.description.trim(),
+                category: a.category.trim(),
+                estimatedTime: a.estimatedTime.trim(),
+                priority: a.priority.trim(),
+                scheduledDay: day,
+                phaseNumber: phase.number,
+                goalIndex,
+              };
+            });
+          allActivities = allActivities.concat(cleaned);
         }
       } catch (e) {
-        console.error(`Failed to parse Phase ${phase.number} response:`, e);
+        console.error(
+          `[generatePlan] phase ${phase.number} prompt failed:`,
+          e?.message
+        );
       }
     }
 
+    // If every phase failed we have goals but no activities — that's
+    // worse than the fallback template. Prefer the static plan.
+    if (allActivities.length === 0) {
+      console.warn(
+        "[generatePlan] no activities produced — falling back to static template"
+      );
+      await ctx.runMutation(api.planMutations.savePlanFallback, {
+        userId,
+        regenerate,
+      });
+      return {
+        source: "fallback",
+        reason: "no_activities",
+        activitiesGenerated: 0,
+        kbDocsUsed: kbContext.citations.length,
+        kbMemoriesUsed: kbContext.memories.length,
+      };
+    }
+
     await ctx.runMutation(api.planMutations.savePlan, {
-      userId: args.userId,
+      userId,
+      regenerate,
+      goals,
+      weekThemes: weekThemes || undefined,
       activities: allActivities,
     });
 
-    // Audit: record that the plan generation pulled this context
+    // Audit: record that the plan generation pulled this context.
     if (kbContext.citations.length > 0 || kbContext.memories.length > 0) {
       try {
         await recordRetrieval(ctx, {
-          userId: args.userId,
+          userId,
           feature: "plan_generation",
           documentIds: kbContext.citations
             .map((c) => c.documentId)
@@ -146,7 +243,10 @@ Distribute activities evenly across the days. Include a mix of all categories ap
     }
 
     return {
+      source: "ai",
       activitiesGenerated: allActivities.length,
+      goalsGenerated: goals.length,
+      weekThemesGenerated: weekThemes ? weekThemes.length : 0,
       kbDocsUsed: kbContext.citations.length,
       kbMemoriesUsed: kbContext.memories.length,
     };
@@ -157,59 +257,283 @@ Distribute activities evenly across the days. Include a mix of all categories ap
 
 export const suggestActivities = action({
   args: {
-    userId: v.optional(v.id("users")),
     context: v.string(),
   },
   handler: async (ctx, args) => {
-    let kbBlock = "";
-    if (args.userId) {
-      const kbContext = await fetchContextForPlanning(ctx, {
-        userId: args.userId,
-        query: args.context,
-        topK: 6,
-        includeMemories: true,
-      });
-      if (kbContext.contextText) kbBlock = `${kbContext.contextText}\n\n`;
-    }
+    // Identity is derived strictly from auth — never trust a client-supplied
+    // userId for KB context lookups (would leak another user's documents).
+    const userId = await ctx.runQuery(
+      api.planMutations.getAuthenticatedUserId,
+      {}
+    );
+    if (!userId) throw new Error("Not authenticated");
+
+    const kbContext = await fetchContextForPlanning(ctx, {
+      userId,
+      query: args.context,
+      topK: 6,
+      includeMemories: true,
+    });
+    const kbBlock = kbContext.contextText
+      ? `${kbContext.contextText}\n\n`
+      : "";
 
     const response = await generateText(
       WATKINS_SYSTEM_PROMPT,
       `${kbBlock}${ACTIVITY_SUGGESTION_PROMPT}\n\nUser's current context:\n${args.context}\n\nRespond with ONLY a JSON array.`
     );
 
-    try {
-      const jsonMatch = response.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
+    // Audit: record the retrieval the same way generatePlan and
+    // generateWeeklySummary do, so the KB usage log is complete.
+    if (kbContext.citations.length > 0 || kbContext.memories.length > 0) {
+      try {
+        await recordRetrieval(ctx, {
+          userId,
+          feature: "activity_suggestions",
+          documentIds: kbContext.citations
+            .map((c) => c.documentId)
+            .filter(Boolean),
+          memoryIds: kbContext.memories.map((m) => m._id),
+        });
+      } catch (e) {
+        console.warn("[suggestActivities] recordRetrieval failed", e?.message);
       }
-    } catch (e) {
-      console.error("Failed to parse suggestions:", e);
     }
-    return [];
+
+    const parsed = extractJsonArray(response);
+    return Array.isArray(parsed) ? parsed : [];
   },
 });
 
 export const generateWeeklyInsight = action({
   args: {
-    userId: v.optional(v.id("users")),
     weekData: v.string(),
   },
   handler: async (ctx, args) => {
-    let kbBlock = "";
-    if (args.userId) {
-      const kbContext = await fetchContextForPlanning(ctx, {
-        userId: args.userId,
-        query: args.weekData,
-        topK: 6,
-        includeMemories: true,
-      });
-      if (kbContext.contextText) kbBlock = `${kbContext.contextText}\n\n`;
-    }
+    // Identity derived strictly from auth — never trust a client-supplied
+    // userId for KB context lookups.
+    const userId = await ctx.runQuery(
+      api.planMutations.getAuthenticatedUserId,
+      {}
+    );
+    if (!userId) throw new Error("Not authenticated");
+
+    const kbContext = await fetchContextForPlanning(ctx, {
+      userId,
+      query: args.weekData,
+      topK: 6,
+      includeMemories: true,
+    });
+    const kbBlock = kbContext.contextText
+      ? `${kbContext.contextText}\n\n`
+      : "";
 
     const response = await generateText(
       WATKINS_SYSTEM_PROMPT,
       `${kbBlock}${WEEKLY_INSIGHT_PROMPT}\n\nWeek data:\n${args.weekData}`
     );
+
+    if (kbContext.citations.length > 0 || kbContext.memories.length > 0) {
+      try {
+        await recordRetrieval(ctx, {
+          userId,
+          feature: "weekly_insight",
+          documentIds: kbContext.citations
+            .map((c) => c.documentId)
+            .filter(Boolean),
+          memoryIds: kbContext.memories.map((m) => m._id),
+        });
+      } catch (e) {
+        console.warn(
+          "[generateWeeklyInsight] recordRetrieval failed",
+          e?.message
+        );
+      }
+    }
+
     return response;
+  },
+});
+
+/**
+ * Format a weekly review + its activities into a compact context block
+ * for the summary prompt. Kept inline so we can tune the shape without
+ * spreading plan-prompt helpers across files.
+ */
+function formatWeekDataForPrompt(review, activities) {
+  const lines = [];
+  lines.push(`Week ${review.weekNumber} review · ${review.date}`);
+  lines.push(
+    `Self-rating: ${review.rating}/5 · Activities ${review.activitiesCompleted}/${review.activitiesPlanned}`
+  );
+
+  if (activities.length > 0) {
+    const completed = activities.filter((a) => a.status === "completed");
+    const skipped = activities.filter((a) => a.status === "skipped");
+    const upcoming = activities.filter((a) => a.status === "upcoming");
+
+    // Category rollup — useful signal for balance commentary.
+    const byCategory = {};
+    for (const a of activities) {
+      const c = a.category || "other";
+      if (!byCategory[c]) byCategory[c] = { total: 0, done: 0 };
+      byCategory[c].total += 1;
+      if (a.status === "completed") byCategory[c].done += 1;
+    }
+    lines.push("");
+    lines.push("Category split:");
+    for (const [cat, n] of Object.entries(byCategory)) {
+      lines.push(`  - ${cat}: ${n.done}/${n.total}`);
+    }
+
+    if (completed.length > 0) {
+      lines.push("");
+      lines.push("Completed this week:");
+      for (const a of completed.slice(0, 15)) {
+        lines.push(
+          `  - [${a.category}] ${a.title}${a.completionNotes ? ` — ${a.completionNotes}` : ""}`
+        );
+      }
+    }
+    if (upcoming.length > 0) {
+      lines.push("");
+      lines.push("Not completed:");
+      for (const a of upcoming.slice(0, 10)) {
+        lines.push(`  - [${a.category}] ${a.title}`);
+      }
+    }
+    if (skipped.length > 0) {
+      lines.push("");
+      lines.push("Intentionally skipped:");
+      for (const a of skipped.slice(0, 5)) {
+        lines.push(
+          `  - [${a.category}] ${a.title}${a.skipReason ? ` — ${a.skipReason}` : ""}`
+        );
+      }
+    }
+  }
+
+  if (review.questionResponses && review.questionResponses.length > 0) {
+    lines.push("");
+    lines.push("User's own reflections:");
+    for (const q of review.questionResponses) {
+      if (!q.response || !q.response.trim()) continue;
+      lines.push(`Q: ${q.question}`);
+      lines.push(`A: ${q.response}`);
+      lines.push("");
+    }
+  }
+
+  if (review.notes) {
+    lines.push(`Additional notes: ${review.notes}`);
+  }
+
+  return lines.join("\n");
+}
+
+/**
+ * Auto-generate the weekly summary after the user submits a review.
+ * Scheduled from reflections.saveWeeklyReview. On failure we patch
+ * status=failed so the UI can offer a retry instead of spinning
+ * forever. KB context is pulled per-user so the summary grounds itself
+ * in the user's documents + memories.
+ */
+export const generateWeeklySummary = internalAction({
+  args: { reviewId: v.id("weeklyReviews") },
+  handler: async (ctx, { reviewId }) => {
+    // Mark as generating so the UI can show a spinner immediately.
+    try {
+      await ctx.runMutation(internal.reflections.setWeeklySummary, {
+        reviewId,
+        status: "generating",
+      });
+    } catch (e) {
+      console.error("[generateWeeklySummary] could not mark generating", e);
+      return;
+    }
+
+    // Single try/catch around every read + generate step so any failure
+    // — vanished row, query error, KB hiccup, model timeout — lands the
+    // review in a terminal "failed" status instead of leaving the UI
+    // spinning on "generating" forever.
+    try {
+      const review = await ctx.runQuery(
+        internal.reflections.getWeeklyReviewInternal,
+        { reviewId }
+      );
+      if (!review) {
+        console.warn("[generateWeeklySummary] review row vanished", reviewId);
+        // Best-effort: mark failed if the row reappeared between the
+        // read and now. setWeeklySummary will no-op for a missing row.
+        await ctx.runMutation(internal.reflections.setWeeklySummary, {
+          reviewId,
+          status: "failed",
+          error: "Review not found",
+        });
+        return;
+      }
+
+      const activities = await ctx.runQuery(
+        internal.reflections.getActivitiesForWeekInternal,
+        { userId: review.userId, weekNumber: review.weekNumber }
+      );
+
+      const weekData = formatWeekDataForPrompt(review, activities);
+
+      const kbContext = await fetchContextForPlanning(ctx, {
+        userId: review.userId,
+        query: weekData,
+        topK: 6,
+        includeMemories: true,
+      });
+      const kbBlock = kbContext.contextText
+        ? `${kbContext.contextText}\n\n`
+        : "";
+
+      const summary = await generateText(
+        WATKINS_SYSTEM_PROMPT,
+        `${kbBlock}${WEEKLY_INSIGHT_PROMPT}\n\nWeek data:\n${weekData}`
+      );
+
+      await ctx.runMutation(internal.reflections.setWeeklySummary, {
+        reviewId,
+        status: "done",
+        summary: summary.trim(),
+      });
+
+      // Record retrieval for audit, matching the plan-generation path.
+      if (kbContext.citations.length > 0 || kbContext.memories.length > 0) {
+        try {
+          await recordRetrieval(ctx, {
+            userId: review.userId,
+            feature: "weekly_summary",
+            documentIds: kbContext.citations
+              .map((c) => c.documentId)
+              .filter(Boolean),
+            memoryIds: kbContext.memories.map((m) => m._id),
+          });
+        } catch (e) {
+          console.warn(
+            "[generateWeeklySummary] recordRetrieval failed",
+            e?.message
+          );
+        }
+      }
+    } catch (err) {
+      console.error("[generateWeeklySummary] generation failed", err);
+      try {
+        await ctx.runMutation(internal.reflections.setWeeklySummary, {
+          reviewId,
+          status: "failed",
+          error: err instanceof Error ? err.message : "Generation failed",
+        });
+      } catch (markErr) {
+        // We tried our best — the review row may genuinely be gone.
+        console.error(
+          "[generateWeeklySummary] could not record failure",
+          markErr
+        );
+      }
+    }
   },
 });

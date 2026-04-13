@@ -4,6 +4,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../../../convex/_generated/api";
 import { use, useState } from "react";
 import Link from "next/link";
+import CommentThread from "@/components/plan/CommentThread";
 
 const categoryColors = {
   learning: { border: "border-l-blue-500", text: "text-blue-400", bg: "bg-blue-500/10" },
@@ -20,6 +21,7 @@ export default function WeekDetailPage({ params }) {
   const weekNumber = parseInt(number, 10);
   const activities = useQuery(api.activities.getByWeek, { weekNumber });
   const weeks = useQuery(api.plans.getWeeks);
+  const plan = useQuery(api.plans.get);
   const completeActivity = useMutation(api.activities.complete);
   const skipActivity = useMutation(api.activities.skip);
   const removeActivity = useMutation(api.activities.remove);
@@ -147,6 +149,15 @@ export default function WeekDetailPage({ params }) {
           <p className="font-instrument-serif text-lg text-[#E7E5E4]">
             {week.reflectionPrompt}
           </p>
+          {plan && week && (
+            <div className="mt-4 pt-4 border-t border-[#2C2825]">
+              <CommentThread
+                planId={plan._id}
+                targetType="week"
+                targetId={week._id}
+              />
+            </div>
+          )}
         </div>
       )}
 
@@ -418,6 +429,16 @@ export default function WeekDetailPage({ params }) {
                               </span>
                             )}
                           </div>
+                          {plan && (
+                            <div className="mt-3 pt-3 border-t border-[#2C2825]">
+                              <CommentThread
+                                planId={plan._id}
+                                targetType="activity"
+                                targetId={activity._id}
+                                compact
+                              />
+                            </div>
+                          )}
                         </div>
                         <div className="flex flex-col gap-1 flex-shrink-0">
                           <button

@@ -10,6 +10,7 @@ export default function StakeholderDetailPage({ params }) {
   const stakeholder = useQuery(api.stakeholders.get, { id });
   const updateStakeholder = useMutation(api.stakeholders.update);
   const addInteraction = useMutation(api.stakeholders.addInteraction);
+  const updateCadence = useMutation(api.stakeholders.updateCadence);
 
   const [showInteractionForm, setShowInteractionForm] = useState(false);
   const [interaction, setInteraction] = useState({
@@ -260,6 +261,46 @@ export default function StakeholderDetailPage({ params }) {
                 </div>
               );
             })}
+          </div>
+
+          {/* Check-in cadence */}
+          <div className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-6">
+            <h3 className="font-space-grotesk text-sm font-medium text-[#A8A29E] mb-3">
+              Check-in Cadence
+            </h3>
+            <p className="font-space-grotesk text-xs text-[#78716C] mb-3 leading-relaxed">
+              Sets how often you aim to connect. Drives nudges on the Today
+              view when this relationship drifts.
+            </p>
+            <select
+              value={stakeholder.cadenceDays ?? ""}
+              onChange={async (e) => {
+                const v = e.target.value;
+                await updateCadence({
+                  id,
+                  cadenceDays: v === "" ? null : Number(v),
+                });
+              }}
+              className="w-full bg-[#292524] border border-[#44403C] rounded-lg px-3 py-2 font-space-grotesk text-sm text-[#E7E5E4] focus:outline-none focus:ring-1 focus:ring-[#D97757]"
+            >
+              <option value="">
+                Default ({stakeholder.priority === "Must" ? "every ~5 days" : "every ~7 days"})
+              </option>
+              <option value="3">Every 3 days</option>
+              <option value="7">Weekly</option>
+              <option value="14">Every 2 weeks</option>
+              <option value="30">Monthly</option>
+              <option value="60">Every 2 months</option>
+            </select>
+            {stakeholder.lastInteractionDate && (
+              <p className="mt-3 font-space-grotesk text-xs text-[#A8A29E]">
+                Last interaction:{" "}
+                {new Date(stakeholder.lastInteractionDate).toLocaleDateString(
+                  "en-US",
+                  { month: "short", day: "numeric", year: "numeric" }
+                )}
+              </p>
+            )}
           </div>
 
           {/* Working preferences */}

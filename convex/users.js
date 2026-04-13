@@ -3,11 +3,7 @@ import { query, mutation, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { auth } from "./auth";
 import { isPilotEmail, PILOT_PLAN_START_DATE } from "./lib/pilotUser";
-import {
-  resolveUserTimezone,
-  tzTodayYmd,
-  diffCalendarDays,
-} from "./lib/planDates";
+import { computePlanDayInfo } from "./lib/planDates";
 import { computeEntitlements } from "./billing";
 
 export const viewer = query({
@@ -59,49 +55,27 @@ export const getDayNumber = query({
       .query("onboardingData")
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .first();
-
     if (!onboarding) return null;
 
     // Pilot read-path override: canonical anchor wins even if DB row is stale.
-    const isPilot = isPilotEmail(user.email);
-    const effectiveStartYmd = isPilot
-      ? PILOT_PLAN_START_DATE
-      : onboarding.startDate;
+    const info = computePlanDayInfo({
+      user,
+      onboarding,
+      isPilot: isPilotEmail(user.email),
+      pilotStartYmd: PILOT_PLAN_START_DATE,
+    });
+    if (!info) return null;
 
-    const tz = resolveUserTimezone(user);
-    const todayYmd = tzTodayYmd(tz);
-    const rawDay = diffCalendarDays(effectiveStartYmd, todayYmd) + 1;
-
-    const hasStarted = rawDay >= 1;
-    const daysUntilStart = hasStarted ? 0 : Math.abs(rawDay) + 1;
-
-    if (!hasStarted) {
-      return {
-        dayNumber: 0,
-        daysUntilStart,
-        hasStarted: false,
-        totalDays: 90,
-        phase: 0,
-        phaseName: "Pre-boarding",
-        startDate: effectiveStartYmd,
-        weekNumber: 0,
-      };
-    }
-
-    const clamped = Math.min(rawDay, 90);
-    const phase = clamped <= 30 ? 1 : clamped <= 60 ? 2 : 3;
-    const phaseName =
-      phase === 1 ? "Learn" : phase === 2 ? "Contribute" : "Lead";
-
+    // Public shape — keep the original field set for backwards compat.
     return {
-      dayNumber: clamped,
-      daysUntilStart: 0,
-      hasStarted: true,
-      totalDays: 90,
-      phase,
-      phaseName,
-      startDate: effectiveStartYmd,
-      weekNumber: Math.min(Math.ceil(clamped / 7), 12),
+      dayNumber: info.dayNumber,
+      daysUntilStart: info.daysUntilStart,
+      hasStarted: info.hasStarted,
+      totalDays: info.totalDays,
+      phase: info.phase,
+      phaseName: info.phaseName,
+      startDate: info.startDate,
+      weekNumber: info.weekNumber,
     };
   },
 });
@@ -212,6 +186,11 @@ export const completeOnboarding = mutation({
   },
 });
 
+// "plans" is intentionally NOT in this list — we defer deleting plan
+// rows until every plan comment has been swept (which can span multiple
+// batches). Otherwise later retries re-snapshot an empty ownedPlans and
+// orphan collaborator-authored comments on the purged plans. The final
+// pass deletes plan rows by hand before the user row.
 const USER_OWNED_TABLES = [
   "activities",
   "goals",
@@ -227,7 +206,6 @@ const USER_OWNED_TABLES = [
   "kbEnrichmentJobs",
   "weeks",
   "phases",
-  "plans",
   "onboardingData",
   "billingSubscriptions",
 ];
@@ -265,6 +243,17 @@ export const purgeUserData = internalMutation({
   handler: async (ctx, { userId }) => {
     let moreWork = false;
 
+    // Snapshot owned plan ids. Plan rows are NOT deleted in this
+    // invocation — they survive until every plan comment has been
+    // swept (see USER_OWNED_TABLES comment), so every retry re-queries
+    // the same non-empty list and the comment sweep below always has
+    // a planId to aim at.
+    const ownedPlans = await ctx.db
+      .query("plans")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect();
+    const ownedPlanIds = ownedPlans.map((p) => p._id);
+
     for (const table of USER_OWNED_TABLES) {
       const docs = await ctx.db
         .query(table)
@@ -278,9 +267,59 @@ export const purgeUserData = internalMutation({
       }
     }
 
+    // Comments authored by anyone on plans this user owned (including the
+    // owner's own comments, which the by_author sweep also covers).
+    for (const planId of ownedPlanIds) {
+      const planComments = await ctx.db
+        .query("planComments")
+        .withIndex("by_plan", (q) => q.eq("planId", planId))
+        .take(PURGE_BATCH_SIZE);
+      for (const row of planComments) await ctx.db.delete(row._id);
+      if (planComments.length === PURGE_BATCH_SIZE) moreWork = true;
+    }
+
+    // Collaboration tables: the user may be either a plan owner or a
+    // collaborator on someone else's plan, and may have authored comments
+    // on either their own or a shared plan. Walk each angle.
+    const ownedInvites = await ctx.db
+      .query("planInvitations")
+      .withIndex("by_owner", (q) => q.eq("ownerUserId", userId))
+      .take(PURGE_BATCH_SIZE);
+    for (const row of ownedInvites) await ctx.db.delete(row._id);
+    if (ownedInvites.length === PURGE_BATCH_SIZE) moreWork = true;
+
+    const ownedCollabRows = await ctx.db
+      .query("planCollaborators")
+      .withIndex("by_owner", (q) => q.eq("ownerUserId", userId))
+      .take(PURGE_BATCH_SIZE);
+    for (const row of ownedCollabRows) await ctx.db.delete(row._id);
+    if (ownedCollabRows.length === PURGE_BATCH_SIZE) moreWork = true;
+
+    const memberships = await ctx.db
+      .query("planCollaborators")
+      .withIndex("by_collaborator", (q) => q.eq("collaboratorUserId", userId))
+      .take(PURGE_BATCH_SIZE);
+    for (const row of memberships) await ctx.db.delete(row._id);
+    if (memberships.length === PURGE_BATCH_SIZE) moreWork = true;
+
+    const authoredComments = await ctx.db
+      .query("planComments")
+      .withIndex("by_author", (q) => q.eq("authorUserId", userId))
+      .take(PURGE_BATCH_SIZE);
+    for (const row of authoredComments) await ctx.db.delete(row._id);
+    if (authoredComments.length === PURGE_BATCH_SIZE) moreWork = true;
+
     if (moreWork) {
       await ctx.scheduler.runAfter(0, internal.users.purgeUserData, { userId });
       return;
+    }
+
+    // Final pass: all owned child rows + plan comments have been
+    // swept across prior invocations. Drop the plan rows now before
+    // the user row. Plan counts per user are tiny (1 typically), so
+    // this stays well under the transaction limit without batching.
+    for (const plan of ownedPlans) {
+      await ctx.db.delete(plan._id);
     }
 
     const user = await ctx.db.get(userId);

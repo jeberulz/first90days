@@ -3,6 +3,11 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { useState, useEffect } from "react";
+import Link from "next/link";
+import {
+  GoalApprovalBadge,
+  GoalApprovalActions,
+} from "@/components/plan/GoalApproval";
 
 const PRE_BOARDING_CHECKLIST = [
   { id: "news", label: "Research company recent news, earnings, product launches" },
@@ -260,9 +265,17 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
           {/* Onboarding Journey Progress */}
           <div className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-4 sm:p-6 col-span-full">
-            <h3 className="font-space-grotesk text-sm font-medium text-[#A8A29E] mb-4">
-              Onboarding Journey
-            </h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-space-grotesk text-sm font-medium text-[#A8A29E]">
+                Onboarding Journey
+              </h3>
+              <Link
+                href="/progress"
+                className="font-space-grotesk text-xs text-[#D97757] hover:text-[#C26242] transition"
+              >
+                View full progress →
+              </Link>
+            </div>
             <div className="flex items-center gap-2 mb-3">
               {[
                 { name: "Learn", days: "Days 1-30", active: dayInfo.phase >= 1 },
@@ -388,13 +401,17 @@ export default function DashboardPage() {
                         : "bg-[#292524] border border-[#44403C]"
                   }`}
                 />
-                <div>
-                  <p className="font-space-grotesk text-sm text-[#E7E5E4]">
-                    {goal.title}
-                  </p>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-space-grotesk text-sm text-[#E7E5E4]">
+                      {goal.title}
+                    </p>
+                    <GoalApprovalBadge goal={goal} />
+                  </div>
                   <p className="font-space-grotesk text-xs text-[#A8A29E]">
                     Phase {goal.targetPhase} · {goal.category}
                   </p>
+                  <GoalApprovalActions goal={goal} viewerRole="owner" />
                 </div>
               </div>
             ))}

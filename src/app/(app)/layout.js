@@ -4,20 +4,49 @@ import { useConvexAuth } from "convex/react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import AppSidebar from "@/components/app/AppSidebar";
 import MobileBottomNav from "@/components/app/MobileBottomNav";
 import QuickAddFAB from "@/components/app/QuickAddFAB";
+import PhaseCompletionModal from "@/components/milestones/PhaseCompletionModal";
+
+// Routes where the phase-completion modal is allowed to pop. Everywhere
+// else (deep reflection flows, settings, knowledge editor, share/invite
+// pages) is excluded so the celebration never crashes a focused task.
+const MILESTONE_ALLOWED_PREFIXES = [
+  "/dashboard",
+  "/today",
+  "/plan",
+  "/progress",
+];
+
+function isMilestoneRoute(pathname) {
+  if (!pathname) return false;
+  return MILESTONE_ALLOWED_PREFIXES.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`)
+  );
+}
 
 export default function AppLayout({ children }) {
   const { isAuthenticated, isLoading } = useConvexAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const user = useQuery(api.users.viewer);
   const plan = useQuery(api.plans.get);
   const reconcilePilotSchedule = useMutation(api.seed.reconcilePilotPlanSchedule);
   const pilotReconcileOnce = useRef(false);
   const [trialBannerDismissed, setTrialBannerDismissed] = useState(false);
+
+  // Phase-completion celebration: the query returns the first
+  // unacknowledged phase the user has already passed, or null.
+  // `dismissedInSession` is a local cache so closing the modal hides
+  // it immediately even before the mutation round-trips.
+  const pendingMilestone = useQuery(
+    api.milestones.getPendingMilestone,
+    isAuthenticated ? {} : "skip"
+  );
+  const [dismissedMilestoneId, setDismissedMilestoneId] = useState(null);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -109,6 +138,14 @@ export default function AppLayout({ children }) {
       </div>
       <MobileBottomNav />
       <QuickAddFAB />
+      {pendingMilestone &&
+        pendingMilestone.phaseId !== dismissedMilestoneId &&
+        isMilestoneRoute(pathname) && (
+          <PhaseCompletionModal
+            milestone={pendingMilestone}
+            onClose={() => setDismissedMilestoneId(pendingMilestone.phaseId)}
+          />
+        )}
     </div>
   );
 }
