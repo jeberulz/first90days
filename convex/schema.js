@@ -425,4 +425,75 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_user_status", ["userId", "status"])
     .index("by_document", ["documentId"]),
+
+  // ── Manager-alignment workspace ─────────────────────────────────────────
+  // planInvitations: tokenized invites the plan owner sends to a manager.
+  // The owner generates a share link; the recipient lands on /invite/[token]
+  // signs in (or signs up), and the token is exchanged for a planCollaborators
+  // row. Tokens are single-use and may be revoked by the owner at any time.
+  planInvitations: defineTable({
+    planId: v.id("plans"),
+    ownerUserId: v.id("users"),
+    invitedEmail: v.string(),
+    token: v.string(),
+    role: v.union(v.literal("manager"), v.literal("viewer")),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("accepted"),
+      v.literal("revoked"),
+      v.literal("expired")
+    ),
+    message: v.optional(v.string()),
+    createdAt: v.number(),
+    expiresAt: v.number(),
+    acceptedAt: v.optional(v.number()),
+    acceptedByUserId: v.optional(v.id("users")),
+  })
+    .index("by_owner", ["ownerUserId"])
+    .index("by_plan", ["planId"])
+    .index("by_token", ["token"]),
+
+  // planCollaborators: accepted collaborators on a plan. Membership in this
+  // table is what grants a non-owner read access to the plan via shared
+  // queries; comment authoring is also gated on a row here.
+  planCollaborators: defineTable({
+    planId: v.id("plans"),
+    ownerUserId: v.id("users"),
+    collaboratorUserId: v.id("users"),
+    collaboratorEmail: v.optional(v.string()),
+    role: v.union(v.literal("manager"), v.literal("viewer")),
+    invitationId: v.optional(v.id("planInvitations")),
+    acceptedAt: v.number(),
+  })
+    .index("by_plan", ["planId"])
+    .index("by_owner", ["ownerUserId"])
+    .index("by_collaborator", ["collaboratorUserId"])
+    .index("by_plan_collaborator", ["planId", "collaboratorUserId"]),
+
+  // planComments: threaded comments on plan, phase, week, activity, or goal.
+  // targetId is stored as a string to keep one polymorphic table; the calling
+  // code uses targetType to interpret it as the matching Convex Id.
+  planComments: defineTable({
+    planId: v.id("plans"),
+    authorUserId: v.id("users"),
+    authorRole: v.union(
+      v.literal("owner"),
+      v.literal("manager"),
+      v.literal("viewer")
+    ),
+    targetType: v.union(
+      v.literal("plan"),
+      v.literal("phase"),
+      v.literal("week"),
+      v.literal("activity"),
+      v.literal("goal")
+    ),
+    targetId: v.string(),
+    body: v.string(),
+    resolvedAt: v.optional(v.number()),
+    resolvedByUserId: v.optional(v.id("users")),
+  })
+    .index("by_plan", ["planId"])
+    .index("by_target", ["planId", "targetType", "targetId"])
+    .index("by_author", ["authorUserId"]),
 });

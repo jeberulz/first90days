@@ -250,6 +250,15 @@ export const purgeUserData = internalMutation({
   handler: async (ctx, { userId }) => {
     let moreWork = false;
 
+    // Snapshot owned plan ids before the table loop deletes the plan rows,
+    // so we can also sweep comments on those plans authored by collaborators
+    // (the by_author sweep below only catches comments this user wrote).
+    const ownedPlans = await ctx.db
+      .query("plans")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect();
+    const ownedPlanIds = ownedPlans.map((p) => p._id);
+
     for (const table of USER_OWNED_TABLES) {
       const docs = await ctx.db
         .query(table)
@@ -262,6 +271,48 @@ export const purgeUserData = internalMutation({
         moreWork = true;
       }
     }
+
+    // Comments authored by anyone on plans this user owned (including the
+    // owner's own comments, which the by_author sweep also covers).
+    for (const planId of ownedPlanIds) {
+      const planComments = await ctx.db
+        .query("planComments")
+        .withIndex("by_plan", (q) => q.eq("planId", planId))
+        .take(PURGE_BATCH_SIZE);
+      for (const row of planComments) await ctx.db.delete(row._id);
+      if (planComments.length === PURGE_BATCH_SIZE) moreWork = true;
+    }
+
+    // Collaboration tables: the user may be either a plan owner or a
+    // collaborator on someone else's plan, and may have authored comments
+    // on either their own or a shared plan. Walk each angle.
+    const ownedInvites = await ctx.db
+      .query("planInvitations")
+      .withIndex("by_owner", (q) => q.eq("ownerUserId", userId))
+      .take(PURGE_BATCH_SIZE);
+    for (const row of ownedInvites) await ctx.db.delete(row._id);
+    if (ownedInvites.length === PURGE_BATCH_SIZE) moreWork = true;
+
+    const ownedCollabRows = await ctx.db
+      .query("planCollaborators")
+      .withIndex("by_owner", (q) => q.eq("ownerUserId", userId))
+      .take(PURGE_BATCH_SIZE);
+    for (const row of ownedCollabRows) await ctx.db.delete(row._id);
+    if (ownedCollabRows.length === PURGE_BATCH_SIZE) moreWork = true;
+
+    const memberships = await ctx.db
+      .query("planCollaborators")
+      .withIndex("by_collaborator", (q) => q.eq("collaboratorUserId", userId))
+      .take(PURGE_BATCH_SIZE);
+    for (const row of memberships) await ctx.db.delete(row._id);
+    if (memberships.length === PURGE_BATCH_SIZE) moreWork = true;
+
+    const authoredComments = await ctx.db
+      .query("planComments")
+      .withIndex("by_author", (q) => q.eq("authorUserId", userId))
+      .take(PURGE_BATCH_SIZE);
+    for (const row of authoredComments) await ctx.db.delete(row._id);
+    if (authoredComments.length === PURGE_BATCH_SIZE) moreWork = true;
 
     if (moreWork) {
       await ctx.scheduler.runAfter(0, internal.users.purgeUserData, { userId });
