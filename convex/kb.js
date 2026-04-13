@@ -154,6 +154,94 @@ export const archiveDocument = mutation({
   },
 });
 
+// ---------- Company research drafts ----------
+
+/**
+ * Pending drafts awaiting user review. These are kbDocuments inserted by
+ * convex/companyResearch.js with draftStatus="pending" and skipPipeline=true
+ * — they exist in the DB but have not yet been embedded/enriched. Approving
+ * one flips draftStatus to "approved" and queues the pipeline; discarding
+ * one flips it to "discarded" and archives it.
+ */
+export const pendingDrafts = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) return [];
+
+    const drafts = await ctx.db
+      .query("kbDocuments")
+      .withIndex("by_user_draft_status", (qb) =>
+        qb.eq("userId", userId).eq("draftStatus", "pending")
+      )
+      .order("desc")
+      .take(50);
+
+    return drafts.filter((d) => !d.archivedAt);
+  },
+});
+
+/**
+ * Approve a pending research draft. This is the moment the draft enters
+ * the normal KB pipeline: we flip draftStatus, queue embed + enrich jobs,
+ * and schedule the pipeline runner. From here on, the draft is just a
+ * regular ai_generated kbDocument.
+ */
+export const approveDraft = mutation({
+  args: { documentId: v.id("kbDocuments") },
+  handler: async (ctx, { documentId }) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const doc = await ctx.db.get(documentId);
+    if (!doc || doc.userId !== userId) throw new Error("Not found");
+    if (doc.draftStatus !== "pending") return;
+
+    await ctx.db.patch(documentId, {
+      draftStatus: "approved",
+      embeddingStatus: "pending",
+      enrichmentStatus: "pending",
+    });
+
+    await ctx.db.insert("kbEnrichmentJobs", {
+      userId,
+      documentId,
+      kind: "embed",
+      status: "queued",
+      attempts: 0,
+    });
+    await ctx.db.insert("kbEnrichmentJobs", {
+      userId,
+      documentId,
+      kind: "enrich",
+      status: "queued",
+      attempts: 0,
+    });
+    await ctx.scheduler.runAfter(0, internal.kbPipeline.run, { documentId });
+  },
+});
+
+/**
+ * Discard a pending draft without running it through the pipeline. We flag
+ * it as "discarded" and set archivedAt so it disappears from all surfaces.
+ */
+export const discardDraft = mutation({
+  args: { documentId: v.id("kbDocuments") },
+  handler: async (ctx, { documentId }) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const doc = await ctx.db.get(documentId);
+    if (!doc || doc.userId !== userId) throw new Error("Not found");
+    if (doc.draftStatus !== "pending") return;
+
+    await ctx.db.patch(documentId, {
+      draftStatus: "discarded",
+      archivedAt: Date.now(),
+    });
+  },
+});
+
 export const dismissMemory = mutation({
   args: { memoryId: v.id("kbMemories") },
   handler: async (ctx, args) => {
@@ -235,9 +323,15 @@ export const listDocuments = query({
     }
 
     const results = await q.order("desc").take(args.limit ?? 200);
+    // Exclude pending drafts — they only exist in the DraftReviewQueue until
+    // the user approves or discards them. Approved drafts have draftStatus
+    // set to "approved" (or unset, for manual docs) and show up normally.
+    const visible = results.filter(
+      (d) => !d.archivedAt && d.draftStatus !== "pending"
+    );
     return args.sourceType
-      ? results.filter((d) => d.sourceType === args.sourceType && !d.archivedAt)
-      : results.filter((d) => !d.archivedAt);
+      ? visible.filter((d) => d.sourceType === args.sourceType)
+      : visible;
   },
 });
 
@@ -251,8 +345,10 @@ export const recentDocuments = query({
       .query("kbDocuments")
       .withIndex("by_user", (qb) => qb.eq("userId", userId))
       .order("desc")
-      .take(args.limit ?? 8);
-    return docs.filter((d) => !d.archivedAt);
+      .take((args.limit ?? 8) * 3); // over-fetch since we filter drafts
+    return docs
+      .filter((d) => !d.archivedAt && d.draftStatus !== "pending")
+      .slice(0, args.limit ?? 8);
   },
 });
 
@@ -273,6 +369,7 @@ export const categoryStats = query({
       .take(2000);
     for (const d of docs) {
       if (d.archivedAt) continue;
+      if (d.draftStatus === "pending") continue;
       const bucket = stats[d.category];
       if (!bucket) continue;
       bucket.count++;
@@ -332,7 +429,11 @@ export const brainStatus = query({
           .take(2000),
       []
     );
-    const activeDocs = docs.filter((d) => !d.archivedAt);
+    // Pending drafts don't count toward brain stats — they're waiting for
+    // user review and aren't part of the retrieval surface yet.
+    const activeDocs = docs.filter(
+      (d) => !d.archivedAt && d.draftStatus !== "pending"
+    );
 
     const memories = await safe(
       () =>

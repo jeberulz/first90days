@@ -108,3 +108,100 @@ export function enrichmentUserPrompt(doc) {
   const truncated = (doc.content || "").slice(0, 12000);
   return `${titleLine}Source type: ${doc.sourceType || "unknown"}\nCurrent category: ${doc.category || "uncategorized"}\n\n--- DOCUMENT ---\n${truncated}\n--- END DOCUMENT ---\n\nReturn only the JSON object.`;
 }
+
+// ── Company research (Cut 1 — single-shot, no tool use) ──────────────────
+//
+// After onboarding completes we call generateText once with this system
+// prompt and the user's onboardingData + optional job description. The
+// model returns a JSON array of 8–10 atomic drafts which become pending
+// kbDocuments in the "company_context" category. The user reviews each
+// one in the DraftReviewQueue and approves or discards. Approved drafts
+// flow through the existing embed → enrich → memory consolidation pipeline.
+//
+// Cut 2 will replace this with a tool-use agent that can fetch real URLs.
+// For Cut 1 the explicit "do not invent facts" guidance is the main
+// guardrail against hallucination.
+
+export const COMPANY_RESEARCH_SYSTEM_PROMPT = `You are a research assistant for a 90-day onboarding tool. A new hire has just joined a company. Your job is to produce 8–10 short, atomic knowledge-base drafts that will ground an AI coach's advice for them over the next 90 days.
+
+You MUST respond with ONLY a valid JSON array, no prose, no code fences. Each element must match this exact shape:
+
+{
+  "title": "Short concrete title, under 70 characters",
+  "content": "150–350 words of plain text. One topic per draft. Write in neutral third-person, not marketing tone. Focus on facts a new hire needs to know.",
+  "angle": "one of: mission_values | strategic_priorities | leadership | products_recent | role_summary | role_expectations | stakeholders_implied | culture_signals | industry_position | risks_open_questions"
+}
+
+Rules:
+- Produce 8–10 drafts. Fewer is fine if the signal is thin; never invent leaders, customers, revenue, or specific numbers that aren't in the inputs.
+- Every draft must be ATOMIC: one topic only. A draft about "mission and leadership and products" is wrong — split it.
+- Ground everything in the provided onboarding data and job description. Do NOT fabricate executives, customer names, strategic priorities, or metrics that aren't directly supported.
+- When a job description is provided, produce at least two role-anchored drafts (role_summary and role_expectations) drawn directly from the JD text.
+- The "risks_open_questions" draft should surface 2–4 concrete questions the new hire should ask in their first week, drawn from what the onboarding data implies (a Turnaround STARS situation implies different questions than Sustaining Success).
+- Tone: grounded, practical, direct. No marketing fluff ("exciting opportunity", "dynamic team", "industry-leading"). No hedging adverbs.
+- For Tier 2 angles (culture_signals, industry_position) — if you don't have enough grounded signal, omit them. An omitted draft is better than a hallucinated one.
+- Do not reference any specific person by name unless that name appears in the inputs.`;
+
+/**
+ * Build the user prompt for the single-shot research call. Accepts a flat
+ * object sourced from onboardingData. Keeping this pure so it stays testable.
+ */
+export function companyResearchUserPrompt(input) {
+  const {
+    companyName,
+    roleTitle,
+    companySize,
+    companyStage,
+    industry,
+    starsSituation,
+    scope,
+    teamSize,
+    workModel,
+    experienceYears,
+    isNewTeam,
+    reportsTo,
+    jobDescription,
+  } = input;
+
+  const lines = [];
+  lines.push(`Company: ${companyName}`);
+  if (industry) lines.push(`Industry: ${industry}`);
+  lines.push(`Company size: ${companySize}`);
+  lines.push(`Company stage: ${companyStage}`);
+  if (workModel) lines.push(`Work model: ${workModel}`);
+  lines.push(`Situation (STARS): ${starsSituation}`);
+  lines.push("");
+  lines.push(`Role: ${roleTitle}`);
+  if (typeof experienceYears === "number") {
+    lines.push(`Experience: ${experienceYears} years in the role family`);
+  }
+  if (reportsTo) lines.push(`Reports to: ${reportsTo}`);
+  if (teamSize) lines.push(`Team size: ${teamSize}`);
+  if (isNewTeam) lines.push(`Note: the team is brand new.`);
+  if (scope) lines.push(`Scope: ${scope}`);
+
+  if (jobDescription && jobDescription.trim()) {
+    lines.push("");
+    lines.push("--- JOB DESCRIPTION ---");
+    // Cap at 8k chars so we stay well under the model context limit.
+    lines.push(jobDescription.slice(0, 8000));
+    lines.push("--- END JOB DESCRIPTION ---");
+  }
+
+  lines.push("");
+  lines.push("Return ONLY the JSON array. No prose, no code fences.");
+  return lines.join("\n");
+}
+
+export const COMPANY_RESEARCH_VALID_ANGLES = [
+  "mission_values",
+  "strategic_priorities",
+  "leadership",
+  "products_recent",
+  "role_summary",
+  "role_expectations",
+  "stakeholders_implied",
+  "culture_signals",
+  "industry_position",
+  "risks_open_questions",
+];

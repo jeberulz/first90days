@@ -1,4 +1,5 @@
 import { mutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { auth } from "./auth";
 import { isPilotEmail, PILOT_PLAN_START_DATE } from "./lib/pilotUser";
 import { scheduleYmd } from "./lib/planDates";
@@ -254,6 +255,37 @@ async function _seedPlanData(ctx, userId) {
   }
 
   await ctx.db.patch(userId, { onboardingComplete: true });
+
+  // Kick off company research drafts for the pilot user. We only schedule
+  // one run per pilot install — if a companyResearchJobs row already exists
+  // (from a previous seed or manual trigger) we leave it alone so we don't
+  // burn tokens on every reseed.
+  const existingJob = await ctx.db
+    .query("companyResearchJobs")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .first();
+  if (!existingJob) {
+    const jobId = await ctx.db.insert("companyResearchJobs", {
+      userId,
+      status: "queued",
+      trigger: "onboarding",
+      inputSnapshot: {
+        companyName: "Algolia",
+        roleTitle: "Senior UX Researcher",
+        industry: "Technology / SaaS",
+        companySize: "500-1000",
+        companyStage: "Growth",
+        starsSituation: "Turnaround",
+        scope: "Leading search experience research for enterprise product",
+      },
+    });
+    await ctx.scheduler.runAfter(
+      0,
+      internal.companyResearch.generateDraftsForUser,
+      { userId, jobId }
+    );
+  }
+
   return planId;
 }
 

@@ -298,7 +298,18 @@ export const insertDocument = internalMutation({
     legacyKnowledgeEntryId: v.optional(v.id("knowledgeEntries")),
     storageId: v.optional(v.id("_storage")),
     mimeType: v.optional(v.string()),
+    // When true, the embed/enrich jobs are NOT queued and kbPipeline.run is
+    // NOT scheduled. Used by the company research flow so drafts sit in the
+    // DB until the user approves them via kb.approveDraft.
     skipPipeline: v.optional(v.boolean()),
+    draftStatus: v.optional(
+      v.union(
+        v.literal("pending"),
+        v.literal("approved"),
+        v.literal("discarded")
+      )
+    ),
+    angle: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Idempotency check for legacy migration
@@ -349,6 +360,8 @@ export const insertDocument = internalMutation({
       enrichmentStatus: "pending",
       type: args.type ?? "draft",
       entityLinks: args.entityLinks,
+      draftStatus: args.draftStatus,
+      angle: args.angle,
     });
 
     // Bump source counter
@@ -357,21 +370,26 @@ export const insertDocument = internalMutation({
       lastSyncAt: Date.now(),
     });
 
-    // Queue jobs (always — pipeline action checks status before working)
-    await ctx.db.insert("kbEnrichmentJobs", {
-      userId: args.userId,
-      documentId,
-      kind: "embed",
-      status: "queued",
-      attempts: 0,
-    });
-    await ctx.db.insert("kbEnrichmentJobs", {
-      userId: args.userId,
-      documentId,
-      kind: "enrich",
-      status: "queued",
-      attempts: 0,
-    });
+    // Queue jobs and schedule the pipeline only when the caller hasn't
+    // asked us to hold off. skipPipeline is used by the company research
+    // flow — drafts stay out of embed/enrich until the user approves them,
+    // at which point kb.approveDraft queues the jobs and kicks the pipeline.
+    if (!args.skipPipeline) {
+      await ctx.db.insert("kbEnrichmentJobs", {
+        userId: args.userId,
+        documentId,
+        kind: "embed",
+        status: "queued",
+        attempts: 0,
+      });
+      await ctx.db.insert("kbEnrichmentJobs", {
+        userId: args.userId,
+        documentId,
+        kind: "enrich",
+        status: "queued",
+        attempts: 0,
+      });
+    }
 
     // Audit log
     await ctx.db.insert("logEntries", {

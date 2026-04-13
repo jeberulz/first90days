@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Icon } from "@iconify/react";
 import AIBrainStatusCard from "@/components/knowledge/AIBrainStatusCard";
+import DraftReviewQueue from "@/components/knowledge/DraftReviewQueue";
 import KnowledgeMap from "@/components/knowledge/KnowledgeMap";
 import AIMemoryStream from "@/components/knowledge/AIMemoryStream";
 import ConnectedSources from "@/components/knowledge/ConnectedSources";
@@ -84,6 +85,11 @@ export default function KnowledgeBasePage() {
       {/* AI Brain Status */}
       <ErrorBoundary fallback={<SectionErrorFallback label="Brain status" />}>
         <AIBrainStatusCard />
+      </ErrorBoundary>
+
+      {/* Company research drafts awaiting review */}
+      <ErrorBoundary fallback={<SectionErrorFallback label="Research drafts" />}>
+        <DraftReviewQueue />
       </ErrorBoundary>
 
       {/* Knowledge Map */}

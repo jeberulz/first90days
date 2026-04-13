@@ -69,6 +69,10 @@ export default defineSchema({
     existingContext: v.optional(v.string()),
     challenges: v.optional(v.string()),
     successDefinition: v.optional(v.string()),
+    // Optional paste of the user's job description. Single highest-signal
+    // artifact for the company research flow — used by convex/companyResearch
+    // to produce role-anchored drafts on onboarding.
+    jobDescription: v.optional(v.string()),
   }).index("by_user", ["userId"]),
 
   plans: defineTable({
@@ -391,13 +395,33 @@ export default defineSchema({
       v.literal("draft")
     ),
     archivedAt: v.optional(v.number()),
+
+    // ── Cut 1 company research review gate ─────────────────────────────
+    // Drafts produced by convex/companyResearch.generateDraftsForUser land
+    // as kbDocuments with draftStatus="pending" and skipPipeline=true — the
+    // embed/enrich pipeline is NOT run until the user approves via
+    // kb.approveDraft. This is the critical review gate that prevents
+    // AI-generated drafts from polluting retrieval before human review.
+    draftStatus: v.optional(
+      v.union(
+        v.literal("pending"),
+        v.literal("approved"),
+        v.literal("discarded")
+      )
+    ),
+    // Category-like label used by the draft review UI to group drafts by
+    // the research angle they cover. Only set when sourceType=ai_generated
+    // and the doc came from companyResearch. Free-form string so Cut 2/3
+    // can add new angles without a schema bump.
+    angle: v.optional(v.string()),
   })
     .index("by_user", ["userId"])
     .index("by_user_category", ["userId", "category"])
     .index("by_user_source", ["userId", "sourceId"])
     .index("by_user_status", ["userId", "ingestionStatus"])
     .index("by_user_legacy", ["userId", "legacyKnowledgeEntryId"])
-    .index("by_user_external", ["userId", "sourceType", "externalId"]),
+    .index("by_user_external", ["userId", "sourceType", "externalId"])
+    .index("by_user_draft_status", ["userId", "draftStatus"]),
 
   kbMemories: defineTable({
     userId: v.id("users"),
@@ -481,6 +505,45 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_user_status", ["userId", "status"])
     .index("by_document", ["documentId"]),
+
+  // ── Company research jobs ───────────────────────────────────────────────
+  // Tracks each run of convex/companyResearch.generateDraftsForUser.
+  // One row per trigger (onboarding completion or manual "run research"
+  // click). The job row tracks progress so the review queue UI can show
+  // "Building your company context…" while drafts are still being generated.
+  //
+  // Cut 1 is a single-shot generateText call — no tool-use, no web search,
+  // no citations. Cut 2 will extend this table with budget tracking and
+  // tool-call counts when the loop becomes agentic.
+  companyResearchJobs: defineTable({
+    userId: v.id("users"),
+    status: v.union(
+      v.literal("queued"),
+      v.literal("running"),
+      v.literal("done"),
+      v.literal("failed")
+    ),
+    trigger: v.union(v.literal("onboarding"), v.literal("manual")),
+    // Snapshot of the onboardingData fields at trigger time. Lets us diff
+    // between runs ("your role changed — want to re-run research?") and
+    // attribute drafts to the inputs that produced them.
+    inputSnapshot: v.object({
+      companyName: v.string(),
+      roleTitle: v.string(),
+      industry: v.optional(v.string()),
+      companySize: v.string(),
+      companyStage: v.string(),
+      starsSituation: v.string(),
+      scope: v.optional(v.string()),
+      jobDescription: v.optional(v.string()),
+    }),
+    draftCount: v.optional(v.number()),
+    error: v.optional(v.string()),
+    startedAt: v.optional(v.number()),
+    finishedAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_status", ["userId", "status"]),
 
   // ── Manager-alignment workspace ─────────────────────────────────────────
   // planInvitations: tokenized invites the plan owner sends to a manager.
