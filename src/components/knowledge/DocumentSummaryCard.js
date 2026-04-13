@@ -2,9 +2,18 @@
 
 import { Icon } from "@iconify/react";
 
-const STATUS_META = {
+// Status labels per pipeline stage. Embedding = vector indexing; Enrichment
+// = LLM summary + memory extraction. They have different success verbs.
+const EMBED_STATUS = {
   pending: { label: "Pending", className: "bg-[#2C2825] text-[#A8A29E]" },
-  running: { label: "Processing", className: "bg-[#1F1510] text-[#D97757]" },
+  running: { label: "Indexing", className: "bg-[#1F1510] text-[#D97757]" },
+  done: { label: "Indexed", className: "bg-emerald-900/20 text-emerald-400" },
+  failed: { label: "Failed", className: "bg-red-900/20 text-red-400" },
+  skipped: { label: "Skipped", className: "bg-[#2C2825] text-[#A8A29E]" },
+};
+const ENRICH_STATUS = {
+  pending: { label: "Pending", className: "bg-[#2C2825] text-[#A8A29E]" },
+  running: { label: "Enriching", className: "bg-[#1F1510] text-[#D97757]" },
   done: { label: "Enriched", className: "bg-emerald-900/20 text-emerald-400" },
   failed: { label: "Failed", className: "bg-red-900/20 text-red-400" },
   skipped: { label: "Skipped", className: "bg-[#2C2825] text-[#A8A29E]" },
@@ -13,8 +22,8 @@ const STATUS_META = {
 export default function DocumentSummaryCard({ doc }) {
   if (!doc) return null;
 
-  const enrichmentBadge = STATUS_META[doc.enrichmentStatus] || STATUS_META.pending;
-  const embedBadge = STATUS_META[doc.embeddingStatus] || STATUS_META.pending;
+  const enrichmentBadge = ENRICH_STATUS[doc.enrichmentStatus] || ENRICH_STATUS.pending;
+  const embedBadge = EMBED_STATUS[doc.embeddingStatus] || EMBED_STATUS.pending;
 
   return (
     <div className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-6 space-y-5">
