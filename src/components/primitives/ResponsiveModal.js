@@ -20,8 +20,10 @@ export default function ResponsiveModal({
   size = "md",
   initialFocusRef,
   hideCloseButton = false,
+  placement = "responsive",
   className,
 }) {
+  const isBottomSheet = placement === "bottom-sheet";
   const panelRef = useRef(null);
   const lastFocus = useRef(null);
 
@@ -80,7 +82,12 @@ export default function ResponsiveModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby={title ? "rm-title" : undefined}
-      className="fixed inset-0 z-[60] flex items-end justify-center sm:items-center sm:p-4"
+      className={cn(
+        "fixed inset-0 z-[60] flex justify-center",
+        isBottomSheet
+          ? "items-end"
+          : "items-end sm:items-center sm:p-4"
+      )}
     >
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -91,10 +98,10 @@ export default function ResponsiveModal({
         ref={panelRef}
         className={cn(
           "relative w-full bg-warm-cardDark border border-warm-borderDark text-warm-line shadow-xl",
-          "rounded-t-2xl sm:rounded-2xl",
-          "max-h-[90dvh] sm:max-h-[85dvh] flex flex-col",
-          "pb-[max(env(safe-area-inset-bottom),1rem)] sm:pb-0",
-          SIZE_MAP[size] || SIZE_MAP.md,
+          isBottomSheet
+            ? "rounded-t-2xl max-h-[85dvh] flex flex-col pb-[max(env(safe-area-inset-bottom),1rem)]"
+            : "rounded-t-2xl sm:rounded-2xl max-h-[90dvh] sm:max-h-[85dvh] flex flex-col pb-[max(env(safe-area-inset-bottom),1rem)] sm:pb-0",
+          !isBottomSheet && (SIZE_MAP[size] || SIZE_MAP.md),
           className
         )}
       >
