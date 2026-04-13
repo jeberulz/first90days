@@ -117,13 +117,13 @@ export default function PlanPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-          <h1 className="font-instrument-serif text-4xl tracking-[-0.9px] leading-[40px]">
+          <h1 className="font-instrument-serif tracking-[-0.5px] sm:tracking-[-0.9px] text-2xl sm:text-3xl md:text-4xl leading-tight">
             Your 90-Day Trajectory
           </h1>
-          <p className="mt-2 font-space-grotesk text-base text-[#A8A29E]">
+          <p className="mt-2 font-space-grotesk text-sm sm:text-base text-[#A8A29E]">
             {fullPlan.activities.length} activities across 12 weeks
           </p>
         </div>
@@ -327,7 +327,7 @@ export default function PlanPage() {
               </h2>
             </div>
 
-            <div className="space-y-3 ml-4">
+            <div className="space-y-3 ml-2 sm:ml-4">
               {phaseWeeks.map((week) => {
                 const activities = weekActivities[week.number] || [];
                 const completed = activities.filter(
@@ -342,14 +342,14 @@ export default function PlanPage() {
                   <Link
                     key={week._id}
                     href={`/plan/week/${week.number}`}
-                    className={`block bg-[#1C1917] border rounded-xl p-5 transition hover:border-[#44403C] ${
+                    className={`block bg-[#1C1917] border rounded-xl p-4 sm:p-5 transition hover:border-[#44403C] ${
                       isCurrent
                         ? "border-[#D97757]/50 ring-1 ring-[#D97757]/20"
                         : "border-[#2C2825]"
                     }`}
                   >
-                    <div className="flex items-start justify-between">
-                      <div>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <span className="font-space-grotesk text-xs text-[#A8A29E]">
                             Week {week.number}

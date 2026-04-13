@@ -8,8 +8,17 @@ export default {
     ],
     theme: {
         extend: {
+            screens: {
+                xs: '400px',
+            },
             fontFamily: {
-                sans: ['var(--font-inter)', 'sans-serif'],
+                // Space Grotesk is the project sans default. Inter / Outfit
+                // remain available via explicit classes, but `font-sans` (which
+                // body uses via `@apply font-sans`) must resolve to Space
+                // Grotesk so KB section headers and all uncategorized text
+                // share one typographic point of view.
+                sans: ['var(--font-space-grotesk)', 'sans-serif'],
+                inter: ['var(--font-inter)', 'sans-serif'],
                 outfit: ['var(--font-outfit)', 'sans-serif'],
                 'instrument-serif': ['var(--font-instrument-serif)', 'serif'],
                 'space-grotesk': ['var(--font-space-grotesk)', 'sans-serif'],

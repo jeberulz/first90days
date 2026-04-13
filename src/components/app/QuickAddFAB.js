@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import { ResponsiveModal } from "@/components/primitives";
 
 export default function QuickAddFAB() {
   const [open, setOpen] = useState(false);
@@ -22,6 +23,11 @@ export default function QuickAddFAB() {
     setCategory("learning");
     setMode(null);
     setOpen(false);
+    setLoading(false);
+  }
+
+  function closeModalOnly() {
+    setMode(null);
     setLoading(false);
   }
 
@@ -56,15 +62,33 @@ export default function QuickAddFAB() {
     }
   }
 
+  const titleFor = {
+    activity: "Add Activity",
+    win: "Log a Win",
+    learning: "Log a Learning",
+  };
+
   return (
     <>
       {/* FAB button */}
       <button
+        type="button"
         onClick={() => setOpen(!open)}
-        className="fixed bottom-24 lg:bottom-8 right-6 w-14 h-14 bg-[#D97757] hover:bg-[#C26242] text-white rounded-full shadow-lg flex items-center justify-center transition-transform z-50"
+        aria-label="Quick add"
+        className="fixed right-[max(1.25rem,env(safe-area-inset-right))] z-[55] w-14 h-14 bg-accent hover:bg-accent-hover text-white rounded-full shadow-lg flex items-center justify-center transition-transform bottom-[calc(var(--bottom-nav-h)+var(--fab-gap))] lg:bottom-[max(2rem,env(safe-area-inset-bottom))]"
         style={{ transform: open ? "rotate(45deg)" : "rotate(0deg)" }}
       >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
           <line x1="12" y1="5" x2="12" y2="19" />
           <line x1="5" y1="12" x2="19" y2="12" />
         </svg>
@@ -72,7 +96,7 @@ export default function QuickAddFAB() {
 
       {/* Menu */}
       {open && !mode && (
-        <div className="fixed bottom-40 lg:bottom-24 right-6 bg-[#1C1917] border border-[#2C2825] rounded-xl shadow-xl z-50 w-56 overflow-hidden">
+        <div className="fixed right-[max(1.25rem,env(safe-area-inset-right))] z-[55] bg-warm-cardDark border border-warm-borderDark rounded-xl shadow-xl w-56 overflow-hidden bottom-[calc(var(--bottom-nav-h)+5rem)] lg:bottom-[calc(2rem+4.5rem)]">
           {[
             { key: "activity", label: "Add Activity", icon: "📋" },
             { key: "win", label: "Log a Win", icon: "🏆" },
@@ -80,115 +104,123 @@ export default function QuickAddFAB() {
           ].map((item) => (
             <button
               key={item.key}
+              type="button"
               onClick={() => setMode(item.key)}
-              className="w-full flex items-center gap-3 px-4 py-3 font-space-grotesk text-sm text-[#E7E5E4] hover:bg-[#292524] transition-colors text-left"
+              className="w-full flex items-center gap-3 px-4 py-3 font-space-grotesk text-sm text-warm-line hover:bg-warm-surfaceDark transition-colors text-left min-h-11"
             >
-              <span>{item.icon}</span>
+              <span aria-hidden="true">{item.icon}</span>
               {item.label}
             </button>
           ))}
         </div>
       )}
 
-      {/* Backdrop */}
-      {open && (
+      {/* Backdrop for menu */}
+      {open && !mode && (
         <div
-          className="fixed inset-0 bg-black/40 z-40"
-          onClick={reset}
+          className="fixed inset-0 bg-black/40 z-[54]"
+          onClick={() => setOpen(false)}
+          aria-hidden="true"
         />
       )}
 
       {/* Form modal */}
-      {mode && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-end lg:items-center justify-center p-4">
-          <form
-            onSubmit={handleSubmit}
-            className="bg-[#1C1917] border border-[#2C2825] rounded-xl w-full max-w-md p-6 space-y-4"
-          >
-            <h3 className="font-instrument-serif text-xl text-[#E7E5E4]">
-              {mode === "activity"
-                ? "Add Activity"
-                : mode === "win"
-                  ? "Log a Win"
-                  : "Log a Learning"}
-            </h3>
+      <ResponsiveModal
+        open={!!mode}
+        onClose={closeModalOnly}
+        title={mode ? titleFor[mode] : ""}
+        size="md"
+        footer={
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={closeModalOnly}
+              className="px-4 py-2 font-space-grotesk text-sm text-warm-300 hover:bg-warm-surfaceDark rounded-lg transition min-h-11"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="quickadd-form"
+              disabled={loading || !title.trim()}
+              className="bg-accent hover:bg-accent-hover text-white rounded-lg px-4 py-2 font-space-grotesk text-sm font-medium transition disabled:opacity-50 min-h-11"
+            >
+              {loading ? "Saving..." : "Save"}
+            </button>
+          </div>
+        }
+      >
+        <form
+          id="quickadd-form"
+          onSubmit={handleSubmit}
+          className="space-y-4"
+        >
+          <div className="space-y-1.5">
+            <label
+              htmlFor="quickadd-title"
+              className="font-space-grotesk text-xs font-medium text-warm-300"
+            >
+              Title
+            </label>
+            <input
+              id="quickadd-title"
+              data-autofocus
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full bg-warm-surfaceDark border border-warm-borderMuted rounded-lg px-3 py-2.5 font-space-grotesk text-sm text-warm-line placeholder:text-warm-500 focus:outline-none focus:ring-1 focus:ring-accent"
+              placeholder={
+                mode === "activity"
+                  ? "e.g. Meet with design team"
+                  : mode === "win"
+                    ? "e.g. Got positive feedback from VP"
+                    : "e.g. Learned about team dynamics"
+              }
+              required
+            />
+          </div>
 
-            <div className="space-y-1.5">
-              <label className="font-space-grotesk text-xs font-medium text-[#A8A29E]">
-                Title
-              </label>
-              <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="w-full bg-[#292524] border border-[#44403C] rounded-lg px-3 py-2 font-space-grotesk text-sm text-[#E7E5E4] placeholder:text-[#57534E] focus:outline-none focus:ring-1 focus:ring-[#D97757]"
-                placeholder={
-                  mode === "activity"
-                    ? "e.g. Meet with design team"
-                    : mode === "win"
-                      ? "e.g. Got positive feedback from VP"
-                      : "e.g. Learned about team dynamics"
-                }
-                autoFocus
-                required
-              />
-            </div>
+          <div className="space-y-1.5">
+            <label
+              htmlFor="quickadd-desc"
+              className="font-space-grotesk text-xs font-medium text-warm-300"
+            >
+              Description
+            </label>
+            <textarea
+              id="quickadd-desc"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="w-full bg-warm-surfaceDark border border-warm-borderMuted rounded-lg px-3 py-2.5 font-space-grotesk text-sm text-warm-line placeholder:text-warm-500 resize-none focus:outline-none focus:ring-1 focus:ring-accent"
+              rows={3}
+              placeholder="Optional details..."
+            />
+          </div>
 
-            <div className="space-y-1.5">
-              <label className="font-space-grotesk text-xs font-medium text-[#A8A29E]">
-                Description
-              </label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="w-full bg-[#292524] border border-[#44403C] rounded-lg px-3 py-2 font-space-grotesk text-sm text-[#E7E5E4] placeholder:text-[#57534E] resize-none focus:outline-none focus:ring-1 focus:ring-[#D97757]"
-                rows={2}
-                placeholder="Optional details..."
-              />
+          <div className="space-y-1.5">
+            <label className="font-space-grotesk text-xs font-medium text-warm-300">
+              Category
+            </label>
+            <div className="flex gap-2 flex-wrap">
+              {["learning", "shipping", "relationships", "influence"].map(
+                (cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setCategory(cat)}
+                    className={`px-3 py-2 rounded-md font-space-grotesk text-xs capitalize transition min-h-9 ${
+                      category === cat
+                        ? "bg-accent text-white"
+                        : "bg-warm-surfaceDark text-warm-300 border border-warm-borderMuted"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                )
+              )}
             </div>
-
-            <div className="space-y-1.5">
-              <label className="font-space-grotesk text-xs font-medium text-[#A8A29E]">
-                Category
-              </label>
-              <div className="flex gap-2 flex-wrap">
-                {["learning", "shipping", "relationships", "influence"].map(
-                  (cat) => (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => setCategory(cat)}
-                      className={`px-3 py-1.5 rounded-md font-space-grotesk text-xs capitalize transition ${
-                        category === cat
-                          ? "bg-[#D97757] text-white"
-                          : "bg-[#292524] text-[#A8A29E] border border-[#44403C]"
-                      }`}
-                    >
-                      {cat}
-                    </button>
-                  )
-                )}
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={reset}
-                className="px-4 py-2 font-space-grotesk text-sm text-[#A8A29E] hover:bg-[#292524] rounded-lg transition"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={loading || !title.trim()}
-                className="bg-[#D97757] hover:bg-[#C26242] text-white rounded-lg px-4 py-2 font-space-grotesk text-sm font-medium transition disabled:opacity-50"
-              >
-                {loading ? "Saving..." : "Save"}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+          </div>
+        </form>
+      </ResponsiveModal>
     </>
   );
 }

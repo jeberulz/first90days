@@ -11,6 +11,8 @@
 import type * as activities from "../activities.js";
 import type * as ai from "../ai.js";
 import type * as auth from "../auth.js";
+import type * as billing from "../billing.js";
+import type * as billingActions from "../billingActions.js";
 import type * as goals from "../goals.js";
 import type * as http from "../http.js";
 import type * as kb from "../kb.js";
@@ -19,12 +21,14 @@ import type * as kbInternal from "../kbInternal.js";
 import type * as kbPipeline from "../kbPipeline.js";
 import type * as knowledge from "../knowledge.js";
 import type * as lib_ai from "../lib/ai.js";
+import type * as lib_billing from "../lib/billing.js";
 import type * as lib_kbCategories from "../lib/kbCategories.js";
 import type * as lib_kbContext from "../lib/kbContext.js";
 import type * as lib_kbPrompts from "../lib/kbPrompts.js";
 import type * as lib_pilotUser from "../lib/pilotUser.js";
 import type * as lib_planDates from "../lib/planDates.js";
 import type * as logEntries from "../logEntries.js";
+import type * as migrations_grandfather from "../migrations/grandfather.js";
 import type * as migrations_legacyKnowledgeToDocuments from "../migrations/legacyKnowledgeToDocuments.js";
 import type * as onboarding from "../onboarding.js";
 import type * as planMutations from "../planMutations.js";
@@ -32,6 +36,7 @@ import type * as plans from "../plans.js";
 import type * as reflections from "../reflections.js";
 import type * as seed from "../seed.js";
 import type * as stakeholders from "../stakeholders.js";
+import type * as stripeWebhook from "../stripeWebhook.js";
 import type * as users from "../users.js";
 
 import type {
@@ -44,6 +49,8 @@ declare const fullApi: ApiFromModules<{
   activities: typeof activities;
   ai: typeof ai;
   auth: typeof auth;
+  billing: typeof billing;
+  billingActions: typeof billingActions;
   goals: typeof goals;
   http: typeof http;
   kb: typeof kb;
@@ -52,12 +59,14 @@ declare const fullApi: ApiFromModules<{
   kbPipeline: typeof kbPipeline;
   knowledge: typeof knowledge;
   "lib/ai": typeof lib_ai;
+  "lib/billing": typeof lib_billing;
   "lib/kbCategories": typeof lib_kbCategories;
   "lib/kbContext": typeof lib_kbContext;
   "lib/kbPrompts": typeof lib_kbPrompts;
   "lib/pilotUser": typeof lib_pilotUser;
   "lib/planDates": typeof lib_planDates;
   logEntries: typeof logEntries;
+  "migrations/grandfather": typeof migrations_grandfather;
   "migrations/legacyKnowledgeToDocuments": typeof migrations_legacyKnowledgeToDocuments;
   onboarding: typeof onboarding;
   planMutations: typeof planMutations;
@@ -65,6 +74,7 @@ declare const fullApi: ApiFromModules<{
   reflections: typeof reflections;
   seed: typeof seed;
   stakeholders: typeof stakeholders;
+  stripeWebhook: typeof stripeWebhook;
   users: typeof users;
 }>;
 

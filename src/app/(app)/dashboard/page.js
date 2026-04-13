@@ -70,15 +70,15 @@ export default function DashboardPage() {
   const preBoarding = plan && dayInfo && !dayInfo.hasStarted;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       {/* Header */}
       <div>
-        <h1 className="font-instrument-serif text-4xl tracking-[-0.9px] leading-[40px]">
+        <h1 className="font-instrument-serif tracking-[-0.5px] sm:tracking-[-0.9px] text-2xl sm:text-3xl md:text-4xl leading-tight">
           {preBoarding
             ? "Preparing for Day 1"
             : "Welcome to your First 90 Days"}
         </h1>
-        <p className="mt-2 font-space-grotesk text-base text-[#A8A29E]">
+        <p className="mt-2 font-space-grotesk text-sm sm:text-base text-[#A8A29E]">
           {user.name ? `Hi ${user.name.split(" ")[0]}, ` : ""}
           {preBoarding
             ? `your journey begins on ${formatStartDate(dayInfo.startDate)}`
@@ -90,7 +90,7 @@ export default function DashboardPage() {
 
       {/* No plan state */}
       {!plan && (
-        <div className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-8 text-center space-y-4">
+        <div className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-6 sm:p-8 text-center space-y-4">
           <h2 className="font-instrument-serif text-2xl">
             Ready to build your plan?
           </h2>
@@ -125,14 +125,14 @@ export default function DashboardPage() {
       {preBoarding && (
         <>
           {/* Countdown hero */}
-          <div className="bg-gradient-to-br from-[#1C1917] to-[#292524] border border-[#2C2825] rounded-xl p-8 text-center">
+          <div className="bg-gradient-to-br from-[#1C1917] to-[#292524] border border-[#2C2825] rounded-xl p-6 sm:p-8 text-center">
             <p className="font-space-grotesk text-xs font-medium uppercase tracking-[0.6px] text-[#A8A29E] mb-2">
               Your journey begins in
             </p>
-            <p className="font-instrument-serif text-7xl text-[#D97757] leading-none">
+            <p className="t-countdown text-[#D97757]">
               {dayInfo.daysUntilStart}
             </p>
-            <p className="mt-2 font-instrument-serif text-xl text-[#E7E5E4]">
+            <p className="mt-2 font-instrument-serif text-lg sm:text-xl text-[#E7E5E4]">
               {dayInfo.daysUntilStart === 1 ? "day" : "days"}
             </p>
             <p className="mt-3 font-space-grotesk text-sm text-[#A8A29E]">
@@ -141,7 +141,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Phase bar — all grayed out */}
-          <div className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-6">
+          <div className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-4 sm:p-6">
             <h3 className="font-space-grotesk text-sm font-medium text-[#A8A29E] mb-4">
               Onboarding Journey
             </h3>
@@ -172,7 +172,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Pre-boarding checklist */}
-          <div className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-6">
+          <div className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-4 sm:p-6">
             <h3 className="font-space-grotesk text-sm font-medium text-[#A8A29E] mb-1">
               Pre-Boarding Checklist
             </h3>
@@ -262,9 +262,9 @@ export default function DashboardPage() {
 
       {/* ── Active plan state ── */}
       {plan && dayInfo && dayInfo.hasStarted && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
           {/* Onboarding Journey Progress */}
-          <div className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-6 col-span-full">
+          <div className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-4 sm:p-6 col-span-full">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-space-grotesk text-sm font-medium text-[#A8A29E]">
                 Onboarding Journey
@@ -302,7 +302,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Day counter */}
-          <div className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-6">
+          <div className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-4 sm:p-6">
             <p className="font-space-grotesk text-xs font-medium uppercase tracking-[0.6px] text-[#A8A29E]">
               Current Day
             </p>
@@ -316,7 +316,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Goals */}
-          <div className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-6">
+          <div className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-4 sm:p-6">
             <p className="font-space-grotesk text-xs font-medium uppercase tracking-[0.6px] text-[#A8A29E]">
               Goals
             </p>
@@ -333,7 +333,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Stakeholders */}
-          <div className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-6">
+          <div className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-4 sm:p-6">
             <p className="font-space-grotesk text-xs font-medium uppercase tracking-[0.6px] text-[#A8A29E]">
               Key Stakeholders
             </p>
@@ -382,7 +382,7 @@ export default function DashboardPage() {
 
       {/* Goals list */}
       {goals && goals.length > 0 && (
-        <div className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-6">
+        <div className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-4 sm:p-6">
           <h3 className="font-space-grotesk text-sm font-medium text-[#A8A29E] mb-4">
             Your Goals
           </h3>
@@ -421,7 +421,7 @@ export default function DashboardPage() {
 
       {/* Key stakeholders */}
       {stakeholders && stakeholders.length > 0 && (
-        <div className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-6">
+        <div className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-4 sm:p-6">
           <h3 className="font-space-grotesk text-sm font-medium text-[#A8A29E] mb-4">
             Key Stakeholders
           </h3>

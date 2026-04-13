@@ -117,18 +117,18 @@ export default function WeekDetailPage({ params }) {
   const total = activities.length;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       <div>
         <Link
           href="/plan"
-          className="font-space-grotesk text-sm text-[#A8A29E] hover:text-[#E7E5E4] transition mb-4 inline-block"
+          className="font-space-grotesk text-sm text-[#A8A29E] hover:text-[#E7E5E4] transition mb-3 sm:mb-4 inline-block"
         >
           ← Back to plan
         </Link>
-        <h1 className="font-instrument-serif text-4xl tracking-[-0.9px] leading-[40px]">
+        <h1 className="font-instrument-serif tracking-[-0.5px] sm:tracking-[-0.9px] text-2xl sm:text-3xl md:text-4xl leading-tight">
           Week {weekNumber}: {week?.theme || ""}
         </h1>
-        <p className="mt-2 font-space-grotesk text-base text-[#A8A29E]">
+        <p className="mt-2 font-space-grotesk text-sm sm:text-base text-[#A8A29E]">
           {completed} of {total} activities completed · Pre-seeded tasks are fully editable
         </p>
         {total > 0 && (

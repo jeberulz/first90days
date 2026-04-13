@@ -242,7 +242,7 @@ export default function OnboardingStepPage({ params }) {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-6 lg:px-10 py-6">
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-10 py-6">
       <StepProgress currentStep={currentStep} />
 
       {planError && (
@@ -720,8 +720,8 @@ export default function OnboardingStepPage({ params }) {
       </StepTransition>
 
       {/* Bottom nav */}
-      <div className="fixed bottom-0 inset-x-0 bg-paper/95 backdrop-blur-md border-t border-warm-line z-50">
-        <div className="max-w-2xl mx-auto px-6 lg:px-10 py-4 flex items-center justify-between">
+      <div className="fixed bottom-0 inset-x-0 bg-paper/95 backdrop-blur-md border-t border-warm-line z-50 pb-[env(safe-area-inset-bottom)]">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-10 py-4 flex items-center justify-between">
           {currentStep > 0 ? (
             <button
               type="button"

@@ -6,11 +6,25 @@
   :root {
     --background: #F5F2E8;
     --foreground: #1C1917;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-left: env(safe-area-inset-left, 0px);
+    --safe-right: env(safe-area-inset-right, 0px);
+    --bottom-nav-h: calc(64px + var(--safe-bottom));
+    --fab-gap: 16px;
   }
 
   .dark {
     --background: #0F0E0D;
     --foreground: #E7E5E4;
+  }
+
+  html, body {
+    overflow-x: clip;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
   }
 
   body {
@@ -20,6 +34,7 @@
       radial-gradient(at 0% 0%, rgba(217, 119, 87, 0.03) 0px, transparent 50%),
       radial-gradient(at 100% 0%, rgba(217, 119, 87, 0.03) 0px, transparent 50%);
     transition: background-color 0.3s ease, color 0.3s ease;
+    text-rendering: optimizeLegibility;
     @apply font-sans antialiased;
   }
 
@@ -44,6 +59,17 @@
   .onboarding-fade-in-d2 { animation: fadeInUp 0.5s 0.16s cubic-bezier(0.16, 1, 0.3, 1) both; }
   .onboarding-fade-in-d3 { animation: fadeInUp 0.5s 0.24s cubic-bezier(0.16, 1, 0.3, 1) both; }
   .onboarding-fade-in-d4 { animation: fadeInUp 0.5s 0.32s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+  .t-display-xl { @apply font-instrument-serif leading-[0.95] tracking-tight text-4xl xs:text-5xl sm:text-6xl lg:text-7xl xl:text-8xl; }
+  .t-display-lg { @apply font-instrument-serif leading-[1.0] tracking-tight text-3xl xs:text-4xl sm:text-5xl md:text-6xl; }
+  .t-display-md { @apply font-instrument-serif leading-[1.05] tracking-tight text-3xl sm:text-4xl md:text-5xl; }
+  .t-h1 { @apply font-space-grotesk font-semibold leading-tight tracking-tight text-2xl sm:text-3xl md:text-4xl; }
+  .t-h2 { @apply font-space-grotesk font-semibold leading-tight tracking-tight text-xl sm:text-2xl md:text-3xl; }
+  .t-h3 { @apply font-space-grotesk font-semibold leading-snug text-lg sm:text-xl md:text-2xl; }
+  .t-body-lg { @apply font-space-grotesk text-base sm:text-lg md:text-xl leading-relaxed; }
+  .t-body { @apply font-space-grotesk text-sm sm:text-base leading-relaxed; }
+  .t-meta { @apply font-space-grotesk text-xs sm:text-sm uppercase tracking-wider; }
+  .t-countdown { @apply font-instrument-serif leading-none text-5xl xs:text-6xl sm:text-7xl md:text-8xl; }
 }
 
 @layer utilities {

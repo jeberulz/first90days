@@ -63,13 +63,13 @@ export default function WeeklyReviewPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8">
+    <div className="max-w-2xl mx-auto space-y-6 sm:space-y-8">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="font-instrument-serif text-4xl tracking-[-0.9px] leading-[40px]">
+          <h1 className="font-instrument-serif tracking-[-0.5px] sm:tracking-[-0.9px] text-2xl sm:text-3xl md:text-4xl leading-tight">
             Week {dayInfo.weekNumber} Review
           </h1>
-          <p className="mt-2 font-space-grotesk text-base text-[#A8A29E]">
+          <p className="mt-2 font-space-grotesk text-sm sm:text-base text-[#A8A29E]">
             {dayInfo.phaseName} Phase
           </p>
         </div>

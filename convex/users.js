@@ -4,6 +4,7 @@ import { internal } from "./_generated/api";
 import { auth } from "./auth";
 import { isPilotEmail, PILOT_PLAN_START_DATE } from "./lib/pilotUser";
 import { computePlanDayInfo } from "./lib/planDates";
+import { computeEntitlements } from "./billing";
 
 export const viewer = query({
   args: {},
@@ -26,10 +27,17 @@ export const viewer = query({
       }
     }
 
+    const entitlements = await computeEntitlements(ctx, userId);
+
     return {
       ...user,
       imageUrl,
       isPilotUser: isPilotEmail(user.email),
+      tier: entitlements?.tier ?? "free",
+      isPro: entitlements?.isPro ?? false,
+      trialEndsAt: entitlements?.trialEndsAt ?? null,
+      trialDaysLeft: entitlements?.trialDaysLeft ?? 0,
+      cancelAtPeriodEnd: entitlements?.cancelAtPeriodEnd ?? false,
     };
   },
 });
@@ -199,19 +207,26 @@ const USER_OWNED_TABLES = [
   "weeks",
   "phases",
   "onboardingData",
+  "billingSubscriptions",
 ];
 
 /**
- * Public delete: schedules an internal batched purge and returns immediately.
- * The client should then sign out. The user document is deleted on the final
- * batch pass so subsequent re-sign-in starts a fresh user.
+ * Public delete: schedules the Stripe-cancel action, which (on success)
+ * schedules the batched purge. The mutation returns immediately and the
+ * client should sign out. If the Stripe cancel fails with an unexpected
+ * error, purgeUserData never runs and the user's data stays intact —
+ * requiring support intervention rather than leaving a ghost subscription.
  */
 export const deleteAccount = mutation({
   args: {},
   handler: async (ctx) => {
     const userId = await auth.getUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
-    await ctx.scheduler.runAfter(0, internal.users.purgeUserData, { userId });
+    await ctx.scheduler.runAfter(
+      0,
+      internal.billingActions.cancelSubscriptionForUser,
+      { userId }
+    );
   },
 });
 

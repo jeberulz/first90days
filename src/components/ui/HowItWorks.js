@@ -2,20 +2,20 @@ import { Icon } from "@iconify/react";
 
 export function HowItWorks() {
   return (
-    <section className="py-32 relative border-t border-[#D1CDC7] dark:border-[#2C2825] transition-colors duration-300 bg-white dark:bg-[#0F0E0D]">
-      <div className="max-w-6xl mx-auto px-6 relative">
-        <div className="text-center mb-24 relative z-10">
-          <div className="inline-flex items-center gap-2 rounded-full border border-accent/20 bg-accent/5 px-3 py-1 text-[10px] uppercase tracking-wider font-bold text-accent mb-6">
+    <section className="py-16 sm:py-24 lg:py-32 relative border-t border-[#D1CDC7] dark:border-[#2C2825] transition-colors duration-300 bg-white dark:bg-[#0F0E0D]">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 relative">
+        <div className="text-center mb-12 sm:mb-16 lg:mb-24 relative z-10">
+          <div className="inline-flex items-center gap-2 rounded-full border border-accent/20 bg-accent/5 px-3 py-1 text-[10px] uppercase tracking-wider font-bold text-accent mb-4 sm:mb-6">
             <span className="w-1.5 h-1.5 rounded-full bg-accent" />
             <span className="font-space-grotesk">How it works</span>
           </div>
-          <h2 className="text-3xl md:text-5xl tracking-tight mb-4 font-instrument-serif font-normal text-[#1C1917] dark:text-white">
+          <h2 className="t-display-md tracking-tight mb-4 text-[#1C1917] dark:text-white">
             Three Minutes Each Morning.
             <span className="ml-2 font-instrument-serif font-normal text-[#A8A29E]">
               That&apos;s It.
             </span>
           </h2>
-          <p className="text-sm text-[#57534E] dark:text-[#A8A29E] max-w-lg mx-auto leading-relaxed font-normal font-space-grotesk">
+          <p className="text-sm sm:text-base text-[#57534E] dark:text-[#A8A29E] max-w-lg mx-auto leading-relaxed font-normal font-space-grotesk">
             Micro-actions compound into massive career momentum. We handle the planning; you handle
             the execution.
           </p>
@@ -25,9 +25,9 @@ export function HowItWorks() {
           <div className="absolute left-6 md:left-1/2 top-0 bottom-0 w-px bg-gradient-to-b -translate-x-1/2 hidden md:block from-[#E7E5E4] dark:from-[#292524] via-[#D1CDC7] dark:via-[#44403C] to-[#E7E5E4] dark:to-[#292524]" />
 
           {/* Step 1 */}
-          <div className="sticky top-24 mb-12 md:mb-32">
+          <div className="md:sticky md:top-24 mb-8 sm:mb-12 md:mb-32">
             <div className="md:p-10 overflow-hidden group dark:bg-[#1C1917] dark:border-[#2C2825] bg-white border-[#E7E5E4] border rounded-2xl pt-6 pr-6 pb-6 pl-6 relative shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] backdrop-blur-xl">
-              <div className="grid md:grid-cols-2 gap-12 items-center relative z-10">
+              <div className="grid md:grid-cols-2 gap-6 sm:gap-8 md:gap-12 items-center relative z-10">
                 <div>
                   <div className="flex items-center gap-4 mb-6">
                     <span className="w-8 h-8 rounded-lg bg-[#F5F2E8] dark:bg-[#0F0E0D] border flex items-center justify-center text-sm font-semibold shadow-sm font-space-grotesk border-[#E7E5E4] dark:border-[#2C2825] text-[#1C1917] dark:text-white">
@@ -121,9 +121,9 @@ export function HowItWorks() {
           </div>
 
           {/* Step 2 */}
-          <div className="sticky top-28 mb-12 md:mb-32">
+          <div className="md:sticky md:top-28 mb-8 sm:mb-12 md:mb-32">
             <div className="border rounded-2xl p-6 md:p-10 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] backdrop-blur-xl relative overflow-hidden group dark:bg-[#1C1917] border-[#E7E5E4] dark:border-[#2C2825] bg-white">
-              <div className="grid md:grid-cols-2 gap-12 items-center relative z-10">
+              <div className="grid md:grid-cols-2 gap-6 sm:gap-8 md:gap-12 items-center relative z-10">
                 <div>
                   <div className="flex items-center gap-4 mb-6">
                     <span className="w-8 h-8 rounded-lg bg-[#F5F2E8] dark:bg-[#0F0E0D] border flex items-center justify-center text-sm font-bold shadow-sm font-space-grotesk border-[#E7E5E4] dark:border-[#2C2825] text-[#1C1917] dark:text-white">
@@ -190,9 +190,9 @@ export function HowItWorks() {
           </div>
 
           {/* Step 3 */}
-          <div className="sticky top-32 mb-12 md:mb-32">
+          <div className="md:sticky md:top-32 mb-8 sm:mb-12 md:mb-32">
             <div className="border rounded-2xl p-6 md:p-10 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] backdrop-blur-xl relative overflow-hidden group dark:bg-[#1C1917] border-[#E7E5E4] dark:border-[#2C2825] bg-white">
-              <div className="grid md:grid-cols-2 gap-12 items-center relative z-10">
+              <div className="grid md:grid-cols-2 gap-6 sm:gap-8 md:gap-12 items-center relative z-10">
                 <div>
                   <div className="flex items-center gap-4 mb-6">
                     <span className="w-8 h-8 rounded-lg bg-[#F5F2E8] dark:bg-[#0F0E0D] border flex items-center justify-center text-sm font-bold shadow-sm font-space-grotesk border-[#E7E5E4] dark:border-[#2C2825] text-[#1C1917] dark:text-white">
@@ -242,9 +242,9 @@ export function HowItWorks() {
           </div>
 
           {/* Step 4 */}
-          <div className="sticky top-36">
+          <div className="md:sticky md:top-36">
             <div className="border rounded-2xl p-6 md:p-10 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] backdrop-blur-xl relative overflow-hidden group dark:bg-[#1C1917] border-[#E7E5E4] dark:border-[#2C2825] bg-white">
-              <div className="grid md:grid-cols-2 gap-12 items-center relative z-10">
+              <div className="grid md:grid-cols-2 gap-6 sm:gap-8 md:gap-12 items-center relative z-10">
                 <div>
                   <div className="flex items-center gap-4 mb-6">
                     <span className="w-8 h-8 rounded-lg bg-[#F5F2E8] dark:bg-[#0F0E0D] border flex items-center justify-center text-sm font-bold shadow-sm font-space-grotesk border-[#E7E5E4] dark:border-[#2C2825] text-[#1C1917] dark:text-white">

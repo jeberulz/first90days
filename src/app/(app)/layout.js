@@ -3,6 +3,7 @@
 import { useConvexAuth } from "convex/react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import AppSidebar from "@/components/app/AppSidebar";
@@ -35,6 +36,7 @@ export default function AppLayout({ children }) {
   const plan = useQuery(api.plans.get);
   const reconcilePilotSchedule = useMutation(api.seed.reconcilePilotPlanSchedule);
   const pilotReconcileOnce = useRef(false);
+  const [trialBannerDismissed, setTrialBannerDismissed] = useState(false);
 
   // Phase-completion celebration: the query returns the first
   // unacknowledged phase the user has already passed, or null.
@@ -81,20 +83,55 @@ export default function AppLayout({ children }) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#0F0E0D] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[#D97757] border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-[100dvh] bg-paper-dark flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   if (!isAuthenticated) return null;
 
+  const trialDaysLeft = user?.trialDaysLeft ?? 0;
+  const showTrialBanner =
+    !trialBannerDismissed &&
+    user?.tier === "pro" &&
+    trialDaysLeft > 0 &&
+    trialDaysLeft <= 3;
+
   return (
-    <div className="min-h-screen min-w-0 bg-[#0F0E0D] text-[#E7E5E4] dark">
+    <div className="min-h-[100dvh] min-w-0 bg-paper-dark text-warm-line dark">
+      {showTrialBanner && (
+        <div
+          role="status"
+          className="w-full bg-[#D97757]/10 border-b border-[#D97757]/30 text-[#E7E5E4]"
+        >
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex items-center justify-between gap-3 font-space-grotesk text-xs sm:text-sm">
+            <span>
+              {trialDaysLeft === 1
+                ? "Your Pro trial ends tomorrow."
+                : `${trialDaysLeft} days left in your Pro trial.`}{" "}
+              <Link
+                href="/settings?billing=trial"
+                className="text-[#D97757] underline underline-offset-2 hover:text-[#F08B6A]"
+              >
+                Manage subscription
+              </Link>
+            </span>
+            <button
+              type="button"
+              onClick={() => setTrialBannerDismissed(true)}
+              className="text-[#A8A29E] hover:text-[#E7E5E4] px-2"
+              aria-label="Dismiss trial reminder"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
       <div className="flex min-w-0">
         <AppSidebar />
-        <main className="flex-1 min-w-0 ml-0 lg:ml-64 min-h-screen pb-20 lg:pb-0">
-          <div className="w-full min-w-0 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main className="flex-1 min-w-0 ml-0 lg:ml-64 min-h-[100dvh] pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0">
+          <div className="w-full min-w-0 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
             {children}
           </div>
         </main>

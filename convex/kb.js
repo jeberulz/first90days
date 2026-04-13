@@ -293,50 +293,87 @@ export const categoryStats = query({
   },
 });
 
+const BRAIN_STATUS_FALLBACK = {
+  documentCount: 0,
+  sourceCount: 0,
+  memoryCount: 0,
+  confidence: 0,
+  runningJobs: 0,
+  queuedJobs: 0,
+  learning: false,
+};
+
 export const brainStatus = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await auth.getUserId(ctx);
-    if (!userId)
-      return {
-        documentCount: 0,
-        sourceCount: 0,
-        memoryCount: 0,
-        confidence: 0,
-        runningJobs: 0,
-        learning: false,
-      };
+    let userId;
+    try {
+      userId = await auth.getUserId(ctx);
+    } catch (err) {
+      console.error("[kb.brainStatus] auth.getUserId threw", err);
+      return BRAIN_STATUS_FALLBACK;
+    }
+    if (!userId) return BRAIN_STATUS_FALLBACK;
 
-    const docs = await ctx.db
-      .query("kbDocuments")
-      .withIndex("by_user", (qb) => qb.eq("userId", userId))
-      .take(2000);
+    async function safe(fn, fallback) {
+      try {
+        return await fn();
+      } catch (err) {
+        console.error("[kb.brainStatus] sub-query failed", err);
+        return fallback;
+      }
+    }
+
+    const docs = await safe(
+      () =>
+        ctx.db
+          .query("kbDocuments")
+          .withIndex("by_user", (qb) => qb.eq("userId", userId))
+          .take(2000),
+      []
+    );
     const activeDocs = docs.filter((d) => !d.archivedAt);
 
-    const memories = await ctx.db
-      .query("kbMemories")
-      .withIndex("by_user_visible", (qb) =>
-        qb.eq("userId", userId).eq("visibleInStream", true)
-      )
-      .take(2000);
+    const memories = await safe(
+      () =>
+        ctx.db
+          .query("kbMemories")
+          .withIndex("by_user_visible", (qb) =>
+            qb.eq("userId", userId).eq("visibleInStream", true)
+          )
+          .take(2000),
+      []
+    );
 
-    const sources = await ctx.db
-      .query("kbSources")
-      .withIndex("by_user", (qb) => qb.eq("userId", userId))
-      .collect();
+    const sources = await safe(
+      () =>
+        ctx.db
+          .query("kbSources")
+          .withIndex("by_user", (qb) => qb.eq("userId", userId))
+          .collect(),
+      []
+    );
 
-    const runningJobs = await ctx.db
-      .query("kbEnrichmentJobs")
-      .withIndex("by_user_status", (qb) =>
-        qb.eq("userId", userId).eq("status", "running")
-      )
-      .take(50);
-    const queuedJobs = await ctx.db
-      .query("kbEnrichmentJobs")
-      .withIndex("by_user_status", (qb) =>
-        qb.eq("userId", userId).eq("status", "queued")
-      )
-      .take(50);
+    const runningJobs = await safe(
+      () =>
+        ctx.db
+          .query("kbEnrichmentJobs")
+          .withIndex("by_user_status", (qb) =>
+            qb.eq("userId", userId).eq("status", "running")
+          )
+          .take(50),
+      []
+    );
+    const queuedJobs = await safe(
+      () =>
+        ctx.db
+          .query("kbEnrichmentJobs")
+          .withIndex("by_user_status", (qb) =>
+            qb.eq("userId", userId).eq("status", "queued")
+          )
+          .take(50),
+      []
+    );
 
     const enriched = activeDocs.filter((d) => d.enrichmentStatus === "done").length;
     const confidence =

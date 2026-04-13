@@ -115,6 +115,59 @@ export const getUserSettingsInternal = internalQuery({
   },
 });
 
+/**
+ * Reset the daily enrichment budget to 0 and stamp today's date. Called from
+ * kbPipeline.runEnrich when the persisted resetDate is stale relative to the
+ * user's timezone. Idempotent — writing the same date twice is a no-op.
+ */
+export const resetEnrichmentBudget = internalMutation({
+  args: {
+    userId: v.id("users"),
+    date: v.string(),
+  },
+  handler: async (ctx, { userId, date }) => {
+    const user = await ctx.db.get(userId);
+    if (!user) return;
+    const settings = user.settings ?? {};
+    const kb = settings.kb ?? {};
+    await ctx.db.patch(userId, {
+      settings: {
+        ...settings,
+        kb: {
+          ...kb,
+          enrichmentBudgetUsedToday: 0,
+          enrichmentBudgetResetDate: date,
+        },
+      },
+    });
+  },
+});
+
+/**
+ * Increment the daily enrichment budget by 1. Called after a successful
+ * enrichment run. Race with workpool concurrency is bounded by the pool's
+ * maxParallelism (2) — at most two increments can overlap.
+ */
+export const incrementEnrichmentBudget = internalMutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => {
+    const user = await ctx.db.get(userId);
+    if (!user) return;
+    const settings = user.settings ?? {};
+    const kb = settings.kb ?? {};
+    await ctx.db.patch(userId, {
+      settings: {
+        ...settings,
+        kb: {
+          ...kb,
+          enrichmentBudgetUsedToday:
+            (kb.enrichmentBudgetUsedToday ?? 0) + 1,
+        },
+      },
+    });
+  },
+});
+
 // ---------- Source helpers ----------
 
 /**

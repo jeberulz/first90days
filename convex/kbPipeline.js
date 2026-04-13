@@ -11,6 +11,8 @@ import {
   enrichmentUserPrompt,
 } from "./lib/kbPrompts.js";
 import { embedText } from "./lib/ai.js";
+import { resolveUserTimezone, tzTodayYmd } from "./lib/planDates.js";
+import { computeQuotaState } from "./lib/billing.js";
 
 /**
  * KB ingestion + enrichment pipeline.
@@ -266,6 +268,45 @@ export const runEnrich = internalAction({
         return;
       }
 
+      // Billing quota gate. Free tier is capped at 5 enrichments/day;
+      // Pro and pro_legacy at 100. Counter resets at local midnight in the
+      // user's timezone.
+      const { tier } = await ctx.runQuery(
+        internal.billing.getTierInternal,
+        { userId: doc.userId }
+      );
+      const tz = resolveUserTimezone({ settings });
+      const todayYmd = tzTodayYmd(tz);
+      const quota = computeQuotaState({
+        tier,
+        kbSettings: settings?.kb,
+        todayYmd,
+      });
+
+      if (quota.overCap) {
+        await ctx.runMutation(
+          internal.kbInternal.patchDocumentEnrichment,
+          {
+            documentId,
+            enrichmentStatus: "skipped",
+          }
+        );
+        if (job) {
+          await ctx.runMutation(internal.kbInternal.markJobFinished, {
+            jobId: job._id,
+            status: "done",
+          });
+        }
+        return;
+      }
+
+      if (quota.resetNeeded) {
+        await ctx.runMutation(
+          internal.kbInternal.resetEnrichmentBudget,
+          { userId: doc.userId, date: todayYmd }
+        );
+      }
+
       // Generate the enrichment JSON
       const userPrompt = enrichmentUserPrompt(doc);
       const raw = await generateText(ENRICHMENT_SYSTEM_PROMPT, userPrompt);
@@ -314,6 +355,13 @@ export const runEnrich = internalAction({
         type: "ai_enriched",
         enrichmentStatus: "done",
       });
+
+      // Count this successful enrichment toward the user's daily budget.
+      // Done after the document patch so failures upstream don't consume quota.
+      await ctx.runMutation(
+        internal.kbInternal.incrementEnrichmentBudget,
+        { userId: doc.userId }
+      );
 
       // Insert memory candidates (if any)
       const candidates = Array.isArray(parsed.memoryCandidates)

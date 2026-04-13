@@ -3,6 +3,22 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { useState } from "react";
+import { ScrollableTabs } from "@/components/primitives";
+
+const STATUS_TABS = [
+  { key: "all", label: "All" },
+  { key: "upcoming", label: "Upcoming" },
+  { key: "completed", label: "Completed" },
+  { key: "skipped", label: "Skipped" },
+];
+
+const CATEGORY_TABS = [
+  { key: "all", label: "All" },
+  { key: "learning", label: "Learning" },
+  { key: "shipping", label: "Shipping" },
+  { key: "relationships", label: "Relationships" },
+  { key: "influence", label: "Influence" },
+];
 
 const categoryColors = {
   learning: { border: "border-l-blue-500", text: "text-blue-400" },
@@ -58,12 +74,12 @@ export default function TasksPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       <div>
-        <h1 className="font-instrument-serif text-4xl tracking-[-0.9px] leading-[40px]">
+        <h1 className="font-instrument-serif tracking-[-0.5px] sm:tracking-[-0.9px] text-2xl sm:text-3xl md:text-4xl leading-tight">
           Tasks & Milestones
         </h1>
-        <p className="mt-2 font-space-grotesk text-base text-[#A8A29E]">
+        <p className="mt-2 font-space-grotesk text-sm sm:text-base text-[#A8A29E]">
           {stats.completed} of {stats.total} completed
         </p>
       </div>
@@ -97,36 +113,19 @@ export default function TasksPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-2">
-        {["all", "upcoming", "completed", "skipped"].map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`px-3 py-1.5 rounded-lg font-space-grotesk text-xs capitalize transition ${
-              filter === f
-                ? "bg-[#D97757] text-white"
-                : "bg-[#1C1917] text-[#A8A29E] border border-[#2C2825] hover:border-[#44403C]"
-            }`}
-          >
-            {f}
-          </button>
-        ))}
-        <div className="w-px bg-[#2C2825] mx-1" />
-        {["all", "learning", "shipping", "relationships", "influence"].map(
-          (c) => (
-            <button
-              key={c}
-              onClick={() => setCategoryFilter(c)}
-              className={`px-3 py-1.5 rounded-lg font-space-grotesk text-xs capitalize transition ${
-                categoryFilter === c
-                  ? "bg-[#292524] text-[#E7E5E4] border border-[#44403C]"
-                  : "text-[#A8A29E] hover:text-[#E7E5E4]"
-              }`}
-            >
-              {c}
-            </button>
-          )
-        )}
+      <div className="space-y-3">
+        <ScrollableTabs
+          items={STATUS_TABS}
+          activeKey={filter}
+          onChange={setFilter}
+          ariaLabel="Filter by status"
+        />
+        <ScrollableTabs
+          items={CATEGORY_TABS}
+          activeKey={categoryFilter}
+          onChange={setCategoryFilter}
+          ariaLabel="Filter by category"
+        />
       </div>
 
       {/* Activity list */}
@@ -151,22 +150,23 @@ export default function TasksPage() {
                   isDone ? "opacity-50" : ""
                 }`}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-start sm:items-center gap-3">
                   {!isDone && activity.status === "upcoming" && (
                     <button
                       onClick={() => completeActivity({ id: activity._id })}
-                      className="w-5 h-5 rounded border-2 border-[#44403C] hover:border-[#D97757] transition-colors flex-shrink-0"
+                      aria-label="Complete activity"
+                      className="mt-0.5 sm:mt-0 w-5 h-5 rounded border-2 border-[#44403C] hover:border-[#D97757] transition-colors flex-shrink-0"
                     />
                   )}
                   {isDone && (
-                    <div className="w-5 h-5 rounded bg-[#D97757] flex items-center justify-center flex-shrink-0">
+                    <div className="mt-0.5 sm:mt-0 w-5 h-5 rounded bg-[#D97757] flex items-center justify-center flex-shrink-0">
                       <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
                         <path d="M2 6l3 3 5-5" />
                       </svg>
                     </div>
                   )}
                   {activity.status === "skipped" && (
-                    <div className="w-5 h-5 rounded bg-[#292524] flex items-center justify-center flex-shrink-0">
+                    <div className="mt-0.5 sm:mt-0 w-5 h-5 rounded bg-[#292524] flex items-center justify-center flex-shrink-0">
                       <span className="text-[#A8A29E] text-xs">—</span>
                     </div>
                   )}
@@ -174,8 +174,19 @@ export default function TasksPage() {
                     <p className={`font-space-grotesk text-sm ${isDone ? "text-[#A8A29E] line-through" : "text-[#E7E5E4]"}`}>
                       {activity.title}
                     </p>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 sm:hidden">
+                      <span className={`font-space-grotesk text-xs ${colors.text}`}>
+                        {activity.category}
+                      </span>
+                      <span className="font-space-grotesk text-xs text-[#A8A29E]">
+                        W{activity.weekNumber}
+                      </span>
+                      <span className="font-space-grotesk text-xs text-[#A8A29E]">
+                        {activity.estimatedTime}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
                     <span className={`font-space-grotesk text-xs ${colors.text}`}>
                       {activity.category}
                     </span>
