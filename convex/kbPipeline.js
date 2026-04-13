@@ -11,6 +11,7 @@ import {
   enrichmentUserPrompt,
 } from "./lib/kbPrompts.js";
 import { embedText } from "./lib/ai.js";
+import { chunkDocument } from "./lib/kbChunker.js";
 import { resolveUserTimezone, tzTodayYmd } from "./lib/planDates.js";
 import { computeQuotaState } from "./lib/billing.js";
 
@@ -155,17 +156,72 @@ export const runEmbed = internalAction({
         if (link) stakeholderId = link.id;
       }
 
+      // Chunk the document text (heading-aware recursive chunker). Short
+      // docs return a single chunk; long docs return N with overlap.
+      const chunks = chunkDocument({ content: doc.content });
+      if (chunks.length === 0) {
+        // Nothing to embed — record as done and move on.
+        await ctx.runMutation(
+          internal.kbInternal.patchDocumentPipelineState,
+          {
+            documentId,
+            embeddingStatus: "skipped",
+            lastEmbeddedHash: doc.contentHash,
+          }
+        );
+        if (job) {
+          await ctx.runMutation(internal.kbInternal.markJobFinished, {
+            jobId: job._id,
+            status: "done",
+          });
+        }
+        return;
+      }
+
+      // Feed the chunks to the RAG component. Using the `chunks` option
+      // (instead of `text`) lets us keep chunk boundaries + heading context
+      // aligned with the kbChunks mirror we persist below. Re-using `key`
+      // causes RAG to replace the existing entry transactionally on
+      // re-embed.
       const result = await rag.add(ctx, {
         namespace: userNamespace(doc.userId),
         key: doc._id,
         title: doc.title,
-        text: doc.content,
         filterValues: [
           { name: "category", value: doc.category },
           { name: "sourceType", value: doc.sourceType },
           { name: "stakeholderId", value: stakeholderId },
         ],
+        chunks: chunks.map((c) => ({
+          text: c.text,
+          metadata: {
+            chunkIndex: c.chunkIndex,
+            // headingPath is stored as a joined string because RAG metadata
+            // values are arbitrary but we want a single stable representation.
+            headingPath: (c.headingPath ?? []).join(" › "),
+          },
+        })),
       });
+
+      // Mirror the chunks into our own table. This MUST happen after the
+      // rag.add call succeeds — otherwise a failed embed would leave stale
+      // chunks pointing at an entry that no longer exists.
+      await ctx.runMutation(
+        internal.kbInternal.replaceChunksForDocument,
+        {
+          userId: doc.userId,
+          documentId,
+          chunks: chunks.map((c) => ({
+            chunkIndex: c.chunkIndex,
+            text: c.text,
+            charStart: c.charStart,
+            charEnd: c.charEnd,
+            contentHash: c.contentHash,
+            headingPath: c.headingPath ?? [],
+            tokenEstimate: c.tokenEstimate,
+          })),
+        }
+      );
 
       await ctx.runMutation(internal.kbInternal.patchDocumentPipelineState, {
         documentId,

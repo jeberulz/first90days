@@ -46,6 +46,19 @@ export function formatContextBlock({ memories = [], entries = [] }) {
       if (e.summary) lines.push(`  summary: ${e.summary}`);
       if (e.keyFacts && e.keyFacts.length > 0) {
         lines.push(`  key facts: ${e.keyFacts.slice(0, 5).join("; ")}`);
+      }
+      // Chunk-level snippets with heading path breadcrumbs. Prefer these
+      // over the doc-level `snippet` fallback because they represent the
+      // specific text that matched the query.
+      if (Array.isArray(e.chunks) && e.chunks.length > 0) {
+        for (const c of e.chunks) {
+          const breadcrumb =
+            c.headingPath && c.headingPath.length > 0
+              ? `[${c.headingPath.join(" › ")}] `
+              : "";
+          const snippet = (c.text || "").slice(0, 280).replace(/\s+/g, " ");
+          lines.push(`  • ${breadcrumb}${snippet}`);
+        }
       } else if (e.snippet) {
         lines.push(`  snippet: ${e.snippet.slice(0, 280)}`);
       }

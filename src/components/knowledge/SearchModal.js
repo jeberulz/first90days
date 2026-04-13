@@ -121,6 +121,11 @@ export default function SearchModal({ open, onClose }) {
                           </span>
                         )}
                       </div>
+                      {r.headingPath && r.headingPath.length > 0 && (
+                        <p className="text-[10px] text-[#57534E] mt-0.5 truncate">
+                          {r.headingPath.join(" › ")}
+                        </p>
+                      )}
                       {r.summary || r.snippet ? (
                         <p className="text-xs text-[#A8A29E] line-clamp-2 mt-0.5">
                           {r.summary || r.snippet}

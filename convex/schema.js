@@ -383,6 +383,11 @@ export default defineSchema({
     ),
 
     ragEntryId: v.optional(v.string()),
+    // Number of chunks the doc was split into during M1 embedding. Lets
+    // the UI show "indexed into 7 chunks" and lets retrieval assume a
+    // doc is chunk-indexed when > 1. 1 == single-chunk (short doc);
+    // undefined == not yet embedded.
+    chunkCount: v.optional(v.number()),
 
     type: v.union(
       v.literal("ai_enriched"),
@@ -398,6 +403,42 @@ export default defineSchema({
     .index("by_user_status", ["userId", "ingestionStatus"])
     .index("by_user_legacy", ["userId", "legacyKnowledgeEntryId"])
     .index("by_user_external", ["userId", "sourceType", "externalId"]),
+
+  // kbChunks: structured mirror of what we feed the RAG component at embed
+  // time. One row per chunk per document. We use one RAG entry per kbDocument
+  // (keyed by documentId), with the chunks passed inline via rag.add({chunks}).
+  // This table is our own persistent view of those chunks so we can:
+  //   - Render heading-path-anchored snippets in prompts without re-querying RAG.
+  //   - Attribute memories to specific chunks (chunkId is stable).
+  //   - Diff chunks on re-embed to skip unchanged work at the chunk granularity
+  //     later (currently we still replace the whole entry via key re-use).
+  //
+  // On re-embed we wipe and rewrite this table for the document — the content
+  // of a chunk is immutable, rewrites generate new _ids.
+  kbChunks: defineTable({
+    userId: v.id("users"),
+    documentId: v.id("kbDocuments"),
+    // 0-indexed position within the document. Stable across re-embeds as long
+    // as the document text is unchanged.
+    chunkIndex: v.number(),
+    text: v.string(),
+    // Character offsets into the parent kbDocument.content for this chunk.
+    // Useful for highlighting the chunk back onto the source doc in the UI.
+    charStart: v.number(),
+    charEnd: v.number(),
+    // FNV-1a hash of the chunk text. Future work uses this to skip re-embed
+    // of chunks that didn't change.
+    contentHash: v.string(),
+    // Breadcrumb of markdown headings the chunk lives under (h1 → h2 → h3).
+    // [] for docs without headings. Rendered in the prompt context block.
+    headingPath: v.optional(v.array(v.string())),
+    // Rough token count for this chunk (chars / 4). Lets the context builder
+    // budget tokens without re-estimating every call.
+    tokenEstimate: v.number(),
+  })
+    .index("by_document", ["documentId"])
+    .index("by_user_document", ["userId", "documentId"])
+    .index("by_user", ["userId"]),
 
   kbMemories: defineTable({
     userId: v.id("users"),

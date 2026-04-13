@@ -528,6 +528,120 @@ export const setExtractedContent = internalMutation({
   },
 });
 
+// ---------- Chunk helpers (Priority 1) ----------
+
+/**
+ * Replace all chunk rows for a document in a single transaction.
+ *
+ * We use full replacement (rather than per-chunk diff) because rag.add
+ * with the same key already replaces the RAG-side entry atomically — our
+ * kbChunks table is the mirror and should follow the same semantics.
+ *
+ * chunkIndex is 0-indexed; the caller (kbPipeline.runEmbed) is expected
+ * to pass chunks in order.
+ */
+export const replaceChunksForDocument = internalMutation({
+  args: {
+    userId: v.id("users"),
+    documentId: v.id("kbDocuments"),
+    chunks: v.array(
+      v.object({
+        chunkIndex: v.number(),
+        text: v.string(),
+        charStart: v.number(),
+        charEnd: v.number(),
+        contentHash: v.string(),
+        headingPath: v.optional(v.array(v.string())),
+        tokenEstimate: v.number(),
+      })
+    ),
+  },
+  handler: async (ctx, { userId, documentId, chunks }) => {
+    // Delete existing chunks for this document
+    const existing = await ctx.db
+      .query("kbChunks")
+      .withIndex("by_document", (q) => q.eq("documentId", documentId))
+      .collect();
+    for (const row of existing) {
+      await ctx.db.delete(row._id);
+    }
+    // Insert new chunks
+    const insertedIds = [];
+    for (const c of chunks) {
+      const id = await ctx.db.insert("kbChunks", {
+        userId,
+        documentId,
+        chunkIndex: c.chunkIndex,
+        text: c.text,
+        charStart: c.charStart,
+        charEnd: c.charEnd,
+        contentHash: c.contentHash,
+        headingPath: c.headingPath ?? [],
+        tokenEstimate: c.tokenEstimate,
+      });
+      insertedIds.push(id);
+    }
+    // Stamp chunkCount on the parent doc so UI + retrieval can check
+    // whether a doc is chunk-indexed without a separate count query.
+    await ctx.db.patch(documentId, { chunkCount: chunks.length });
+    return insertedIds;
+  },
+});
+
+/**
+ * Delete all chunks for a document. Used when a doc is archived/deleted.
+ */
+export const deleteChunksForDocument = internalMutation({
+  args: { documentId: v.id("kbDocuments") },
+  handler: async (ctx, { documentId }) => {
+    const existing = await ctx.db
+      .query("kbChunks")
+      .withIndex("by_document", (q) => q.eq("documentId", documentId))
+      .collect();
+    for (const row of existing) {
+      await ctx.db.delete(row._id);
+    }
+  },
+});
+
+/**
+ * List chunks for a document, ordered by chunkIndex. Used by retrieval
+ * to join RAG search results back to stored chunk metadata (heading path,
+ * char offsets) since the RAG library's chunk metadata isn't always
+ * round-tripped through all code paths.
+ */
+export const listChunksForDocumentInternal = internalQuery({
+  args: { documentId: v.id("kbDocuments") },
+  handler: async (ctx, { documentId }) => {
+    const rows = await ctx.db
+      .query("kbChunks")
+      .withIndex("by_document", (q) => q.eq("documentId", documentId))
+      .collect();
+    rows.sort((a, b) => a.chunkIndex - b.chunkIndex);
+    return rows;
+  },
+});
+
+/**
+ * Batch variant: fetch chunks for many documents in one query. Used by
+ * kbContext to enrich retrieval results without N+1 reads.
+ */
+export const listChunksForDocumentsInternal = internalQuery({
+  args: { documentIds: v.array(v.id("kbDocuments")) },
+  handler: async (ctx, { documentIds }) => {
+    const out = {};
+    for (const docId of documentIds) {
+      const rows = await ctx.db
+        .query("kbChunks")
+        .withIndex("by_document", (q) => q.eq("documentId", docId))
+        .collect();
+      rows.sort((a, b) => a.chunkIndex - b.chunkIndex);
+      out[docId] = rows;
+    }
+    return out;
+  },
+});
+
 // ---------- Job helpers ----------
 
 export const findJobInternal = internalQuery({

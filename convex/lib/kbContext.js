@@ -22,6 +22,17 @@ import {
   estimateTokens,
 } from "./kbPrompts.js";
 import { EMBEDDING_DIMENSION } from "./ai.js";
+import {
+  CONTEXT_SIMILARITY_THRESHOLD_DEFAULT,
+  SEARCH_SIMILARITY_THRESHOLD_DEFAULT,
+  CONTEXT_TOP_K_DEFAULT,
+  CONTEXT_OVERFETCH_MULTIPLIER,
+  CHUNK_MAX_PER_DOC_IN_CONTEXT,
+} from "./kbRetrievalConfig.js";
+import { groupResultsByDocument } from "./kbRetrievalGrouping.js";
+
+// Re-export so callers that previously imported from kbContext still work.
+export { groupResultsByDocument };
 
 // Single shared RAG instance. Module-level so it's reused across calls.
 // Filter names must match the keys passed to rag.add in kbPipeline.runEmbed.
@@ -63,7 +74,7 @@ export async function fetchContextForPlanning(ctx, args) {
     userId,
     query,
     categories,
-    topK = 12,
+    topK = CONTEXT_TOP_K_DEFAULT,
     includeMemories = true,
     memoryEntityType,
     memoryEntityId,
@@ -79,13 +90,16 @@ export async function fetchContextForPlanning(ctx, args) {
   }
 
   // 1. Vector search via RAG. Categories filter is optional.
+  //    We over-fetch by CONTEXT_OVERFETCH_MULTIPLIER so that when chunks
+  //    get grouped back down to "top N-per-doc" we still end up with
+  //    roughly `topK` distinct documents in the context block.
   let searchResult;
   try {
     searchResult = await rag.search(ctx, {
       namespace: userNamespace(userId),
       query,
-      limit: topK,
-      vectorScoreThreshold: 0.3,
+      limit: topK * CONTEXT_OVERFETCH_MULTIPLIER,
+      vectorScoreThreshold: CONTEXT_SIMILARITY_THRESHOLD_DEFAULT,
       ...(categories && categories.length > 0
         ? {
             // RAG accepts a single filter or an array (OR semantics).
@@ -104,17 +118,22 @@ export async function fetchContextForPlanning(ctx, args) {
     };
   }
 
-  // 2. Join chunks back to kbDocuments rows for title / summary / keyFacts.
-  // The rag entries[] each carry an `entryId` (RAG's internal id). We stored
-  // the kbDocument id as `key` when adding, so the entry's `key` round-trips.
-  const documentIds = [];
-  const seen = new Set();
-  for (const e of searchResult.entries || []) {
-    if (e.key && !seen.has(e.key)) {
-      seen.add(e.key);
-      documentIds.push(e.key);
-    }
-  }
+  // 2. Group RAG results back into per-document citations.
+  //    Each SearchResult is a per-chunk hit (with entryId pointing to the
+  //    RAG entry — which is our kbDocument). The entries[] array is
+  //    deduplicated by entryId and carries the user-visible `key` (= our
+  //    documentId). We want: for each document, its top N chunks by score,
+  //    capped at CHUNK_MAX_PER_DOC_IN_CONTEXT.
+  const citations = groupResultsByDocument({
+    searchResult,
+    maxPerDoc: CHUNK_MAX_PER_DOC_IN_CONTEXT,
+    maxDocs: topK,
+  });
+
+  // 3. Join documents for metadata (title, summary, keyFacts, category).
+  const documentIds = citations
+    .map((c) => c.documentId)
+    .filter((id) => id);
   let docsById = {};
   if (documentIds.length > 0) {
     const docs = await ctx.runQuery(
@@ -124,22 +143,28 @@ export async function fetchContextForPlanning(ctx, args) {
     docsById = Object.fromEntries(docs.map((d) => [d._id, d]));
   }
 
-  const citations = (searchResult.entries || []).map((e) => {
-    const doc = e.key ? docsById[e.key] : null;
-    return {
-      documentId: doc?._id ?? null,
-      ragEntryId: e.entryId ?? null,
-      title: doc?.title ?? e.title ?? "(untitled)",
-      sourceType: doc?.sourceType ?? "unknown",
-      category: doc?.category ?? null,
-      summary: doc?.summary ?? null,
-      keyFacts: doc?.keyFacts ?? null,
-      snippet: doc?.content?.slice(0, 280) ?? null,
-      score: e.score ?? null,
-    };
-  });
+  // Hydrate citations with doc metadata + fallback snippet.
+  for (const c of citations) {
+    const doc = c.documentId ? docsById[c.documentId] : null;
+    c.title = doc?.title ?? c.title ?? "(untitled)";
+    c.sourceType = doc?.sourceType ?? "unknown";
+    c.category = doc?.category ?? null;
+    c.summary = doc?.summary ?? null;
+    c.keyFacts = doc?.keyFacts ?? null;
+    // Legacy snippet kept as fallback for pre-chunking docs until backfill.
+    if (c.chunks.length === 0 && doc?.content) {
+      c.chunks = [
+        {
+          text: doc.content.slice(0, 280),
+          headingPath: [],
+          score: null,
+          chunkIndex: 0,
+        },
+      ];
+    }
+  }
 
-  // 3. Memories. If entity scoping is provided, narrow to that entity.
+  // 4. Memories. If entity scoping is provided, narrow to that entity.
   let memories = [];
   if (includeMemories) {
     if (memoryEntityType && memoryEntityId) {
@@ -163,7 +188,7 @@ export async function fetchContextForPlanning(ctx, args) {
     memories = memories.slice(0, 8);
   }
 
-  // 4. Format the prompt block
+  // 5. Format the prompt block
   const contextText = formatContextBlock({
     memories: memories.map((m) => ({
       text: m.text,
@@ -182,33 +207,32 @@ export async function fetchContextForPlanning(ctx, args) {
 }
 
 /**
- * Raw semantic search — used by the Cmd+K modal. Returns matches without
- * formatting. No memory injection.
+ * Raw semantic search — used by the Cmd+K modal. Returns per-doc matches
+ * with top-chunk snippets. No memory injection.
  */
 export async function semanticSearch(ctx, args) {
   const { userId, query, limit = 10, categories } = args;
   if (!userId || !query || !query.trim()) {
-    return { results: [], entries: [] };
+    return { matches: [], raw: null };
   }
   try {
     const result = await rag.search(ctx, {
       namespace: userNamespace(userId),
       query,
-      limit,
-      vectorScoreThreshold: 0.2,
+      limit: limit * CONTEXT_OVERFETCH_MULTIPLIER,
+      vectorScoreThreshold: SEARCH_SIMILARITY_THRESHOLD_DEFAULT,
       ...(categories && categories.length > 0
         ? { filters: categories.map((c) => ({ name: "category", value: c })) }
         : {}),
     });
 
-    const documentIds = [];
-    const seen = new Set();
-    for (const e of result.entries || []) {
-      if (e.key && !seen.has(e.key)) {
-        seen.add(e.key);
-        documentIds.push(e.key);
-      }
-    }
+    const citations = groupResultsByDocument({
+      searchResult: result,
+      maxPerDoc: CHUNK_MAX_PER_DOC_IN_CONTEXT,
+      maxDocs: limit,
+    });
+
+    const documentIds = citations.map((c) => c.documentId).filter(Boolean);
     let docsById = {};
     if (documentIds.length > 0) {
       const docs = await ctx.runQuery(
@@ -218,16 +242,22 @@ export async function semanticSearch(ctx, args) {
       docsById = Object.fromEntries(docs.map((d) => [d._id, d]));
     }
 
-    const matches = (result.entries || []).map((e) => {
-      const doc = e.key ? docsById[e.key] : null;
+    const matches = citations.map((c) => {
+      const doc = c.documentId ? docsById[c.documentId] : null;
+      const topChunk = c.chunks[0];
+      const snippet =
+        topChunk?.text?.slice(0, 240) ??
+        doc?.content?.slice(0, 240) ??
+        null;
       return {
         documentId: doc?._id ?? null,
-        title: doc?.title ?? e.title ?? "(untitled)",
+        title: doc?.title ?? "(untitled)",
         category: doc?.category ?? null,
         sourceType: doc?.sourceType ?? null,
         summary: doc?.summary ?? null,
-        snippet: doc?.content?.slice(0, 240) ?? null,
-        score: e.score ?? null,
+        snippet,
+        headingPath: topChunk?.headingPath ?? [],
+        score: c.score ?? null,
       };
     });
 

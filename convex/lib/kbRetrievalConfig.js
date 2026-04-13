@@ -67,6 +67,15 @@ export const CHUNK_OVERLAP_CHARS = 600;
 /** Docs below this size are indexed as a single chunk (current behavior). */
 export const CHUNK_SINGLE_CHUNK_CEILING = 1200;
 
+/**
+ * Maximum chunks surfaced from any single document in a prompt context block.
+ * Retrieval over-fetches and then groups results by document, keeping at most
+ * this many top-scoring chunks per doc. Prevents a single long doc from
+ * crowding the context window. Tune: raise if retrieval feels too narrow,
+ * lower if prompts get dominated by one source.
+ */
+export const CHUNK_MAX_PER_DOC_IN_CONTEXT = 2;
+
 // ---------------------------------------------------------------------------
 // Enrichment
 // ---------------------------------------------------------------------------
