@@ -108,6 +108,23 @@ const activityInputValidator = v.object({
 });
 
 /**
+ * Assert the authed caller is `argUserId`. Both savePlan paths take
+ * userId as an argument (so the Node action in convex/ai.js can
+ * authorize via runQuery then call savePlan on behalf of the same
+ * user), but we still need to make sure no authed caller can point
+ * `userId` at someone else's row and overwrite their plan — regenerate
+ * mode tears down the existing plan in place, so this is a destructive
+ * cross-user vector without the check.
+ */
+async function assertCallerOwnsUserId(ctx, argUserId) {
+  const callerId = await auth.getUserId(ctx);
+  if (!callerId) throw new Error("Not authenticated");
+  if (callerId !== argUserId) {
+    throw new Error("Not authorized");
+  }
+}
+
+/**
  * Persist a full plan tree from an AI draft (or a regeneration).
  *
  * Shape: goals first so activities can reference them by index via
@@ -125,6 +142,7 @@ export const savePlan = mutation({
   },
   handler: async (ctx, args) => {
     const { userId, regenerate, goals, weekThemes, activities } = args;
+    await assertCallerOwnsUserId(ctx, userId);
 
     const existingPlan = await ctx.db
       .query("plans")
@@ -244,6 +262,7 @@ export const savePlanFallback = mutation({
   },
   handler: async (ctx, args) => {
     const { userId, regenerate } = args;
+    await assertCallerOwnsUserId(ctx, userId);
 
     const existingPlan = await ctx.db
       .query("plans")

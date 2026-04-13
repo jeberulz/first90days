@@ -195,6 +195,18 @@ export const removeCollaborator = mutation({
       }
     }
 
+    // Revoke the underlying invitation so the removed user can't simply
+    // replay the original token and re-insert themselves as a
+    // collaborator. Without this, acceptInvitation sees
+    // inv.status === "accepted" && inv.acceptedByUserId === userId, no
+    // existing collaborator row, and quietly recreates access.
+    if (row.invitationId) {
+      const inv = await ctx.db.get(row.invitationId);
+      if (inv && inv.status !== "revoked") {
+        await ctx.db.patch(row.invitationId, { status: "revoked" });
+      }
+    }
+
     await ctx.db.delete(args.collaboratorRowId);
   },
 });
@@ -286,6 +298,16 @@ export const acceptInvitation = mutation({
         });
       }
       return { planId: inv.planId, collaboratorRowId: existing._id };
+    }
+
+    // If this invite was previously accepted by the current user but no
+    // collaborator row exists anymore, the owner has revoked access —
+    // refuse the replay instead of silently recreating it. The primary
+    // removeCollaborator path also revokes the invitation, but this
+    // belt-and-suspenders check protects us from any other path that
+    // deletes a collaborator row without touching the invitation.
+    if (inv.status === "accepted") {
+      throw new Error("This invitation has already been used");
     }
 
     const me = await ctx.db.get(userId);

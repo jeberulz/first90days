@@ -178,6 +178,11 @@ export const completeOnboarding = mutation({
   },
 });
 
+// "plans" is intentionally NOT in this list — we defer deleting plan
+// rows until every plan comment has been swept (which can span multiple
+// batches). Otherwise later retries re-snapshot an empty ownedPlans and
+// orphan collaborator-authored comments on the purged plans. The final
+// pass deletes plan rows by hand before the user row.
 const USER_OWNED_TABLES = [
   "activities",
   "goals",
@@ -193,7 +198,6 @@ const USER_OWNED_TABLES = [
   "kbEnrichmentJobs",
   "weeks",
   "phases",
-  "plans",
   "onboardingData",
 ];
 
@@ -224,9 +228,11 @@ export const purgeUserData = internalMutation({
   handler: async (ctx, { userId }) => {
     let moreWork = false;
 
-    // Snapshot owned plan ids before the table loop deletes the plan rows,
-    // so we can also sweep comments on those plans authored by collaborators
-    // (the by_author sweep below only catches comments this user wrote).
+    // Snapshot owned plan ids. Plan rows are NOT deleted in this
+    // invocation — they survive until every plan comment has been
+    // swept (see USER_OWNED_TABLES comment), so every retry re-queries
+    // the same non-empty list and the comment sweep below always has
+    // a planId to aim at.
     const ownedPlans = await ctx.db
       .query("plans")
       .withIndex("by_user", (q) => q.eq("userId", userId))
@@ -291,6 +297,14 @@ export const purgeUserData = internalMutation({
     if (moreWork) {
       await ctx.scheduler.runAfter(0, internal.users.purgeUserData, { userId });
       return;
+    }
+
+    // Final pass: all owned child rows + plan comments have been
+    // swept across prior invocations. Drop the plan rows now before
+    // the user row. Plan counts per user are tiny (1 typically), so
+    // this stays well under the transaction limit without batching.
+    for (const plan of ownedPlans) {
+      await ctx.db.delete(plan._id);
     }
 
     const user = await ctx.db.get(userId);
