@@ -13,6 +13,14 @@ import {
   fetchContextForPlanning,
   recordRetrieval,
 } from "./lib/kbContext.js";
+import {
+  buildUserContext,
+  buildMetaPrompt,
+  buildPhaseActivityPrompt,
+  extractJsonArray,
+  extractJsonObject,
+  PHASES,
+} from "./lib/planPrompts.js";
 
 const ALL_KB_CATEGORIES = [
   "company_context",
@@ -23,52 +31,53 @@ const ALL_KB_CATEGORIES = [
   "industry_market",
 ];
 
+/**
+ * Draft a full 90-day plan (goals, week themes, activities) for a user
+ * from their onboarding context + KB. Called from the onboarding flow
+ * (first run) and from the /plan page (regenerate).
+ *
+ * Failure behaviour: if any phase prompt fails to return parseable JSON
+ * OR the meta prompt can't produce goals, we fall through to
+ * `savePlanFallback` so the user never ends up with a broken/empty
+ * plan. Partial successes are allowed — if one phase parses cleanly
+ * and another doesn't, we save what we got rather than nuking the run.
+ */
 export const generatePlan = action({
-  args: { userId: v.id("users") },
+  args: {
+    userId: v.optional(v.id("users")),
+    regenerate: v.optional(v.boolean()),
+  },
   handler: async (ctx, args) => {
+    // Prefer the authenticated caller; fall back to the explicit userId
+    // arg so the existing onboarding flow (which passes viewer._id)
+    // keeps working unchanged. We resolve auth via a sibling query so
+    // the Node action doesn't need to import @convex-dev/auth directly.
+    const authUserId = await ctx.runQuery(
+      api.planMutations.getAuthenticatedUserId,
+      {}
+    );
+    const userId = authUserId || args.userId;
+    if (!userId) throw new Error("Not authenticated");
+    // If the arg was passed explicitly and doesn't match auth, refuse —
+    // prevents a client from triggering generation for someone else.
+    if (authUserId && args.userId && authUserId !== args.userId) {
+      throw new Error("Not authorized");
+    }
+
+    const regenerate = args.regenerate === true;
+
     const onboardingData = await ctx.runQuery(api.onboarding.getByUserId, {
-      userId: args.userId,
+      userId,
     });
     if (!onboardingData) throw new Error("No onboarding data found");
 
-    const goalLabels = {
-      relationships: "Build key relationships",
-      product_landscape: "Understand the product & tech landscape",
-      quick_win: "Deliver a quick win",
-      processes: "Define or refine team processes",
-      roadmap: "Build a strategic roadmap",
-      culture: "Learn the company culture",
-    };
+    const userContext = buildUserContext(onboardingData);
 
-    const selectedGoalsList = (onboardingData.selectedGoals || [])
-      .map((id) => goalLabels[id] || id)
-      .join(", ");
-
-    const userContext = `
-Role: ${onboardingData.roleTitle}
-Company: ${onboardingData.companyName} (${onboardingData.companySize}, ${onboardingData.companyStage})
-Role Type: ${onboardingData.roleType}
-Function: ${onboardingData.function_}
-Team Size: ${onboardingData.teamSize || "N/A"}
-Reports To: ${onboardingData.reportsTo || "Not specified"}
-New Team: ${onboardingData.isNewTeam ? "Yes" : "No"}
-Work Model: ${onboardingData.workModel}
-Industry: ${onboardingData.industry || "Not specified"}
-STARS Situation: ${onboardingData.starsSituation}
-Experience: ${onboardingData.experienceYears} years
-First at this level: ${onboardingData.isFirstRoleAtLevel ? "Yes" : "No"}
-Start Date: ${onboardingData.startDate}
-Priority Goals: ${selectedGoalsList || "Not specified"}
-${onboardingData.existingContext ? `Existing Knowledge: ${onboardingData.existingContext}` : ""}
-${onboardingData.challenges ? `Known Challenges: ${onboardingData.challenges}` : ""}
-${onboardingData.successDefinition ? `Success Definition: ${onboardingData.successDefinition}` : ""}
-`.trim();
-
-    // Pull KB context — the unlock. Every existing KB doc + memory now flows
+    // Pull KB context — the unlock. Every existing KB doc + memory flows
     // into the plan prompt so the plan is grounded in what we already know
     // about this user's company, team, and notes.
     const kbContext = await fetchContextForPlanning(ctx, {
-      userId: args.userId,
+      userId,
       query: userContext,
       categories: ALL_KB_CATEGORIES,
       topK: 12,
@@ -81,59 +90,147 @@ ${onboardingData.successDefinition ? `Success Definition: ${onboardingData.succe
       ? `${kbContext.contextText}\n\n${WATKINS_SYSTEM_PROMPT}`
       : WATKINS_SYSTEM_PROMPT;
 
-    const phases = [
-      { number: 1, name: "Learn", startDay: 1, endDay: 30 },
-      { number: 2, name: "Contribute", startDay: 31, endDay: 60 },
-      { number: 3, name: "Lead", startDay: 61, endDay: 90 },
-    ];
+    // ── Round-trip 1: goals + week themes ────────────────────────────
+    let goals = [];
+    let weekThemes = null;
+    try {
+      const metaResponse = await generateText(
+        systemPrompt,
+        buildMetaPrompt(userContext)
+      );
+      const parsed = extractJsonObject(metaResponse);
+      if (parsed && Array.isArray(parsed.goals) && parsed.goals.length > 0) {
+        goals = parsed.goals
+          .filter(
+            (g) =>
+              g &&
+              typeof g.title === "string" &&
+              typeof g.targetPhase === "number" &&
+              typeof g.category === "string"
+          )
+          .slice(0, 8)
+          .map((g) => ({
+            title: g.title.trim(),
+            targetPhase: Math.max(1, Math.min(3, Math.round(g.targetPhase))),
+            category: g.category.trim(),
+          }));
+      }
+      if (
+        parsed &&
+        Array.isArray(parsed.weekThemes) &&
+        parsed.weekThemes.length === 12 &&
+        parsed.weekThemes.every((t) => typeof t === "string" && t.trim())
+      ) {
+        weekThemes = parsed.weekThemes.map((t) => t.trim());
+      }
+    } catch (e) {
+      console.error("[generatePlan] meta prompt failed:", e?.message);
+    }
 
+    // If the model gave us no usable goals we can't ground the per-phase
+    // activity prompts, so fall through to the static template.
+    if (goals.length === 0) {
+      console.warn(
+        "[generatePlan] no goals produced — falling back to static template"
+      );
+      await ctx.runMutation(api.planMutations.savePlanFallback, {
+        userId,
+        regenerate,
+      });
+      return {
+        source: "fallback",
+        reason: "meta_parse_failed",
+        activitiesGenerated: 0,
+        kbDocsUsed: kbContext.citations.length,
+        kbMemoriesUsed: kbContext.memories.length,
+      };
+    }
+
+    // ── Round-trips 2-4: per-phase activities ────────────────────────
     let allActivities = [];
-
-    for (const phase of phases) {
-      const prompt = `Generate a detailed plan for Phase ${phase.number} (${phase.name}, days ${phase.startDay}-${phase.endDay}) for this professional:
-
-${userContext}
-
-Generate exactly 20 activities for this phase. Return ONLY a JSON array where each element has:
-{
-  "title": "string",
-  "description": "string",
-  "category": "learning" | "shipping" | "relationships" | "influence",
-  "estimatedTime": "string (e.g. 30m, 1h, 2h)",
-  "priority": "High" | "Medium" | "Low",
-  "scheduledDay": number (${phase.startDay}-${phase.endDay})
-}
-
-Distribute activities evenly across the days. Include a mix of all categories appropriate for this phase.`;
-
-      const response = await generateText(systemPrompt, prompt);
-
+    for (const phase of PHASES) {
       try {
-        const jsonMatch = response.match(/\[[\s\S]*\]/);
-        if (jsonMatch) {
-          const parsed = JSON.parse(jsonMatch[0]);
-          allActivities = allActivities.concat(
-            parsed.map((a) => ({
-              ...a,
-              phaseNumber: phase.number,
-            }))
-          );
+        const response = await generateText(
+          systemPrompt,
+          buildPhaseActivityPrompt(userContext, phase, goals)
+        );
+        const parsed = extractJsonArray(response);
+        if (Array.isArray(parsed)) {
+          const cleaned = parsed
+            .filter(
+              (a) =>
+                a &&
+                typeof a.title === "string" &&
+                typeof a.description === "string" &&
+                typeof a.category === "string" &&
+                typeof a.estimatedTime === "string" &&
+                typeof a.priority === "string" &&
+                typeof a.scheduledDay === "number"
+            )
+            .map((a) => {
+              const day = Math.max(
+                phase.startDay,
+                Math.min(phase.endDay, Math.round(a.scheduledDay))
+              );
+              const goalIndex =
+                typeof a.goalIndex === "number" &&
+                a.goalIndex >= 0 &&
+                a.goalIndex < goals.length
+                  ? a.goalIndex
+                  : null;
+              return {
+                title: a.title.trim(),
+                description: a.description.trim(),
+                category: a.category.trim(),
+                estimatedTime: a.estimatedTime.trim(),
+                priority: a.priority.trim(),
+                scheduledDay: day,
+                phaseNumber: phase.number,
+                goalIndex,
+              };
+            });
+          allActivities = allActivities.concat(cleaned);
         }
       } catch (e) {
-        console.error(`Failed to parse Phase ${phase.number} response:`, e);
+        console.error(
+          `[generatePlan] phase ${phase.number} prompt failed:`,
+          e?.message
+        );
       }
     }
 
+    // If every phase failed we have goals but no activities — that's
+    // worse than the fallback template. Prefer the static plan.
+    if (allActivities.length === 0) {
+      console.warn(
+        "[generatePlan] no activities produced — falling back to static template"
+      );
+      await ctx.runMutation(api.planMutations.savePlanFallback, {
+        userId,
+        regenerate,
+      });
+      return {
+        source: "fallback",
+        reason: "no_activities",
+        activitiesGenerated: 0,
+        kbDocsUsed: kbContext.citations.length,
+        kbMemoriesUsed: kbContext.memories.length,
+      };
+    }
+
     await ctx.runMutation(api.planMutations.savePlan, {
-      userId: args.userId,
+      userId,
+      regenerate,
+      goals,
+      weekThemes: weekThemes || undefined,
       activities: allActivities,
     });
 
-    // Audit: record that the plan generation pulled this context
+    // Audit: record that the plan generation pulled this context.
     if (kbContext.citations.length > 0 || kbContext.memories.length > 0) {
       try {
         await recordRetrieval(ctx, {
-          userId: args.userId,
+          userId,
           feature: "plan_generation",
           documentIds: kbContext.citations
             .map((c) => c.documentId)
@@ -146,7 +243,10 @@ Distribute activities evenly across the days. Include a mix of all categories ap
     }
 
     return {
+      source: "ai",
       activitiesGenerated: allActivities.length,
+      goalsGenerated: goals.length,
+      weekThemesGenerated: weekThemes ? weekThemes.length : 0,
       kbDocsUsed: kbContext.citations.length,
       kbMemoriesUsed: kbContext.memories.length,
     };

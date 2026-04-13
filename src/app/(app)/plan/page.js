@@ -5,6 +5,7 @@ import { api } from "../../../../convex/_generated/api";
 import Link from "next/link";
 import { useState } from "react";
 import SharePlanModal from "@/components/plan/SharePlanModal";
+import RegeneratePlanModal from "@/components/plan/RegeneratePlanModal";
 
 const phaseLabels = {
   1: { name: "Learn", desc: "Absorb context", days: "Days 1-30" },
@@ -15,12 +16,14 @@ const phaseLabels = {
 export default function PlanPage() {
   const fullPlan = useQuery(api.plans.getFull);
   const dayInfo = useQuery(api.users.getDayNumber);
+  const viewer = useQuery(api.users.viewer);
   const collaborators = useQuery(
     api.collaboration.listCollaborators,
     fullPlan ? { planId: fullPlan._id } : "skip"
   );
   const sharedWithMe = useQuery(api.collaboration.listSharedWithMe);
   const [shareOpen, setShareOpen] = useState(false);
+  const [regenOpen, setRegenOpen] = useState(false);
 
   if (!fullPlan) {
     return (
@@ -63,6 +66,20 @@ export default function PlanPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
+          {viewer && !viewer.isPilotUser && (
+            <button
+              type="button"
+              onClick={() => setRegenOpen(true)}
+              className="font-space-grotesk text-sm px-3 py-2 rounded-lg border border-[#44403C] text-[#A8A29E] hover:text-[#E7E5E4] hover:bg-[#292524] transition inline-flex items-center gap-2"
+              title="Redraft goals, week themes, and activities from your onboarding context"
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M11.5 7a4.5 4.5 0 1 1-1.3-3.2" />
+                <path d="M11.5 2v2.5H9" />
+              </svg>
+              Regenerate
+            </button>
+          )}
           {collaborators && collaborators.length > 0 && (
             <div className="flex -space-x-2">
               {collaborators.slice(0, 3).map((c) => (
@@ -132,6 +149,12 @@ export default function PlanPage() {
         <SharePlanModal
           planId={fullPlan._id}
           onClose={() => setShareOpen(false)}
+        />
+      )}
+
+      {regenOpen && (
+        <RegeneratePlanModal
+          onClose={() => setRegenOpen(false)}
         />
       )}
 
