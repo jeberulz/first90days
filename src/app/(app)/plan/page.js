@@ -3,9 +3,15 @@
 import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import SharePlanModal from "@/components/plan/SharePlanModal";
 import RegeneratePlanModal from "@/components/plan/RegeneratePlanModal";
+import {
+  buildPlanMarkdown,
+  buildPlanJson,
+  buildExportFilename,
+  downloadTextFile,
+} from "@/lib/planExport";
 
 const phaseLabels = {
   1: { name: "Learn", desc: "Absorb context", days: "Days 1-30" },
@@ -17,6 +23,8 @@ export default function PlanPage() {
   const fullPlan = useQuery(api.plans.getFull);
   const dayInfo = useQuery(api.users.getDayNumber);
   const viewer = useQuery(api.users.viewer);
+  const goals = useQuery(api.goals.list);
+  const onboarding = useQuery(api.onboarding.get);
   const collaborators = useQuery(
     api.collaboration.listCollaborators,
     fullPlan ? { planId: fullPlan._id } : "skip"
@@ -24,6 +32,60 @@ export default function PlanPage() {
   const sharedWithMe = useQuery(api.collaboration.listSharedWithMe);
   const [shareOpen, setShareOpen] = useState(false);
   const [regenOpen, setRegenOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const exportMenuRef = useRef(null);
+
+  // Close the export menu on outside click or Escape.
+  useEffect(() => {
+    if (!exportOpen) return;
+    function onClick(e) {
+      if (
+        exportMenuRef.current &&
+        !exportMenuRef.current.contains(e.target)
+      ) {
+        setExportOpen(false);
+      }
+    }
+    function onKey(e) {
+      if (e.key === "Escape") setExportOpen(false);
+    }
+    window.addEventListener("mousedown", onClick);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("mousedown", onClick);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [exportOpen]);
+
+  function handleExport(format) {
+    if (!fullPlan) return;
+    const payload = {
+      plan: fullPlan,
+      goals: goals || [],
+      onboarding: onboarding || null,
+      exportedAt: new Date(),
+    };
+    if (format === "markdown") {
+      downloadTextFile({
+        filename: buildExportFilename({
+          onboarding,
+          extension: "md",
+        }),
+        mimeType: "text/markdown;charset=utf-8",
+        content: buildPlanMarkdown(payload),
+      });
+    } else if (format === "json") {
+      downloadTextFile({
+        filename: buildExportFilename({
+          onboarding,
+          extension: "json",
+        }),
+        mimeType: "application/json;charset=utf-8",
+        content: buildPlanJson(payload),
+      });
+    }
+    setExportOpen(false);
+  }
 
   if (!fullPlan) {
     return (
@@ -66,6 +128,56 @@ export default function PlanPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="relative" ref={exportMenuRef}>
+            <button
+              type="button"
+              onClick={() => setExportOpen((v) => !v)}
+              className="font-space-grotesk text-sm px-3 py-2 rounded-lg border border-[#44403C] text-[#A8A29E] hover:text-[#E7E5E4] hover:bg-[#292524] transition inline-flex items-center gap-2"
+              title="Download your plan as Markdown or JSON"
+              aria-haspopup="menu"
+              aria-expanded={exportOpen}
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M7 1v8" />
+                <path d="M3.5 5.5L7 9l3.5-3.5" />
+                <path d="M2 12h10" />
+              </svg>
+              Export
+            </button>
+            {exportOpen && (
+              <div
+                role="menu"
+                className="absolute right-0 top-full mt-2 w-56 bg-[#1C1917] border border-[#2C2825] rounded-xl shadow-xl z-10 overflow-hidden"
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => handleExport("markdown")}
+                  className="w-full text-left px-4 py-3 hover:bg-[#292524] transition border-b border-[#2C2825]"
+                >
+                  <p className="font-space-grotesk text-sm text-[#E7E5E4]">
+                    Markdown (.md)
+                  </p>
+                  <p className="font-space-grotesk text-xs text-[#78716C] mt-0.5">
+                    Hand to your manager
+                  </p>
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => handleExport("json")}
+                  className="w-full text-left px-4 py-3 hover:bg-[#292524] transition"
+                >
+                  <p className="font-space-grotesk text-sm text-[#E7E5E4]">
+                    JSON (.json)
+                  </p>
+                  <p className="font-space-grotesk text-xs text-[#78716C] mt-0.5">
+                    Raw structured data
+                  </p>
+                </button>
+              </div>
+            )}
+          </div>
           {viewer && !viewer.isPilotUser && (
             <button
               type="button"
