@@ -166,6 +166,13 @@ export default defineSchema({
     email: v.optional(v.string()),
     location: v.optional(v.string()),
     lastInteractionDate: v.optional(v.string()),
+    // Custom cadence target in days (e.g. 7 = weekly). When set, overrides
+    // the priority-based default thresholds used to compute relationship
+    // health + nudges.
+    cadenceDays: v.optional(v.number()),
+    // YYYY-MM-DD. If today <= this date, nudges for this stakeholder are
+    // suppressed on the Today page.
+    nudgeSnoozedUntil: v.optional(v.string()),
   })
     .index("by_user", ["userId"])
     .index("by_user_priority", ["userId", "priority"]),

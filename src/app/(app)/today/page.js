@@ -4,6 +4,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { useState } from "react";
 import Link from "next/link";
+import StakeholderNudges from "@/components/stakeholders/StakeholderNudges";
 
 const categoryColors = {
   learning: { bg: "bg-blue-500/10", border: "border-l-blue-500", text: "text-blue-400" },
@@ -173,6 +174,9 @@ export default function TodayPage() {
           </div>
         </div>
       )}
+
+      {/* Stakeholder nudges */}
+      <StakeholderNudges />
 
       {/* Activities */}
       <div className="space-y-3">

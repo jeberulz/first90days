@@ -2,6 +2,14 @@ import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { auth } from "./auth";
+import {
+  computeHealth,
+  isSnoozed,
+  toYmd,
+  describeNudge,
+  compareNudgeUrgency,
+  resolveThresholds,
+} from "./lib/stakeholderCadence.js";
 
 export const list = query({
   args: {},
@@ -16,23 +24,62 @@ export const list = query({
 
     const now = new Date();
     return stakeholders.map((s) => {
-      let health = "none";
-      if (s.lastInteractionDate) {
-        const last = new Date(s.lastInteractionDate);
-        const daysSince = Math.floor(
-          (now.getTime() - last.getTime()) / (1000 * 60 * 60 * 24)
-        );
-        const thresholds =
-          s.priority === "Must"
-            ? { green: 5, yellow: 10 }
-            : { green: 7, yellow: 14 };
-
-        if (daysSince <= thresholds.green) health = "green";
-        else if (daysSince <= thresholds.yellow) health = "yellow";
-        else health = "red";
-      }
-      return { ...s, health };
+      const { health, daysSince, thresholds } = computeHealth(s, now);
+      return { ...s, health, daysSince, thresholds };
     });
+  },
+});
+
+/**
+ * Stakeholders that need a nudge on the Today page: yellow, red, or
+ * never-contacted. Snoozed rows are filtered out. Sorted by urgency
+ * (most overdue first) then by days-since.
+ */
+export const listNudges = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) return [];
+
+    const stakeholders = await ctx.db
+      .query("stakeholders")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect();
+
+    const now = new Date();
+    const today = toYmd(now);
+
+    const enriched = stakeholders
+      .filter((s) => !isSnoozed(s, today))
+      .map((s) => {
+        const { health, daysSince, thresholds } = computeHealth(s, now);
+        return { s, health, daysSince, thresholds };
+      })
+      .filter(
+        ({ health, s }) =>
+          // Never-contacted rows are only nudges for Must-priority folks —
+          // otherwise the Today page would flood on day 1.
+          health === "red" ||
+          health === "yellow" ||
+          (health === "none" && s.priority === "Must")
+      )
+      .sort(compareNudgeUrgency)
+      .slice(0, 6)
+      .map(({ s, health, daysSince, thresholds }) => ({
+        _id: s._id,
+        name: s.name,
+        role: s.role,
+        priority: s.priority,
+        relationshipType: s.relationshipType,
+        lastInteractionDate: s.lastInteractionDate ?? null,
+        cadenceDays: s.cadenceDays ?? null,
+        daysSince,
+        health,
+        thresholds,
+        reason: describeNudge(s, health, daysSince) || "",
+      }));
+
+    return enriched;
   },
 });
 
@@ -197,5 +244,68 @@ export const addInteraction = mutation({
     await ctx.scheduler.runAfter(0, internal.kbAutoCapture.fromInteraction, {
       interactionId,
     });
+
+    // Logging an interaction clears any existing snooze — if the user
+    // just talked to this person the nudge is resolved.
+    if (stakeholder.nudgeSnoozedUntil) {
+      await ctx.db.patch(args.stakeholderId, { nudgeSnoozedUntil: undefined });
+    }
+  },
+});
+
+/**
+ * Set (or clear) a custom target cadence in days. null/undefined resets
+ * the stakeholder back to priority-based defaults.
+ */
+export const updateCadence = mutation({
+  args: {
+    id: v.id("stakeholders"),
+    cadenceDays: v.union(v.number(), v.null()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const stakeholder = await ctx.db.get(args.id);
+    if (!stakeholder || stakeholder.userId !== userId) {
+      throw new Error("Stakeholder not found");
+    }
+
+    if (args.cadenceDays === null) {
+      await ctx.db.patch(args.id, { cadenceDays: undefined });
+      return;
+    }
+    if (args.cadenceDays < 1 || args.cadenceDays > 180) {
+      throw new Error("Cadence must be between 1 and 180 days");
+    }
+    await ctx.db.patch(args.id, { cadenceDays: Math.round(args.cadenceDays) });
+  },
+});
+
+/**
+ * Snooze the nudge for N days. N defaults to 3. Called from the Today
+ * page "Snooze" button.
+ */
+export const snoozeNudge = mutation({
+  args: {
+    id: v.id("stakeholders"),
+    days: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const stakeholder = await ctx.db.get(args.id);
+    if (!stakeholder || stakeholder.userId !== userId) {
+      throw new Error("Stakeholder not found");
+    }
+
+    const days = Math.max(1, Math.min(30, Math.round(args.days ?? 3)));
+    const until = new Date();
+    until.setDate(until.getDate() + days);
+    const y = until.getFullYear();
+    const m = String(until.getMonth() + 1).padStart(2, "0");
+    const d = String(until.getDate()).padStart(2, "0");
+    await ctx.db.patch(args.id, { nudgeSnoozedUntil: `${y}-${m}-${d}` });
   },
 });
