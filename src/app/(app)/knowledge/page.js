@@ -10,6 +10,17 @@ import AIEnrichmentQueue from "@/components/knowledge/AIEnrichmentQueue";
 import RecentEntriesTable from "@/components/knowledge/RecentEntriesTable";
 import AddKnowledgeModal from "@/components/knowledge/AddKnowledgeModal";
 import SearchModal from "@/components/knowledge/SearchModal";
+import { ErrorBoundary } from "@/components/primitives";
+
+function SectionErrorFallback({ label }) {
+  return (
+    <div className="rounded-xl border border-warm-borderDark bg-warm-cardDark/60 px-4 py-6 text-center">
+      <p className="font-space-grotesk text-sm text-warm-300">
+        {label} couldn&apos;t load. Refresh the page or try again shortly.
+      </p>
+    </div>
+  );
+}
 
 export default function KnowledgeBasePage() {
   const [addOpen, setAddOpen] = useState(false);
@@ -71,24 +82,36 @@ export default function KnowledgeBasePage() {
       </div>
 
       {/* AI Brain Status */}
-      <AIBrainStatusCard />
+      <ErrorBoundary fallback={<SectionErrorFallback label="Brain status" />}>
+        <AIBrainStatusCard />
+      </ErrorBoundary>
 
       {/* Knowledge Map */}
-      <KnowledgeMap />
+      <ErrorBoundary fallback={<SectionErrorFallback label="Knowledge map" />}>
+        <KnowledgeMap />
+      </ErrorBoundary>
 
       {/* Two-col: memory stream + sources/queue */}
       <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
         <div className="xl:col-span-3">
-          <AIMemoryStream />
+          <ErrorBoundary fallback={<SectionErrorFallback label="AI memory stream" />}>
+            <AIMemoryStream />
+          </ErrorBoundary>
         </div>
         <div className="xl:col-span-2 space-y-6">
-          <ConnectedSources />
-          <AIEnrichmentQueue />
+          <ErrorBoundary fallback={<SectionErrorFallback label="Connected sources" />}>
+            <ConnectedSources />
+          </ErrorBoundary>
+          <ErrorBoundary fallback={<SectionErrorFallback label="Enrichment queue" />}>
+            <AIEnrichmentQueue />
+          </ErrorBoundary>
         </div>
       </div>
 
       {/* Recent entries */}
-      <RecentEntriesTable />
+      <ErrorBoundary fallback={<SectionErrorFallback label="Recent entries" />}>
+        <RecentEntriesTable />
+      </ErrorBoundary>
 
       <AddKnowledgeModal open={addOpen} onClose={() => setAddOpen(false)} />
       <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
