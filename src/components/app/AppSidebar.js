@@ -80,14 +80,28 @@ export default function AppSidebar() {
   const stakeholders = useQuery(api.stakeholders.list);
   const { signOut } = useAuthActions();
 
-  const initials = user?.name
-    ? user.name
+  // Display name + initials. Three states:
+  //   user === undefined → query loading → "Loading…" + "?"
+  //   user && user.name  → real name + initials
+  //   user && !user.name → derive from email username so the pill never
+  //                        looks stuck on "Loading…" for users who haven't
+  //                        set a display name yet.
+  const emailUser = user?.email ? user.email.split("@")[0] : "";
+  const displayName = user
+    ? user.name || emailUser || "You"
+    : "Loading…";
+  const initials = (() => {
+    if (!user) return "?";
+    if (user.name) {
+      return user.name
         .split(" ")
         .map((n) => n[0])
         .join("")
         .toUpperCase()
-        .slice(0, 2)
-    : "?";
+        .slice(0, 2);
+    }
+    return (emailUser[0] || "?").toUpperCase();
+  })();
 
   return (
     <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-[#0F0E0D] border-r border-[#2C2825]">
@@ -113,7 +127,7 @@ export default function AppSidebar() {
           </div>
           <div className="min-w-0">
             <p className="font-space-grotesk text-sm font-medium text-[#E7E5E4] truncate">
-              {user?.name || "Loading..."}
+              {displayName}
             </p>
             <p className="font-space-grotesk text-xs text-[#A8A29E] truncate">
               {user?.email || ""}
