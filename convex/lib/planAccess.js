@@ -37,8 +37,25 @@ export async function resolvePlanAccess(ctx, planId) {
 
   if (!collaborator) return null;
 
+  // Map the stored role to the access role explicitly. Unknown values
+  // collapse to the most restrictive option ("viewer") rather than
+  // silently upgrading to "manager" — future-proofs this helper if the
+  // schema ever adds another role.
+  let role;
+  switch (collaborator.role) {
+    case "manager":
+      role = "manager";
+      break;
+    case "viewer":
+      role = "viewer";
+      break;
+    default:
+      role = "viewer";
+      break;
+  }
+
   return {
-    role: collaborator.role === "viewer" ? "viewer" : "manager",
+    role,
     userId,
     plan,
     collaborator,

@@ -15,6 +15,8 @@
  * Nudges are suppressed when stakeholder.nudgeSnoozedUntil >= today.
  */
 
+import { addDays, diffCalendarDays, tzTodayYmd } from "./planDates.js";
+
 /**
  * Resolve the cadence thresholds for a stakeholder.
  * @returns {{greenDays: number, yellowDays: number, source: "custom"|"priority"}}
@@ -35,8 +37,6 @@ export function resolveThresholds(stakeholder) {
   // "Should" and anything unspecified.
   return { greenDays: 7, yellowDays: 14, source: "priority" };
 }
-
-import { addDays, diffCalendarDays, tzTodayYmd } from "./planDates.js";
 
 /**
  * Count whole calendar days from `lastInteractionDate` (YYYY-MM-DD) to

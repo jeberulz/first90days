@@ -213,8 +213,9 @@ export const getActivitiesForWeekInternal = internalQuery({
   handler: async (ctx, { userId, weekNumber }) => {
     return await ctx.db
       .query("activities")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .filter((q) => q.eq(q.field("weekNumber"), weekNumber))
+      .withIndex("by_user_week", (q) =>
+        q.eq("userId", userId).eq("weekNumber", weekNumber)
+      )
       .collect();
   },
 });

@@ -58,6 +58,18 @@ function formatDate(ymd) {
  *         - activities as checkboxes
  */
 export function buildPlanMarkdown({ plan, goals, onboarding, exportedAt }) {
+  // Defensive defaults — callers pass plan/goals straight from Convex
+  // queries, which can race-return with missing sub-arrays during the
+  // first paint after a regenerate. Coerce to safe shapes so the builder
+  // can't crash the download flow on an in-flight plan.
+  const safePlan = plan ?? {};
+  const safeActivities = Array.isArray(safePlan.activities)
+    ? safePlan.activities
+    : [];
+  const safePhases = Array.isArray(safePlan.phases) ? safePlan.phases : [];
+  const safeWeeks = Array.isArray(safePlan.weeks) ? safePlan.weeks : [];
+  const safeGoals = Array.isArray(goals) ? goals : [];
+
   const lines = [];
   const role = safeString(onboarding?.roleTitle, "New role");
   const company = safeString(onboarding?.companyName, "");
@@ -76,7 +88,7 @@ export function buildPlanMarkdown({ plan, goals, onboarding, exportedAt }) {
       year: "numeric",
     })}`
   );
-  meta.push(`**Activities:** ${plan.activities.length} across 12 weeks`);
+  meta.push(`**Activities:** ${safeActivities.length} across 12 weeks`);
   lines.push(meta.join(" · "));
   lines.push("");
 
@@ -122,11 +134,11 @@ export function buildPlanMarkdown({ plan, goals, onboarding, exportedAt }) {
   }
 
   // ── Goals grouped by phase ──────────────────────────────────────
-  if (goals && goals.length > 0) {
+  if (safeGoals.length > 0) {
     lines.push("## Goals");
     lines.push("");
     for (const phaseNum of [1, 2, 3]) {
-      const pg = goals.filter((g) => g.targetPhase === phaseNum);
+      const pg = safeGoals.filter((g) => g.targetPhase === phaseNum);
       if (pg.length === 0) continue;
       const label = PHASE_LABELS[phaseNum];
       lines.push(`### Phase ${phaseNum} · ${label.name}`);
@@ -147,14 +159,14 @@ export function buildPlanMarkdown({ plan, goals, onboarding, exportedAt }) {
   lines.push("## Plan");
   lines.push("");
 
-  const phases = [...plan.phases].sort((a, b) => a.number - b.number);
+  const phases = [...safePhases].sort((a, b) => a.number - b.number);
   const weeksByPhase = {};
-  for (const w of plan.weeks) {
+  for (const w of safeWeeks) {
     if (!weeksByPhase[w.phaseId]) weeksByPhase[w.phaseId] = [];
     weeksByPhase[w.phaseId].push(w);
   }
   const activitiesByWeek = {};
-  for (const a of plan.activities) {
+  for (const a of safeActivities) {
     if (!activitiesByWeek[a.weekNumber]) activitiesByWeek[a.weekNumber] = [];
     activitiesByWeek[a.weekNumber].push(a);
   }
@@ -228,16 +240,24 @@ export function buildPlanMarkdown({ plan, goals, onboarding, exportedAt }) {
  * an eventual re-import path could re-link things if we build one.
  */
 export function buildPlanJson({ plan, goals, onboarding, exportedAt }) {
+  const safePlan = plan ?? {};
+  const safeActivities = Array.isArray(safePlan.activities)
+    ? safePlan.activities
+    : [];
+  const safePhases = Array.isArray(safePlan.phases) ? safePlan.phases : [];
+  const safeWeeks = Array.isArray(safePlan.weeks) ? safePlan.weeks : [];
+  const safeGoals = Array.isArray(goals) ? goals : [];
+
   return JSON.stringify(
     {
       schemaVersion: 1,
       exportedAt: (exportedAt || new Date()).toISOString(),
       onboarding: onboarding || null,
       plan: {
-        _id: plan._id,
-        status: plan.status,
-        overallCompletion: plan.overallCompletion,
-        phases: [...plan.phases]
+        _id: safePlan._id,
+        status: safePlan.status,
+        overallCompletion: safePlan.overallCompletion,
+        phases: [...safePhases]
           .sort((a, b) => a.number - b.number)
           .map((p) => ({
             _id: p._id,
@@ -249,7 +269,7 @@ export function buildPlanJson({ plan, goals, onboarding, exportedAt }) {
             status: p.status,
             milestoneAcknowledgedAt: p.milestoneAcknowledgedAt ?? null,
           })),
-        weeks: [...plan.weeks]
+        weeks: [...safeWeeks]
           .sort((a, b) => a.number - b.number)
           .map((w) => ({
             _id: w._id,
@@ -259,7 +279,7 @@ export function buildPlanJson({ plan, goals, onboarding, exportedAt }) {
             reflectionPrompt: w.reflectionPrompt,
             reviewQuestions: w.reviewQuestions,
           })),
-        activities: plan.activities.map((a) => ({
+        activities: safeActivities.map((a) => ({
           _id: a._id,
           weekId: a.weekId,
           weekNumber: a.weekNumber,
@@ -279,7 +299,7 @@ export function buildPlanJson({ plan, goals, onboarding, exportedAt }) {
           source: a.source,
         })),
       },
-      goals: (goals || []).map((g) => ({
+      goals: safeGoals.map((g) => ({
         _id: g._id,
         title: g.title,
         targetPhase: g.targetPhase,

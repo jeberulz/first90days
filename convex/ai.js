@@ -48,21 +48,21 @@ export const generatePlan = action({
     regenerate: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    // Prefer the authenticated caller; fall back to the explicit userId
-    // arg so the existing onboarding flow (which passes viewer._id)
-    // keeps working unchanged. We resolve auth via a sibling query so
-    // the Node action doesn't need to import @convex-dev/auth directly.
+    // Identity is derived strictly from the authenticated session — per
+    // convex/_generated/ai/guidelines.md, we never trust a caller-supplied
+    // userId for authorization. We resolve auth via a sibling query so the
+    // Node action doesn't need to import @convex-dev/auth directly.
     const authUserId = await ctx.runQuery(
       api.planMutations.getAuthenticatedUserId,
       {}
     );
-    const userId = authUserId || args.userId;
-    if (!userId) throw new Error("Not authenticated");
-    // If the arg was passed explicitly and doesn't match auth, refuse —
-    // prevents a client from triggering generation for someone else.
-    if (authUserId && args.userId && authUserId !== args.userId) {
+    if (!authUserId) throw new Error("Not authenticated");
+    // The legacy `userId` arg is kept only so existing callers don't
+    // break; if it's passed it must match auth, otherwise refuse.
+    if (args.userId && authUserId !== args.userId) {
       throw new Error("Not authorized");
     }
+    const userId = authUserId;
 
     const regenerate = args.regenerate === true;
 
@@ -257,21 +257,26 @@ export const generatePlan = action({
 
 export const suggestActivities = action({
   args: {
-    userId: v.optional(v.id("users")),
     context: v.string(),
   },
   handler: async (ctx, args) => {
-    let kbBlock = "";
-    let kbContext = null;
-    if (args.userId) {
-      kbContext = await fetchContextForPlanning(ctx, {
-        userId: args.userId,
-        query: args.context,
-        topK: 6,
-        includeMemories: true,
-      });
-      if (kbContext.contextText) kbBlock = `${kbContext.contextText}\n\n`;
-    }
+    // Identity is derived strictly from auth — never trust a client-supplied
+    // userId for KB context lookups (would leak another user's documents).
+    const userId = await ctx.runQuery(
+      api.planMutations.getAuthenticatedUserId,
+      {}
+    );
+    if (!userId) throw new Error("Not authenticated");
+
+    const kbContext = await fetchContextForPlanning(ctx, {
+      userId,
+      query: args.context,
+      topK: 6,
+      includeMemories: true,
+    });
+    const kbBlock = kbContext.contextText
+      ? `${kbContext.contextText}\n\n`
+      : "";
 
     const response = await generateText(
       WATKINS_SYSTEM_PROMPT,
@@ -280,14 +285,10 @@ export const suggestActivities = action({
 
     // Audit: record the retrieval the same way generatePlan and
     // generateWeeklySummary do, so the KB usage log is complete.
-    if (
-      args.userId &&
-      kbContext &&
-      (kbContext.citations.length > 0 || kbContext.memories.length > 0)
-    ) {
+    if (kbContext.citations.length > 0 || kbContext.memories.length > 0) {
       try {
         await recordRetrieval(ctx, {
-          userId: args.userId,
+          userId,
           feature: "activity_suggestions",
           documentIds: kbContext.citations
             .map((c) => c.documentId)
@@ -306,35 +307,36 @@ export const suggestActivities = action({
 
 export const generateWeeklyInsight = action({
   args: {
-    userId: v.optional(v.id("users")),
     weekData: v.string(),
   },
   handler: async (ctx, args) => {
-    let kbBlock = "";
-    let kbContext = null;
-    if (args.userId) {
-      kbContext = await fetchContextForPlanning(ctx, {
-        userId: args.userId,
-        query: args.weekData,
-        topK: 6,
-        includeMemories: true,
-      });
-      if (kbContext.contextText) kbBlock = `${kbContext.contextText}\n\n`;
-    }
+    // Identity derived strictly from auth — never trust a client-supplied
+    // userId for KB context lookups.
+    const userId = await ctx.runQuery(
+      api.planMutations.getAuthenticatedUserId,
+      {}
+    );
+    if (!userId) throw new Error("Not authenticated");
+
+    const kbContext = await fetchContextForPlanning(ctx, {
+      userId,
+      query: args.weekData,
+      topK: 6,
+      includeMemories: true,
+    });
+    const kbBlock = kbContext.contextText
+      ? `${kbContext.contextText}\n\n`
+      : "";
 
     const response = await generateText(
       WATKINS_SYSTEM_PROMPT,
       `${kbBlock}${WEEKLY_INSIGHT_PROMPT}\n\nWeek data:\n${args.weekData}`
     );
 
-    if (
-      args.userId &&
-      kbContext &&
-      (kbContext.citations.length > 0 || kbContext.memories.length > 0)
-    ) {
+    if (kbContext.citations.length > 0 || kbContext.memories.length > 0) {
       try {
         await recordRetrieval(ctx, {
-          userId: args.userId,
+          userId,
           feature: "weekly_insight",
           documentIds: kbContext.citations
             .map((c) => c.documentId)

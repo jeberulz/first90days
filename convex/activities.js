@@ -34,8 +34,9 @@ export const getByWeek = query({
 
     return await ctx.db
       .query("activities")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .filter((q) => q.eq(q.field("weekNumber"), args.weekNumber))
+      .withIndex("by_user_week", (q) =>
+        q.eq("userId", userId).eq("weekNumber", args.weekNumber)
+      )
       .collect();
   },
 });

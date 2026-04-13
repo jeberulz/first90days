@@ -281,6 +281,18 @@ export const acceptInvitation = mutation({
       throw new Error("You can't accept an invite to your own plan");
     }
 
+    // Enforce that the signed-in user's email matches the invited email.
+    // Without this check, anyone who gets hold of a share-link token can
+    // exchange it for a collaborator row — the token would effectively
+    // act as a bearer credential for any account. We compare after the
+    // same normalizeEmail pass used on invite creation so casing /
+    // whitespace differences don't block a legitimate acceptance.
+    const me = await ctx.db.get(userId);
+    const myEmail = normalizeEmail(me?.email);
+    if (!myEmail || myEmail !== inv.invitedEmail) {
+      throw new Error("This invitation was sent to a different email address");
+    }
+
     // Idempotent: if the user already has a collaborator row, just return it.
     const existing = await ctx.db
       .query("planCollaborators")
@@ -309,8 +321,6 @@ export const acceptInvitation = mutation({
     if (inv.status === "accepted") {
       throw new Error("This invitation has already been used");
     }
-
-    const me = await ctx.db.get(userId);
 
     const collaboratorRowId = await ctx.db.insert("planCollaborators", {
       planId: inv.planId,

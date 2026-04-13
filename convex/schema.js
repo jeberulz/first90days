@@ -94,6 +94,7 @@ export default defineSchema({
     reviewQuestions: v.array(v.string()),
   })
     .index("by_plan", ["planId"])
+    .index("by_plan_number", ["planId", "number"])
     .index("by_phase", ["phaseId"])
     .index("by_user_number", ["userId", "number"]),
 
@@ -122,8 +123,10 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_user_status", ["userId", "status"])
     .index("by_user_date", ["userId", "scheduledDate"])
+    .index("by_user_week", ["userId", "weekNumber"])
     .index("by_week", ["weekId"])
-    .index("by_plan", ["planId"]),
+    .index("by_plan", ["planId"])
+    .index("by_plan_week", ["planId", "weekNumber"]),
 
   goals: defineTable({
     userId: v.id("users"),
