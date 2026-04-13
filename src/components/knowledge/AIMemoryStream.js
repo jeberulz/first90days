@@ -34,7 +34,7 @@ export default function AIMemoryStream() {
       <div className="flex items-center justify-between p-6 pb-0 mb-5">
         <div className="flex items-center gap-2">
           <div className="p-1.5 bg-[#1F1510] rounded-md text-[#D97757]">
-            <Icon icon="solar:brain-linear" width={18} />
+            <Icon icon="solar:cpu-bolt-linear" width={18} />
           </div>
           <div>
             <h2 className="text-base font-medium tracking-tight text-white">

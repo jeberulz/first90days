@@ -21,7 +21,7 @@ export default function AIBrainStatusCard() {
       <div className="relative z-10 flex flex-col lg:flex-row lg:items-center gap-6">
         <div className="relative shrink-0 flex items-center justify-center">
           <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#D97757]/30 to-[#D97757]/10 flex items-center justify-center relative border border-[#D97757]/20">
-            <Icon icon="solar:brain-linear" width={36} className="text-[#D97757]" />
+            <Icon icon="solar:cpu-bolt-linear" width={36} className="text-[#D97757]" />
             {status.learning && (
               <div className="absolute inset-0 rounded-2xl border-2 border-[#D97757]/30 animate-ping" />
             )}

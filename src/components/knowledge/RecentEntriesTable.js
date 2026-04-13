@@ -29,7 +29,7 @@ function relativeTime(ts) {
 function TypeBadge({ type }) {
   const map = {
     ai_enriched: { icon: "solar:verified-check-linear", className: "text-emerald-400" },
-    ai_generated: { icon: "solar:brain-linear", className: "text-[#D97757]" },
+    ai_generated: { icon: "solar:cpu-bolt-linear", className: "text-[#D97757]" },
     imported: { icon: "solar:document-linear", className: "text-[#A8A29E]" },
     draft: { icon: "solar:pen-linear", className: "text-[#A8A29E]" },
   };

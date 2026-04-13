@@ -21,7 +21,7 @@ export default function DocumentSummaryCard({ doc }) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="p-1.5 bg-[#1F1510] rounded-md text-[#D97757]">
-            <Icon icon="solar:brain-linear" width={18} />
+            <Icon icon="solar:cpu-bolt-linear" width={18} />
           </div>
           <h3 className="text-base font-medium text-white">AI summary</h3>
         </div>
