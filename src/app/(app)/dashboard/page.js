@@ -3,6 +3,7 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import {
   GoalApprovalBadge,
   GoalApprovalActions,
@@ -264,9 +265,17 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Onboarding Journey Progress */}
           <div className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-6 col-span-full">
-            <h3 className="font-space-grotesk text-sm font-medium text-[#A8A29E] mb-4">
-              Onboarding Journey
-            </h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-space-grotesk text-sm font-medium text-[#A8A29E]">
+                Onboarding Journey
+              </h3>
+              <Link
+                href="/progress"
+                className="font-space-grotesk text-xs text-[#D97757] hover:text-[#C26242] transition"
+              >
+                View full progress →
+              </Link>
+            </div>
             <div className="flex items-center gap-2 mb-3">
               {[
                 { name: "Learn", days: "Days 1-30", active: dayInfo.phase >= 1 },
