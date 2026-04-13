@@ -95,7 +95,8 @@ export default defineSchema({
   })
     .index("by_plan", ["planId"])
     .index("by_phase", ["phaseId"])
-    .index("by_user_number", ["userId", "number"]),
+    .index("by_user_number", ["userId", "number"])
+    .index("by_plan_number", ["planId", "number"]),
 
   activities: defineTable({
     planId: v.id("plans"),
@@ -123,7 +124,9 @@ export default defineSchema({
     .index("by_user_status", ["userId", "status"])
     .index("by_user_date", ["userId", "scheduledDate"])
     .index("by_week", ["weekId"])
-    .index("by_plan", ["planId"]),
+    .index("by_plan", ["planId"])
+    .index("by_plan_week", ["planId", "weekNumber"])
+    .index("by_user_week", ["userId", "weekNumber"]),
 
   goals: defineTable({
     userId: v.id("users"),

@@ -48,21 +48,21 @@ export const generatePlan = action({
     regenerate: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    // Prefer the authenticated caller; fall back to the explicit userId
-    // arg so the existing onboarding flow (which passes viewer._id)
-    // keeps working unchanged. We resolve auth via a sibling query so
-    // the Node action doesn't need to import @convex-dev/auth directly.
+    // Identity is always derived server-side from the Convex auth context
+    // via a sibling query (the Node runtime can't import @convex-dev/auth
+    // directly). `args.userId` is kept for backwards compat with the
+    // onboarding flow but is only accepted when it matches the authed id —
+    // never as a fallback, so an unauthenticated caller cannot name a
+    // victim's id and ride the KB/onboarding reads below.
     const authUserId = await ctx.runQuery(
       api.planMutations.getAuthenticatedUserId,
       {}
     );
-    const userId = authUserId || args.userId;
-    if (!userId) throw new Error("Not authenticated");
-    // If the arg was passed explicitly and doesn't match auth, refuse —
-    // prevents a client from triggering generation for someone else.
-    if (authUserId && args.userId && authUserId !== args.userId) {
+    if (!authUserId) throw new Error("Not authenticated");
+    if (args.userId && args.userId !== authUserId) {
       throw new Error("Not authorized");
     }
+    const userId = authUserId;
 
     const regenerate = args.regenerate === true;
 

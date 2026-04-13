@@ -144,14 +144,16 @@ export const getSharedWeekActivities = query({
 
     const week = await ctx.db
       .query("weeks")
-      .withIndex("by_plan", (q) => q.eq("planId", plan._id))
-      .filter((q) => q.eq(q.field("number"), args.weekNumber))
+      .withIndex("by_plan_number", (q) =>
+        q.eq("planId", plan._id).eq("number", args.weekNumber)
+      )
       .first();
 
     const activities = await ctx.db
       .query("activities")
-      .withIndex("by_plan", (q) => q.eq("planId", plan._id))
-      .filter((q) => q.eq(q.field("weekNumber"), args.weekNumber))
+      .withIndex("by_plan_week", (q) =>
+        q.eq("planId", plan._id).eq("weekNumber", args.weekNumber)
+      )
       .collect();
 
     return {
