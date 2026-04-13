@@ -224,6 +224,20 @@ export default defineSchema({
     activitiesCompleted: v.number(),
     activitiesPlanned: v.number(),
     notes: v.optional(v.string()),
+    // AI-generated summary of the week. Runs asynchronously after the
+    // user submits the review — the status field lets the UI render a
+    // live loading state while the action is still generating.
+    aiSummary: v.optional(v.string()),
+    aiSummaryStatus: v.optional(
+      v.union(
+        v.literal("pending"),
+        v.literal("generating"),
+        v.literal("done"),
+        v.literal("failed")
+      )
+    ),
+    aiSummaryGeneratedAt: v.optional(v.number()),
+    aiSummaryError: v.optional(v.string()),
   })
     .index("by_user", ["userId"])
     .index("by_user_week", ["userId", "weekNumber"]),

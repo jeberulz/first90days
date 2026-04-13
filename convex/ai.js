@@ -1,8 +1,8 @@
 "use node";
 
 import { v } from "convex/values";
-import { action } from "./_generated/server";
-import { api } from "./_generated/api";
+import { action, internalAction } from "./_generated/server";
+import { api, internal } from "./_generated/api";
 import {
   generateText,
   WATKINS_SYSTEM_PROMPT,
@@ -311,5 +311,169 @@ export const generateWeeklyInsight = action({
       `${kbBlock}${WEEKLY_INSIGHT_PROMPT}\n\nWeek data:\n${args.weekData}`
     );
     return response;
+  },
+});
+
+/**
+ * Format a weekly review + its activities into a compact context block
+ * for the summary prompt. Kept inline so we can tune the shape without
+ * spreading plan-prompt helpers across files.
+ */
+function formatWeekDataForPrompt(review, activities) {
+  const lines = [];
+  lines.push(`Week ${review.weekNumber} review · ${review.date}`);
+  lines.push(
+    `Self-rating: ${review.rating}/5 · Activities ${review.activitiesCompleted}/${review.activitiesPlanned}`
+  );
+
+  if (activities.length > 0) {
+    const completed = activities.filter((a) => a.status === "completed");
+    const skipped = activities.filter((a) => a.status === "skipped");
+    const upcoming = activities.filter((a) => a.status === "upcoming");
+
+    // Category rollup — useful signal for balance commentary.
+    const byCategory = {};
+    for (const a of activities) {
+      const c = a.category || "other";
+      if (!byCategory[c]) byCategory[c] = { total: 0, done: 0 };
+      byCategory[c].total += 1;
+      if (a.status === "completed") byCategory[c].done += 1;
+    }
+    lines.push("");
+    lines.push("Category split:");
+    for (const [cat, n] of Object.entries(byCategory)) {
+      lines.push(`  - ${cat}: ${n.done}/${n.total}`);
+    }
+
+    if (completed.length > 0) {
+      lines.push("");
+      lines.push("Completed this week:");
+      for (const a of completed.slice(0, 15)) {
+        lines.push(
+          `  - [${a.category}] ${a.title}${a.completionNotes ? ` — ${a.completionNotes}` : ""}`
+        );
+      }
+    }
+    if (upcoming.length > 0) {
+      lines.push("");
+      lines.push("Not completed:");
+      for (const a of upcoming.slice(0, 10)) {
+        lines.push(`  - [${a.category}] ${a.title}`);
+      }
+    }
+    if (skipped.length > 0) {
+      lines.push("");
+      lines.push("Intentionally skipped:");
+      for (const a of skipped.slice(0, 5)) {
+        lines.push(
+          `  - [${a.category}] ${a.title}${a.skipReason ? ` — ${a.skipReason}` : ""}`
+        );
+      }
+    }
+  }
+
+  if (review.questionResponses && review.questionResponses.length > 0) {
+    lines.push("");
+    lines.push("User's own reflections:");
+    for (const q of review.questionResponses) {
+      if (!q.response || !q.response.trim()) continue;
+      lines.push(`Q: ${q.question}`);
+      lines.push(`A: ${q.response}`);
+      lines.push("");
+    }
+  }
+
+  if (review.notes) {
+    lines.push(`Additional notes: ${review.notes}`);
+  }
+
+  return lines.join("\n");
+}
+
+/**
+ * Auto-generate the weekly summary after the user submits a review.
+ * Scheduled from reflections.saveWeeklyReview. On failure we patch
+ * status=failed so the UI can offer a retry instead of spinning
+ * forever. KB context is pulled per-user so the summary grounds itself
+ * in the user's documents + memories.
+ */
+export const generateWeeklySummary = internalAction({
+  args: { reviewId: v.id("weeklyReviews") },
+  handler: async (ctx, { reviewId }) => {
+    // Mark as generating so the UI can show a spinner immediately.
+    try {
+      await ctx.runMutation(internal.reflections.setWeeklySummary, {
+        reviewId,
+        status: "generating",
+      });
+    } catch (e) {
+      console.error("[generateWeeklySummary] could not mark generating", e);
+      return;
+    }
+
+    const review = await ctx.runQuery(
+      internal.reflections.getWeeklyReviewInternal,
+      { reviewId }
+    );
+    if (!review) {
+      console.warn("[generateWeeklySummary] review row vanished", reviewId);
+      return;
+    }
+
+    const activities = await ctx.runQuery(
+      internal.reflections.getActivitiesForWeekInternal,
+      { userId: review.userId, weekNumber: review.weekNumber }
+    );
+
+    const weekData = formatWeekDataForPrompt(review, activities);
+
+    try {
+      const kbContext = await fetchContextForPlanning(ctx, {
+        userId: review.userId,
+        query: weekData,
+        topK: 6,
+        includeMemories: true,
+      });
+      const kbBlock = kbContext.contextText
+        ? `${kbContext.contextText}\n\n`
+        : "";
+
+      const summary = await generateText(
+        WATKINS_SYSTEM_PROMPT,
+        `${kbBlock}${WEEKLY_INSIGHT_PROMPT}\n\nWeek data:\n${weekData}`
+      );
+
+      await ctx.runMutation(internal.reflections.setWeeklySummary, {
+        reviewId,
+        status: "done",
+        summary: summary.trim(),
+      });
+
+      // Record retrieval for audit, matching the plan-generation path.
+      if (kbContext.citations.length > 0 || kbContext.memories.length > 0) {
+        try {
+          await recordRetrieval(ctx, {
+            userId: review.userId,
+            feature: "weekly_summary",
+            documentIds: kbContext.citations
+              .map((c) => c.documentId)
+              .filter(Boolean),
+            memoryIds: kbContext.memories.map((m) => m._id),
+          });
+        } catch (e) {
+          console.warn(
+            "[generateWeeklySummary] recordRetrieval failed",
+            e?.message
+          );
+        }
+      }
+    } catch (err) {
+      console.error("[generateWeeklySummary] generation failed", err);
+      await ctx.runMutation(internal.reflections.setWeeklySummary, {
+        reviewId,
+        status: "failed",
+        error: err instanceof Error ? err.message : "Generation failed",
+      });
+    }
   },
 });
