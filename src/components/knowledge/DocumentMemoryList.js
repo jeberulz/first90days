@@ -27,7 +27,7 @@ export default function DocumentMemoryList({ documentId }) {
         <div className="p-1.5 bg-[#1F1510] rounded-md text-[#D97757]">
           <Icon icon="solar:lightbulb-bolt-linear" width={18} />
         </div>
-        <h3 className="text-base font-medium text-white">
+        <h3 className="text-lg font-medium tracking-tight text-white">
           Memories extracted from this doc
         </h3>
       </div>

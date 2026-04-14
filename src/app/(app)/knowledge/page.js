@@ -5,7 +5,6 @@ import { Icon } from "@iconify/react";
 import AIBrainStatusCard from "@/components/knowledge/AIBrainStatusCard";
 import DraftReviewQueue from "@/components/knowledge/DraftReviewQueue";
 import KnowledgeMap from "@/components/knowledge/KnowledgeMap";
-import AIMemoryStream from "@/components/knowledge/AIMemoryStream";
 import ConnectedSources from "@/components/knowledge/ConnectedSources";
 import AIEnrichmentQueue from "@/components/knowledge/AIEnrichmentQueue";
 import RecentEntriesTable from "@/components/knowledge/RecentEntriesTable";
@@ -105,11 +104,13 @@ export default function KnowledgeBasePage() {
         <KnowledgeMap />
       </ErrorBoundary>
 
-      {/* Two-col: memory stream + sources/queue */}
+      {/* Two-col: recent entries (primary) + sources/queue (meta).
+          Memory stream lives on each doc detail page now (DocumentMemoryList)
+          since memories are an audit trail of one doc, not a top-level surface. */}
       <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
         <div className="xl:col-span-3">
-          <ErrorBoundary fallback={<SectionErrorFallback label="AI memory stream" />}>
-            <AIMemoryStream />
+          <ErrorBoundary fallback={<SectionErrorFallback label="Recent entries" />}>
+            <RecentEntriesTable />
           </ErrorBoundary>
         </div>
         <div className="xl:col-span-2 space-y-6">
@@ -121,11 +122,6 @@ export default function KnowledgeBasePage() {
           </ErrorBoundary>
         </div>
       </div>
-
-      {/* Recent entries */}
-      <ErrorBoundary fallback={<SectionErrorFallback label="Recent entries" />}>
-        <RecentEntriesTable />
-      </ErrorBoundary>
 
       <AddKnowledgeModal open={addOpen} onClose={() => setAddOpen(false)} />
       <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
