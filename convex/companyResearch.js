@@ -19,7 +19,7 @@ import {
  * then reviews drafts in the DraftReviewQueue and approves or discards.
  *
  * This file is intentionally small: it owns the LLM call and the parse/
- * validate logic. All db reads/writes happen via convex/companyResearchInternal.js
+ * validate logic. All db reads/writes happen via convex/companyResearchJobs.js
  * which is non-node.
  *
  * Cut 2 will replace the single generateText call with a tool-use agent
@@ -59,13 +59,13 @@ export const generateDraftsForUser = internalAction({
     jobId: v.id("companyResearchJobs"),
   },
   handler: async (ctx, { userId, jobId }) => {
-    await ctx.runMutation(internal.companyResearchInternal.markJobRunning, {
+    await ctx.runMutation(internal.companyResearchJobs.markJobRunning, {
       jobId,
     });
 
     try {
       const onboarding = await ctx.runQuery(
-        internal.companyResearchInternal.getOnboardingForResearchInternal,
+        internal.companyResearchJobs.getOnboardingForResearchInternal,
         { userId }
       );
       if (!onboarding) {
@@ -115,7 +115,7 @@ export const generateDraftsForUser = internalAction({
             : "mission_values";
 
         await ctx.runMutation(
-          internal.companyResearchInternal.insertDraftInternal,
+          internal.companyResearchJobs.insertDraftInternal,
           {
             userId,
             title: d.title.trim().slice(0, 140),
@@ -126,7 +126,7 @@ export const generateDraftsForUser = internalAction({
         inserted += 1;
       }
 
-      await ctx.runMutation(internal.companyResearchInternal.markJobDone, {
+      await ctx.runMutation(internal.companyResearchJobs.markJobDone, {
         jobId,
         draftCount: inserted,
       });
@@ -137,7 +137,7 @@ export const generateDraftsForUser = internalAction({
       // onboarding, and retry is the user's call via the "Retry research"
       // button on the review queue.
       await ctx.runMutation(
-        internal.companyResearchInternal.markJobFailed,
+        internal.companyResearchJobs.markJobFailed,
         { jobId, error: msg }
       );
     }

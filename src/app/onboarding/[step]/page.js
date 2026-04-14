@@ -89,7 +89,7 @@ export default function OnboardingStepPage({ params }) {
   const generatePlan = useAction(api.ai.generatePlan);
   const createStakeholdersBatch = useMutation(api.stakeholders.createBatch);
   const requestCompanyResearch = useMutation(
-    api.companyResearchInternal.requestCompanyResearch
+    api.companyResearchJobs.requestCompanyResearch
   );
 
   const [data, setData] = useState(initialData);

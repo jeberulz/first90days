@@ -14,6 +14,8 @@ import type * as auth from "../auth.js";
 import type * as billing from "../billing.js";
 import type * as billingActions from "../billingActions.js";
 import type * as collaboration from "../collaboration.js";
+import type * as companyResearch from "../companyResearch.js";
+import type * as companyResearchJobs from "../companyResearchJobs.js";
 import type * as goals from "../goals.js";
 import type * as http from "../http.js";
 import type * as insights from "../insights.js";
@@ -60,6 +62,8 @@ declare const fullApi: ApiFromModules<{
   billing: typeof billing;
   billingActions: typeof billingActions;
   collaboration: typeof collaboration;
+  companyResearch: typeof companyResearch;
+  companyResearchJobs: typeof companyResearchJobs;
   goals: typeof goals;
   http: typeof http;
   insights: typeof insights;

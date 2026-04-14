@@ -24,11 +24,11 @@ function angleLabel(angle) {
 
 export default function DraftReviewQueue() {
   const drafts = useQuery(api.kb.pendingDrafts);
-  const job = useQuery(api.companyResearchInternal.currentResearchJob);
+  const job = useQuery(api.companyResearchJobs.currentResearchJob);
   const approveDraft = useMutation(api.kb.approveDraft);
   const discardDraft = useMutation(api.kb.discardDraft);
   const requestResearch = useMutation(
-    api.companyResearchInternal.requestCompanyResearch
+    api.companyResearchJobs.requestCompanyResearch
   );
 
   const [expandedId, setExpandedId] = useState(null);
@@ -43,6 +43,7 @@ export default function DraftReviewQueue() {
   const isBuilding = job && (job.status === "queued" || job.status === "running");
   const hasFailed = job && job.status === "failed";
   const hasDrafts = drafts && drafts.length > 0;
+  const finishedEmpty = job && job.status === "done" && drafts !== undefined && drafts.length === 0;
 
   async function handleApprove(id) {
     setBusyId(id);
@@ -97,12 +98,14 @@ export default function DraftReviewQueue() {
                   : hasFailed
                   ? "Research didn't finish. You can try again."
                   : hasDrafts
-                  ? `${drafts.length} draft${drafts.length === 1 ? "" : "s"} waiting for your review. Approve to add to your knowledge base.`
+                  ? `${drafts.length} draft${drafts.length === 1 ? "" : "s"} awaiting review. Verify the facts before approving — drafts aren't embedded into your brain until you do.`
+                  : finishedEmpty
+                  ? "Research finished but produced no usable drafts. You can run it again."
                   : "No drafts pending."}
               </p>
             </div>
           </div>
-          {(hasFailed || (!isBuilding && !hasDrafts && job)) && (
+          {(hasFailed || finishedEmpty) && (
             <button
               type="button"
               onClick={handleRetry}
@@ -110,7 +113,7 @@ export default function DraftReviewQueue() {
               className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#2C2825] bg-[#1C1917] text-xs text-[#A8A29E] hover:border-[#D97757]/30 hover:text-white transition-colors disabled:opacity-50"
             >
               <Icon icon="solar:refresh-linear" width={14} />
-              {retrying ? "Starting…" : "Retry research"}
+              {retrying ? "Starting…" : hasFailed ? "Retry research" : "Run again"}
             </button>
           )}
         </div>

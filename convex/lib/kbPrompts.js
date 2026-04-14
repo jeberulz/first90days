@@ -136,10 +136,12 @@ Rules:
 - Produce 8–10 drafts. Fewer is fine if the signal is thin; never invent leaders, customers, revenue, or specific numbers that aren't in the inputs.
 - Every draft must be ATOMIC: one topic only. A draft about "mission and leadership and products" is wrong — split it.
 - Ground everything in the provided onboarding data and job description. Do NOT fabricate executives, customer names, strategic priorities, or metrics that aren't directly supported.
+- STARS is a role attribute, not a company attribute. The situation field ("Turnaround", "Startup", "Accelerated Growth", "Realignment", "Sustaining Success") describes the new hire's mandate, not the company's financial state, market position, or strategic phase. Do NOT write drafts that describe the company itself as being in a turnaround, startup phase, realignment, etc. unless that is independently grounded elsewhere in the inputs. A "Turnaround" STARS means the hire is rescuing a project or team — it does not mean the company is struggling.
+- Do NOT describe the company's products, customers, executives, funding, or market position unless those details appear verbatim in the provided inputs. Even if the company name is familiar to you from prior knowledge, you must still omit those drafts. Cut 1 has no web access and no citations — a review gate exists for facts, not for guesses. Confident-sounding hallucinations are the worst failure mode here.
 - When a job description is provided, produce at least two role-anchored drafts (role_summary and role_expectations) drawn directly from the JD text.
 - The "risks_open_questions" draft should surface 2–4 concrete questions the new hire should ask in their first week, drawn from what the onboarding data implies (a Turnaround STARS situation implies different questions than Sustaining Success).
 - Tone: grounded, practical, direct. No marketing fluff ("exciting opportunity", "dynamic team", "industry-leading"). No hedging adverbs.
-- For Tier 2 angles (culture_signals, industry_position) — if you don't have enough grounded signal, omit them. An omitted draft is better than a hallucinated one.
+- For Tier 2 angles (culture_signals, industry_position, mission_values, products_recent, leadership) — if you don't have enough grounded signal, omit them. An omitted draft is better than a hallucinated one.
 - Do not reference any specific person by name unless that name appears in the inputs.`;
 
 /**

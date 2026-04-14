@@ -9,13 +9,15 @@ import { internal } from "./_generated/api";
 import { auth } from "./auth";
 
 /**
- * Non-node helpers for the company research flow. The actual LLM call lives
- * in convex/companyResearch.js (which is "use node"). This file owns:
+ * Public API + non-node helpers for the company research flow. The actual
+ * LLM call lives in convex/companyResearch.js (which is "use node"). This
+ * file owns:
  *
- *   - Internal read/write helpers the node action calls via ctx.runQuery /
- *     ctx.runMutation.
  *   - The public mutation `requestCompanyResearch` that the onboarding UI
  *     calls to kick off a run.
+ *   - The public query `currentResearchJob` that the review queue reads.
+ *   - Internal read/write helpers the node action calls via ctx.runQuery /
+ *     ctx.runMutation.
  *
  * Drafts flow:
  *   1. UI calls requestCompanyResearch (this file)
