@@ -110,9 +110,9 @@ export default function DraftReviewQueue() {
               type="button"
               onClick={handleRetry}
               disabled={retrying}
-              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#2C2825] bg-[#1C1917] text-xs text-[#A8A29E] hover:border-[#D97757]/30 hover:text-white transition-colors disabled:opacity-50"
+              className="shrink-0 inline-flex items-center gap-1.5 min-h-11 px-4 rounded-lg border border-[#2C2825] bg-[#1C1917] text-sm text-[#A8A29E] hover:border-[#D97757]/30 hover:text-white transition-colors disabled:opacity-50"
             >
-              <Icon icon="solar:refresh-linear" width={14} />
+              <Icon icon="solar:refresh-linear" width={16} />
               {retrying ? "Starting…" : hasFailed ? "Retry research" : "Run again"}
             </button>
           )}
@@ -190,18 +190,18 @@ export default function DraftReviewQueue() {
                           type="button"
                           onClick={() => handleApprove(d._id)}
                           disabled={isBusy}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent hover:bg-accent-hover text-white text-xs font-medium transition-colors disabled:opacity-50"
+                          className="inline-flex items-center gap-1.5 min-h-11 px-4 rounded-lg bg-accent hover:bg-accent-hover text-white text-sm font-medium transition-colors disabled:opacity-50"
                         >
-                          <Icon icon="solar:check-circle-linear" width={14} />
+                          <Icon icon="solar:check-circle-linear" width={16} />
                           Approve
                         </button>
                         <button
                           type="button"
                           onClick={() => handleDiscard(d._id)}
                           disabled={isBusy}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#2C2825] bg-[#1C1917] text-[#A8A29E] text-xs font-medium hover:border-[#44403C] hover:text-white transition-colors disabled:opacity-50"
+                          className="inline-flex items-center gap-1.5 min-h-11 px-4 rounded-lg border border-[#2C2825] bg-[#1C1917] text-[#A8A29E] text-sm font-medium hover:border-[#44403C] hover:text-white transition-colors disabled:opacity-50"
                         >
-                          <Icon icon="solar:close-circle-linear" width={14} />
+                          <Icon icon="solar:close-circle-linear" width={16} />
                           Discard
                         </button>
                       </div>

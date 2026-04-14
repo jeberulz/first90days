@@ -95,8 +95,10 @@ export default function AIMemoryStream() {
                       </span>
                     )}
                     <button
+                      type="button"
+                      aria-label={`Dismiss memory: ${m.text.slice(0, 60)}`}
                       onClick={() => dismiss({ memoryId: m._id })}
-                      className="ml-auto text-[10px] text-[#57534E] hover:text-[#D97757] opacity-0 group-hover:opacity-100 transition"
+                      className="ml-auto inline-flex items-center min-h-6 px-2 py-1 rounded text-[10px] text-[#57534E] hover:text-[#D97757] hover:bg-[#1F1510] focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition"
                     >
                       Dismiss
                     </button>
