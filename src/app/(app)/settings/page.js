@@ -158,6 +158,14 @@ export default function SettingsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [billingStatus]);
 
+  // Scroll the active tab into view within the horizontal scroll container
+  // so tabs like "Billing" (triggered by Stripe redirect) are immediately visible.
+  useEffect(() => {
+    const el = document.getElementById(tabId(activeTab));
+    el?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
+
   const [billingLoading, setBillingLoading] = useState(null); // 'monthly' | 'annual' | 'portal' | null
   const [billingError, setBillingError] = useState("");
 
@@ -495,13 +503,13 @@ export default function SettingsPage() {
 
       <div className="flex flex-col md:flex-row gap-6 md:gap-8">
         {/* Tab nav with proper ARIA tablist semantics */}
-        <aside className="w-full md:w-48 shrink-0">
-          <div className="relative -mx-4 sm:mx-0 md:mx-0">
+        <aside className="w-full md:w-48 shrink-0 min-w-0">
+          <div className="relative -mx-4 sm:mx-0 md:mx-0 overflow-x-hidden sm:overflow-x-visible md:overflow-visible">
             <nav
               role="tablist"
               aria-label="Settings sections"
               aria-orientation="vertical"
-              className="no-scrollbar flex md:flex-col gap-1 overflow-x-auto md:overflow-visible scroll-smooth snap-x snap-mandatory px-4 sm:px-0 pb-2 md:pb-0"
+              className="no-scrollbar flex md:flex-col gap-1 overflow-x-auto md:overflow-visible scroll-smooth snap-x snap-mandatory px-4 sm:px-0 pb-2 md:pb-0 w-full"
             >
               {TABS.map((tab, idx) => {
                 const active = activeTab === tab.id;
