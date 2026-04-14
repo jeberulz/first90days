@@ -3,7 +3,9 @@
 import { useQuery } from "convex/react";
 import { Icon } from "@iconify/react";
 import { api } from "../../../convex/_generated/api";
-import { SOURCE_TYPE_LABELS } from "@/lib/kbCategories";
+import { KB_CATEGORY_ICON_ACCENT, SOURCE_TYPE_LABELS } from "@/lib/kbCategories";
+import { kbCard, kbDashed } from "@/lib/kbKnowledgeChrome";
+import { cn } from "@/lib/utils";
 
 const PROVIDER_ICONS = {
   manual: "solar:pen-new-square-linear",
@@ -30,10 +32,12 @@ export default function ConnectedSources() {
   const sources = useQuery(api.kb.sources);
 
   return (
-    <div className="bg-[#1C1917] rounded-xl border border-[#2C2825] p-6 shadow-sm">
+    <div className={cn(kbCard, "p-6")}>
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2">
-          <div className="p-1.5 bg-[#2C2825] rounded-md text-white">
+          <div
+            className={`p-1.5 rounded-md border ${KB_CATEGORY_ICON_ACCENT.bg} ${KB_CATEGORY_ICON_ACCENT.text} ${KB_CATEGORY_ICON_ACCENT.border}`}
+          >
             <Icon icon="solar:plug-circle-linear" width={18} />
           </div>
           <h2 className="text-lg font-medium tracking-tight text-white">
@@ -52,9 +56,9 @@ export default function ConnectedSources() {
             .map((s) => (
               <div
                 key={s._id}
-                className="flex items-center gap-3 p-3 rounded-lg border border-[#2C2825] hover:bg-[#2C2825]/30 transition-colors"
+                className="flex items-center gap-3 p-3 rounded-lg border border-[#44403C]/90 hover:bg-[#1C1917]/80 transition-colors"
               >
-                <div className="w-9 h-9 rounded-lg bg-[#2C2825] flex items-center justify-center shrink-0 text-[#A8A29E]">
+                <div className="w-9 h-9 rounded-lg bg-[#1F1510] border border-[#44403C]/70 flex items-center justify-center shrink-0 text-[#A8A29E]">
                   <Icon
                     icon={PROVIDER_ICONS[s.provider] || "solar:database-linear"}
                     width={18}
@@ -80,7 +84,12 @@ export default function ConnectedSources() {
               </div>
             ))}
 
-        <div className="w-full flex items-center justify-center gap-2 p-3 rounded-lg border border-dashed border-[#2C2825] text-xs font-medium text-[#A8A29E]">
+        <div
+          className={cn(
+            kbDashed,
+            "w-full flex items-center justify-center gap-2 p-3 text-xs font-medium text-[#A8A29E]"
+          )}
+        >
           <Icon icon="solar:add-circle-linear" width={16} />
           External connectors coming soon
         </div>

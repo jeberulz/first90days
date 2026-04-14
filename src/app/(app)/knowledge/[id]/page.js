@@ -9,9 +9,10 @@ import { api } from "../../../../../convex/_generated/api";
 import {
   KB_CATEGORIES,
   KB_CATEGORY_BY_SLUG,
-  ACCENT_CLASSES,
+  KB_CATEGORY_ICON_ACCENT,
   SOURCE_TYPE_LABELS,
 } from "@/lib/kbCategories";
+import { kbCard, kbField } from "@/lib/kbKnowledgeChrome";
 import DocumentSummaryCard from "@/components/knowledge/DocumentSummaryCard";
 import DocumentMemoryList from "@/components/knowledge/DocumentMemoryList";
 
@@ -42,18 +43,22 @@ export default function DocumentDetailPage({ params }) {
     return (
       <div className="space-y-4">
         <div className="h-8 bg-[#1C1917] rounded-lg animate-pulse w-1/3" />
-        <div className="h-40 bg-[#1C1917] border border-[#2C2825] rounded-xl animate-pulse" />
+        <div className="h-40 bg-[#1C1917] border border-[#44403C]/90 rounded-xl animate-pulse" />
       </div>
     );
   }
 
   if (doc === null) {
     return (
-      <div className="text-center py-16 text-sm text-[#A8A29E]">
+      <div className="text-center py-16 text-sm text-[#A8A29E] font-space-grotesk">
         Entry not found.
         <div className="mt-4">
-          <Link href="/knowledge" className="text-[#D97757] hover:text-[#C26242]">
-            ← Back to Knowledge Base
+          <Link
+            href="/knowledge"
+            className="inline-flex items-center justify-center gap-2 text-xs text-[#A8A29E] hover:text-[#D97757] transition-colors"
+          >
+            <Icon icon="solar:arrow-left-linear" width={16} />
+            Back to Knowledge Base
           </Link>
         </div>
       </div>
@@ -61,7 +66,7 @@ export default function DocumentDetailPage({ params }) {
   }
 
   const cat = KB_CATEGORY_BY_SLUG[doc.category];
-  const accent = cat ? ACCENT_CLASSES[cat.accent] : null;
+  const chipAccent = KB_CATEGORY_ICON_ACCENT;
 
   async function handleSave(e) {
     e.preventDefault();
@@ -85,7 +90,7 @@ export default function DocumentDetailPage({ params }) {
       <div className="flex items-center justify-between">
         <Link
           href="/knowledge"
-          className="font-space-grotesk text-sm text-[#A8A29E] hover:text-white transition flex items-center gap-1"
+          className="inline-flex items-center gap-2 text-xs text-[#A8A29E] hover:text-[#D97757] transition-colors font-space-grotesk"
         >
           <Icon icon="solar:arrow-left-linear" width={16} />
           Back to Knowledge Base
@@ -113,12 +118,12 @@ export default function DocumentDetailPage({ params }) {
           <input
             value={form.title}
             onChange={(e) => setForm({ ...form, title: e.target.value })}
-            className="w-full bg-[#1C1917] border border-[#2C2825] rounded-lg px-4 py-3 font-instrument-serif text-2xl text-white focus:outline-none focus:ring-1 focus:ring-[#D97757]"
+            className={`w-full ${kbField} px-4 py-3 font-instrument-serif text-2xl text-white focus:outline-none focus:ring-1 focus:ring-[#D97757]`}
           />
           <select
             value={form.category}
             onChange={(e) => setForm({ ...form, category: e.target.value })}
-            className="bg-[#1C1917] border border-[#2C2825] rounded-lg px-3 py-2 font-space-grotesk text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#D97757]"
+            className={`${kbField} px-3 py-2 font-space-grotesk text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#D97757]`}
           >
             {KB_CATEGORIES.map((c) => (
               <option key={c.slug} value={c.slug}>
@@ -129,7 +134,7 @@ export default function DocumentDetailPage({ params }) {
           <textarea
             value={form.content}
             onChange={(e) => setForm({ ...form, content: e.target.value })}
-            className="w-full bg-[#1C1917] border border-[#2C2825] rounded-lg px-4 py-3 font-space-grotesk text-sm text-white resize-none focus:outline-none focus:ring-1 focus:ring-[#D97757]"
+            className={`w-full ${kbField} px-4 py-3 font-space-grotesk text-sm text-white resize-none focus:outline-none focus:ring-1 focus:ring-[#D97757]`}
             rows={16}
           />
           <div className="flex gap-2">
@@ -152,9 +157,9 @@ export default function DocumentDetailPage({ params }) {
         <>
           <div>
             <div className="flex items-center gap-2 mb-2">
-              {cat && accent && (
+              {cat && (
                 <span
-                  className={`text-[10px] font-medium uppercase tracking-wider px-2 py-0.5 rounded-full border ${accent.bg} ${accent.text} ${accent.border}`}
+                  className={`text-[10px] font-medium uppercase tracking-wider px-2 py-0.5 rounded-full border ${chipAccent.bg} ${chipAccent.text} ${chipAccent.border}`}
                 >
                   {cat.label}
                 </span>
@@ -172,7 +177,7 @@ export default function DocumentDetailPage({ params }) {
 
           <DocumentMemoryList documentId={id} />
 
-          <div className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-6">
+          <div className={`${kbCard} p-6`}>
             <h3 className="text-xs font-medium uppercase tracking-wider text-[#A8A29E] mb-3">
               Source content
             </h3>

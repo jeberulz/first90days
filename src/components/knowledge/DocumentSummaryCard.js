@@ -1,22 +1,36 @@
 "use client";
 
 import { Icon } from "@iconify/react";
+import { kbCard } from "@/lib/kbKnowledgeChrome";
+import { cn } from "@/lib/utils";
 
 // Status labels per pipeline stage. Embedding = vector indexing; Enrichment
 // = LLM summary + memory extraction. They have different success verbs.
 const EMBED_STATUS = {
-  pending: { label: "Pending", className: "bg-[#2C2825] text-[#A8A29E]" },
+  pending: {
+    label: "Pending",
+    className: "bg-[#1C1917] text-[#A8A29E] border border-[#44403C]/70",
+  },
   running: { label: "Indexing", className: "bg-[#1F1510] text-[#D97757]" },
   done: { label: "Indexed", className: "bg-emerald-900/20 text-emerald-400" },
   failed: { label: "Failed", className: "bg-red-900/20 text-red-400" },
-  skipped: { label: "Skipped", className: "bg-[#2C2825] text-[#A8A29E]" },
+  skipped: {
+    label: "Skipped",
+    className: "bg-[#1C1917] text-[#A8A29E] border border-[#44403C]/70",
+  },
 };
 const ENRICH_STATUS = {
-  pending: { label: "Pending", className: "bg-[#2C2825] text-[#A8A29E]" },
+  pending: {
+    label: "Pending",
+    className: "bg-[#1C1917] text-[#A8A29E] border border-[#44403C]/70",
+  },
   running: { label: "Enriching", className: "bg-[#1F1510] text-[#D97757]" },
   done: { label: "Enriched", className: "bg-emerald-900/20 text-emerald-400" },
   failed: { label: "Failed", className: "bg-red-900/20 text-red-400" },
-  skipped: { label: "Skipped", className: "bg-[#2C2825] text-[#A8A29E]" },
+  skipped: {
+    label: "Skipped",
+    className: "bg-[#1C1917] text-[#A8A29E] border border-[#44403C]/70",
+  },
 };
 
 export default function DocumentSummaryCard({ doc }) {
@@ -26,7 +40,7 @@ export default function DocumentSummaryCard({ doc }) {
   const embedBadge = EMBED_STATUS[doc.embeddingStatus] || EMBED_STATUS.pending;
 
   return (
-    <div className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-6 space-y-5">
+    <div className={cn(kbCard, "p-6 space-y-5")}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="p-1.5 bg-[#1F1510] rounded-md text-[#D97757]">
@@ -81,7 +95,7 @@ export default function DocumentSummaryCard({ doc }) {
             {doc.entityLinks.map((l, i) => (
               <span
                 key={i}
-                className="text-xs px-2 py-0.5 rounded-full bg-[#2C2825] text-[#A8A29E] border border-[#44403C]"
+                className="text-xs px-2 py-0.5 rounded-full bg-[#1C1917] text-[#A8A29E] border border-[#44403C]/80"
               >
                 {l.type}
               </span>

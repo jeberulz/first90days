@@ -112,6 +112,9 @@ export const ACCENT_CLASSES = {
   },
 };
 
+/** Knowledge Map + category headers: same warm icon tile as Your Goals & Notes. */
+export const KB_CATEGORY_ICON_ACCENT = ACCENT_CLASSES.brand;
+
 export const SOURCE_TYPE_LABELS = {
   manual: "Manual",
   upload: "Upload",

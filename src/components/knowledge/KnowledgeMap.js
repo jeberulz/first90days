@@ -4,10 +4,9 @@ import Link from "next/link";
 import { useQuery } from "convex/react";
 import { Icon } from "@iconify/react";
 import { api } from "../../../convex/_generated/api";
-import { KB_CATEGORIES, ACCENT_CLASSES } from "@/lib/kbCategories";
-
-/** Icon tile: same warm accent as Goals & Notes on every map card. */
-const MAP_ICON_ACCENT = ACCENT_CLASSES.brand;
+import { KB_CATEGORIES, KB_CATEGORY_ICON_ACCENT } from "@/lib/kbCategories";
+import { kbCard, kbCardHover } from "@/lib/kbKnowledgeChrome";
+import { cn } from "@/lib/utils";
 
 export default function KnowledgeMap() {
   const stats = useQuery(api.kb.categoryStats);
@@ -45,11 +44,11 @@ export default function KnowledgeMap() {
             <Link
               key={cat.slug}
               href={`/knowledge/category/${cat.slug}`}
-              className="group bg-[#1C1917] rounded-xl border border-[#44403C]/90 p-5 shadow-sm hover:shadow-md hover:border-[#D97757]/25 transition-all"
+              className={cn("group p-5", kbCard, kbCardHover)}
             >
               <div className="flex items-start justify-between mb-4">
                 <div
-                  className={`p-2 rounded-lg border ${MAP_ICON_ACCENT.bg} ${MAP_ICON_ACCENT.text} ${MAP_ICON_ACCENT.border}`}
+                  className={`p-2 rounded-lg border ${KB_CATEGORY_ICON_ACCENT.bg} ${KB_CATEGORY_ICON_ACCENT.text} ${KB_CATEGORY_ICON_ACCENT.border}`}
                 >
                   <Icon icon={cat.icon} width={20} />
                 </div>

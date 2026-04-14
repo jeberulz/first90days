@@ -9,7 +9,7 @@ export default function AIBrainStatusCard() {
 
   if (status === undefined) {
     return (
-      <div className="rounded-xl border border-[#2C2825] bg-[#1C1917] p-6 animate-pulse h-32" />
+      <div className="rounded-xl border border-[#44403C]/90 bg-[#1C1917] p-6 animate-pulse h-32" />
     );
   }
 
@@ -48,7 +48,7 @@ export default function AIBrainStatusCard() {
               <span className="text-base text-[#A8A29E]">%</span>
             </div>
             <div className="text-xs text-[#A8A29E] mt-0.5">AI Confidence</div>
-            <div className="w-full h-1.5 bg-[#2C2825] rounded-full mt-1.5 overflow-hidden">
+            <div className="w-full h-1.5 bg-[#44403C]/50 rounded-full mt-1.5 overflow-hidden">
               <div
                 className="h-full bg-gradient-to-r from-[#D97757] to-emerald-500 rounded-full"
                 style={{ width: `${status.confidence}%` }}
@@ -67,7 +67,7 @@ export default function AIBrainStatusCard() {
             className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border ${
               status.learning
                 ? "bg-emerald-900/20 border-emerald-800/50 text-emerald-400"
-                : "bg-[#2C2825] border-[#44403C] text-[#A8A29E]"
+                : "bg-[#1C1917] border-[#44403C]/90 text-[#A8A29E]"
             }`}
           >
             <div

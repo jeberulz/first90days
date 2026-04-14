@@ -3,6 +3,8 @@
 import { useQuery, useMutation } from "convex/react";
 import { Icon } from "@iconify/react";
 import { api } from "../../../convex/_generated/api";
+import { kbCard } from "@/lib/kbKnowledgeChrome";
+import { cn } from "@/lib/utils";
 
 const TYPE_META = {
   behavioral: { icon: "solar:lightbulb-bolt-linear", className: "bg-violet-900/20 text-violet-400 border-violet-800/50" },
@@ -30,7 +32,7 @@ export default function AIMemoryStream() {
   const dismiss = useMutation(api.kb.dismissMemory);
 
   return (
-    <section className="bg-[#1C1917] rounded-xl border border-[#2C2825] shadow-sm overflow-hidden">
+    <section className={cn(kbCard, "overflow-hidden")}>
       <div className="flex items-center justify-between p-6 pb-0 mb-5">
         <div className="flex items-center gap-2">
           <div className="p-1.5 bg-[#1F1510] rounded-md text-[#D97757]">
@@ -62,7 +64,7 @@ export default function AIMemoryStream() {
             return (
               <div
                 key={m._id}
-                className="group flex gap-3 py-3.5 border-b border-[#2C2825] last:border-0"
+                className="group flex gap-3 py-3.5 border-b border-[#44403C]/45 last:border-0"
               >
                 <div className="shrink-0 mt-0.5">
                   <div

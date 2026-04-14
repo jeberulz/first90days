@@ -3,6 +3,8 @@
 import { useQuery } from "convex/react";
 import { Icon } from "@iconify/react";
 import { api } from "../../../convex/_generated/api";
+import { kbCard } from "@/lib/kbKnowledgeChrome";
+import { cn } from "@/lib/utils";
 
 const KIND_LABEL = {
   embed: "Embedding",
@@ -16,7 +18,7 @@ export default function AIEnrichmentQueue() {
   if (!queue || queue.length === 0) return null;
 
   return (
-    <div className="bg-[#1C1917] rounded-xl border border-[#2C2825] p-6 shadow-sm">
+    <div className={cn(kbCard, "p-6")}>
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2">
           <div className="p-1.5 bg-[#1F1510] rounded-md text-[#D97757]">
@@ -35,7 +37,7 @@ export default function AIEnrichmentQueue() {
             className={`p-3 rounded-lg border ${
               j.status === "running"
                 ? "border-[#D97757]/20 bg-[#1F1510]/40"
-                : "border-[#2C2825]"
+                : "border-[#44403C]/90 bg-[#1C1917]"
             }`}
           >
             <div className="flex items-center gap-2 mb-1.5">

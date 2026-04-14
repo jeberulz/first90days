@@ -7,6 +7,8 @@ import { useQuery, useMutation } from "convex/react";
 import { Icon } from "@iconify/react";
 import { api } from "../../../convex/_generated/api";
 import { kbDraftAngleLabel } from "@/lib/kbDraftAngles";
+import { kbToolbarBtn } from "@/lib/kbKnowledgeChrome";
+import { cn } from "@/lib/utils";
 
 const EMPTY_DRAFT_LIST = [];
 
@@ -107,7 +109,7 @@ export default function CompanyReviewClient() {
     return (
       <div className="space-y-4">
         <div className="h-8 bg-[#1C1917] rounded-lg animate-pulse w-1/3 max-w-xs" />
-        <div className="h-[min(560px,70vh)] bg-[#1C1917] border border-[#2C2825] rounded-xl animate-pulse" />
+        <div className="h-[min(560px,70vh)] bg-[#1C1917] border border-[#44403C]/90 rounded-xl animate-pulse" />
       </div>
     );
   }
@@ -127,7 +129,10 @@ export default function CompanyReviewClient() {
             type="button"
             onClick={handleRetry}
             disabled={retrying}
-            className="shrink-0 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-[#2C2825] bg-[#1C1917] text-xs text-[#A8A29E] hover:border-[#D97757]/30 hover:text-white transition-colors disabled:opacity-50 w-fit"
+            className={cn(
+              kbToolbarBtn,
+              "shrink-0 flex items-center justify-center gap-1.5 px-3 py-2 text-xs w-fit disabled:opacity-50"
+            )}
           >
             <Icon icon="solar:refresh-linear" width={14} />
             {retrying ? "Starting…" : hasFailed ? "Retry research" : "Run again"}
@@ -139,14 +144,14 @@ export default function CompanyReviewClient() {
         <h1 className="font-instrument-serif tracking-[-0.5px] text-2xl sm:text-3xl text-white">
           Company context review
         </h1>
-        <p className="text-xs sm:text-sm text-[#A8A29E] mt-1 max-w-2xl">
+        <p className="font-space-grotesk text-xs sm:text-sm text-[#A8A29E] mt-1 max-w-2xl">
           Read each research section, then approve or discard. Nothing is embedded
           into your brain until you approve.
         </p>
       </div>
 
       {isBuilding && !hasDrafts && (
-        <div className="flex items-center gap-3 rounded-xl border border-[#2C2825] bg-[#1C1917]/60 px-4 py-5">
+        <div className="flex items-center gap-3 rounded-xl border border-[#44403C]/90 bg-[#1C1917]/60 px-4 py-5">
           <div className="w-4 h-4 border-2 border-[#D97757] border-t-transparent rounded-full animate-spin shrink-0" />
           <p className="text-sm text-[#A8A29E]">
             Building your company context. Sections will appear here as they are
@@ -164,7 +169,7 @@ export default function CompanyReviewClient() {
       )}
 
       {!hasDrafts && !isBuilding && !hasFailed && (
-        <div className="rounded-xl border border-[#2C2825] bg-[#1C1917]/40 px-6 py-12 text-center">
+        <div className="rounded-xl border border-[#44403C]/90 bg-[#1C1917]/40 px-6 py-12 text-center">
           <Icon
             icon="solar:check-circle-linear"
             width={40}
@@ -189,8 +194,8 @@ export default function CompanyReviewClient() {
         <div
           className="flex flex-col lg:flex-row rounded-xl border border-[#D97757]/20 bg-gradient-to-br from-[#1C1917] via-[#1C1917] to-[#1F1510] overflow-hidden shadow-sm h-[min(72dvh,calc(100dvh-8rem))] min-h-[280px]"
         >
-          <aside className="lg:w-[min(100%,280px)] shrink-0 border-b lg:border-b-0 lg:border-r border-[#2C2825] bg-[#1C1917]/90 flex flex-col min-h-0 max-h-[min(220px,36dvh)] lg:max-h-none lg:h-full">
-            <div className="px-4 py-3 border-b border-[#2C2825] shrink-0">
+          <aside className="lg:w-[min(100%,280px)] shrink-0 border-b lg:border-b-0 lg:border-r border-[#44403C]/55 bg-[#1C1917]/90 flex flex-col min-h-0 max-h-[min(220px,36dvh)] lg:max-h-none lg:h-full">
+            <div className="px-4 py-3 border-b border-[#44403C]/55 shrink-0">
               <p className="text-[10px] uppercase tracking-wider text-[#78716C]">
                 Sections
               </p>
@@ -210,7 +215,7 @@ export default function CompanyReviewClient() {
                       className={`w-full text-left rounded-lg min-h-11 px-3 py-2 transition-colors ${
                         active
                           ? "bg-[#1F1510] border border-[#D97757]/35 text-white"
-                          : "border border-transparent text-[#D6D3D1] hover:bg-[#1C1917] hover:border-[#2C2825]"
+                          : "border border-transparent text-[#D6D3D1] hover:bg-[#1C1917] hover:border-[#44403C]/55"
                       }`}
                     >
                       <p className="text-xs font-medium truncate">{d.title}</p>
@@ -229,7 +234,7 @@ export default function CompanyReviewClient() {
           <main className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden lg:min-h-0">
             {selected ? (
               <>
-                <div className="shrink-0 z-10 border-b border-[#2C2825] bg-[#1C1917]/98 px-4 sm:px-6 py-4">
+                <div className="shrink-0 z-10 border-b border-[#44403C]/55 bg-[#1C1917]/98 px-4 sm:px-6 py-4">
                   <div className="max-w-prose">
                     <div className="flex items-start gap-2 flex-wrap">
                       <h2 className="text-lg sm:text-xl font-medium text-white tracking-tight">
@@ -255,7 +260,7 @@ export default function CompanyReviewClient() {
                         type="button"
                         onClick={() => handleDiscardDraft(selected._id)}
                         disabled={busyId === selected._id}
-                        className="inline-flex items-center gap-2 min-h-11 px-5 rounded-lg border border-[#2C2825] bg-[#1C1917] text-[#A8A29E] text-sm font-medium hover:border-[#44403C] hover:text-white transition-colors disabled:opacity-50"
+                        className="inline-flex items-center gap-2 min-h-11 px-5 rounded-lg border border-[#44403C]/90 bg-[#1C1917] text-[#A8A29E] text-sm font-medium hover:border-[#D97757]/25 hover:text-white transition-colors disabled:opacity-50"
                       >
                         <Icon icon="solar:close-circle-linear" width={18} />
                         Discard

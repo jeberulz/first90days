@@ -3,13 +3,15 @@
 import { useQuery } from "convex/react";
 import { Icon } from "@iconify/react";
 import { api } from "../../../convex/_generated/api";
+import { kbCard } from "@/lib/kbKnowledgeChrome";
+import { cn } from "@/lib/utils";
 
 export default function DocumentMemoryList({ documentId }) {
   const memories = useQuery(api.kb.memoriesForDocument, { documentId });
 
   if (memories === undefined) {
     return (
-      <div className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-6">
+      <div className={cn(kbCard, "p-6")}>
         <p className="text-xs text-[#A8A29E]">Loading memories…</p>
       </div>
     );
@@ -20,7 +22,7 @@ export default function DocumentMemoryList({ documentId }) {
   }
 
   return (
-    <div className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-6 space-y-4">
+    <div className={cn(kbCard, "p-6 space-y-4")}>
       <div className="flex items-center gap-2">
         <div className="p-1.5 bg-[#1F1510] rounded-md text-[#D97757]">
           <Icon icon="solar:lightbulb-bolt-linear" width={18} />

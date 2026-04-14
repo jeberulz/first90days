@@ -71,7 +71,7 @@ export default function DraftReviewQueue() {
                 type="button"
                 onClick={handleRetry}
                 disabled={retrying}
-                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-[#2C2825] bg-[#1C1917] text-xs text-[#A8A29E] hover:border-[#D97757]/30 hover:text-white transition-colors disabled:opacity-50"
+                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-[#44403C]/90 bg-[#1C1917] text-xs text-[#A8A29E] hover:border-[#D97757]/25 hover:text-white transition-colors disabled:opacity-50"
               >
                 <Icon icon="solar:refresh-linear" width={14} />
                 {retrying ? "Starting…" : hasFailed ? "Retry research" : "Run again"}
@@ -90,7 +90,7 @@ export default function DraftReviewQueue() {
         </div>
 
         {isBuilding && !hasDrafts && (
-          <div className="mt-4 flex items-center gap-3 rounded-lg border border-[#2C2825] bg-[#1C1917]/60 px-4 py-4">
+          <div className="mt-4 flex items-center gap-3 rounded-lg border border-[#44403C]/90 bg-[#1C1917]/60 px-4 py-4">
             <div className="w-4 h-4 border-2 border-[#D97757] border-t-transparent rounded-full animate-spin shrink-0" />
             <p className="text-xs text-[#A8A29E]">
               Building your company brain. This usually takes a few seconds. You can

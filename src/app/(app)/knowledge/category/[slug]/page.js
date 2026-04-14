@@ -7,10 +7,12 @@ import { Icon } from "@iconify/react";
 import { api } from "../../../../../../convex/_generated/api";
 import {
   KB_CATEGORY_BY_SLUG,
-  ACCENT_CLASSES,
+  KB_CATEGORY_ICON_ACCENT,
   SOURCE_TYPE_LABELS,
   TYPE_BADGE_LABELS,
 } from "@/lib/kbCategories";
+import { kbField } from "@/lib/kbKnowledgeChrome";
+import { cn } from "@/lib/utils";
 import AddKnowledgeModal from "@/components/knowledge/AddKnowledgeModal";
 
 // Per-category empty-state suggestions. Concrete examples beat generic
@@ -46,7 +48,7 @@ function relativeTime(ts) {
 export default function CategoryDetailPage({ params }) {
   const { slug } = use(params);
   const cat = KB_CATEGORY_BY_SLUG[slug];
-  const accent = cat ? ACCENT_CLASSES[cat.accent] : null;
+  const iconAccent = KB_CATEGORY_ICON_ACCENT;
   const docs = useQuery(api.kb.listDocuments, { category: slug, limit: 200 });
   const [search, setSearch] = useState("");
   const [addOpen, setAddOpen] = useState(false);
@@ -64,40 +66,42 @@ export default function CategoryDetailPage({ params }) {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 sm:space-y-8">
       <Link
         href="/knowledge"
-        className="font-space-grotesk text-sm text-[#A8A29E] hover:text-white transition flex items-center gap-1"
+        className="inline-flex items-center gap-2 text-xs text-[#A8A29E] hover:text-[#D97757] transition-colors w-fit"
       >
         <Icon icon="solar:arrow-left-linear" width={16} />
         Back to Knowledge Base
       </Link>
 
-      <div className="flex items-center gap-4">
-        {accent && (
-          <div className={`p-3 rounded-xl ${accent.bg} ${accent.text} border ${accent.border}`}>
-            <Icon icon={cat.icon} width={28} />
-          </div>
-        )}
-        <div>
-          <h1 className="font-instrument-serif text-4xl tracking-[-0.9px] text-white">
+      <div className="flex items-start gap-4 min-w-0">
+        <div
+          className={`shrink-0 p-3 rounded-xl border ${iconAccent.bg} ${iconAccent.text} ${iconAccent.border}`}
+        >
+          <Icon icon={cat.icon} width={28} aria-hidden />
+        </div>
+        <div className="min-w-0 pt-0.5">
+          <h1 className="font-instrument-serif text-3xl sm:text-4xl tracking-[-0.5px] sm:tracking-[-0.9px] leading-tight text-white">
             {cat.label}
           </h1>
-          <p className="text-sm text-[#A8A29E] mt-1">{cat.description}</p>
+          <p className="font-space-grotesk text-sm text-[#A8A29E] mt-2 leading-relaxed max-w-2xl">
+            {cat.description}
+          </p>
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
-        <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-lg border border-[#2C2825] bg-[#1C1917]">
-          <Icon icon="solar:magnifer-linear" width={16} className="text-[#A8A29E]" />
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className={cn(kbField, "flex-1 flex items-center gap-2 min-h-11 px-3")}>
+          <Icon icon="solar:magnifer-linear" width={16} className="text-[#A8A29E] shrink-0" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={`Search ${cat.label.toLowerCase()}…`}
-            className="flex-1 bg-transparent text-sm text-white placeholder:text-[#57534E] focus:outline-none"
+            className="flex-1 min-w-0 bg-transparent font-space-grotesk text-sm text-white placeholder:text-[#57534E] focus:outline-none py-2.5"
           />
         </div>
-        <span className="text-xs text-[#A8A29E]">
+        <span className="text-xs text-[#A8A29E] tabular-nums shrink-0 sm:text-right">
           {filtered.length} {filtered.length === 1 ? "entry" : "entries"}
         </span>
       </div>
@@ -109,20 +113,18 @@ export default function CategoryDetailPage({ params }) {
           </div>
         )}
         {docs && filtered.length === 0 && (
-          <div className="col-span-full bg-[#1C1917] border border-[#2C2825] rounded-xl p-10 text-center">
+          <div className="col-span-full bg-[#1C1917] border border-[#44403C]/90 rounded-xl p-10 text-center">
             {search ? (
-              <p className="text-sm text-[#A8A29E]">
+              <p className="font-space-grotesk text-sm text-[#A8A29E]">
                 No entries match <span className="text-white">&ldquo;{search}&rdquo;</span> in {cat.label}.
               </p>
             ) : (
               <div className="flex flex-col items-center gap-4">
-                {accent && (
-                  <div
-                    className={`w-14 h-14 rounded-2xl flex items-center justify-center ${accent.bg} ${accent.text} border ${accent.border}`}
-                  >
-                    <Icon icon={cat.icon} width={26} />
-                  </div>
-                )}
+                <div
+                  className={`w-14 h-14 rounded-2xl flex items-center justify-center border ${iconAccent.bg} ${iconAccent.text} ${iconAccent.border}`}
+                >
+                  <Icon icon={cat.icon} width={26} aria-hidden />
+                </div>
                 <div className="space-y-1 max-w-md">
                   <h3 className="font-space-grotesk text-base font-medium text-white">
                     Nothing in {cat.label} yet
@@ -147,7 +149,7 @@ export default function CategoryDetailPage({ params }) {
           <Link
             key={d._id}
             href={`/knowledge/${d._id}`}
-            className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-5 hover:border-[#D97757]/30 transition"
+            className="bg-[#1C1917] border border-[#44403C]/90 rounded-xl p-5 shadow-sm hover:border-[#D97757]/25 hover:shadow-md transition-all"
           >
             <div className="flex items-center justify-between mb-2">
               <span className="text-[10px] text-[#A8A29E]">
