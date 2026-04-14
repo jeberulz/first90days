@@ -111,7 +111,7 @@ export default function AddKnowledgeModal({ open, onClose, defaultCategory }) {
             required
           />
           <p className="text-xs text-warm-300">
-            Tip: shorter than a paragraph and we'll skip extracting structured insights. A few sentences is enough.
+            Tip: shorter than a paragraph and we&apos;ll skip extracting structured insights. A few sentences is enough.
           </p>
         </div>
 
