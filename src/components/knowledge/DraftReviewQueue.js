@@ -149,7 +149,11 @@ export default function DraftReviewQueue() {
               return (
                 <li
                   key={d._id}
-                  className="rounded-lg border border-[#2C2825] bg-[#1C1917]/70 hover:border-[#D97757]/30 transition-colors"
+                  className={`rounded-lg border transition-colors ${
+                    expanded
+                      ? "border-[#D97757]/40 bg-[#1F1510]/60 shadow-[inset_2px_0_0_0_#D97757]"
+                      : "border-[#2C2825] bg-[#1C1917]/70 hover:border-[#D97757]/30"
+                  }`}
                 >
                   <button
                     type="button"
