@@ -53,6 +53,38 @@ const verdictCopy = {
   },
 };
 
+// Non-color icon indicators for each velocity verdict state (WCAG 1.4.1)
+const verdictIcons = {
+  ahead: (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M7 11V3M2.5 7.5L7 3l4.5 4.5" />
+    </svg>
+  ),
+  on_pace: (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="7" cy="7" r="6" />
+      <path d="M4.5 7l2 2 3.5-3.5" />
+    </svg>
+  ),
+  slipping: (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M7 1.5L1 12.5h12L7 1.5z" />
+      <path d="M7 5.5v3M7 10h.01" />
+    </svg>
+  ),
+  behind: (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M7 3v8M2.5 6.5L7 11l4.5-4.5" />
+    </svg>
+  ),
+  pre_boarding: (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="7" cy="7" r="6" />
+      <path d="M7 4v3l2 2" />
+    </svg>
+  ),
+};
+
 export default function ProgressPage() {
   const v = useQuery(api.insights.getVelocity);
 
@@ -114,13 +146,15 @@ export default function ProgressPage() {
       <div
         className="bg-[#1C1917] border rounded-2xl p-6"
         style={{ borderColor: `${verdict.color}40` }}
+        aria-label={`Velocity status: ${verdict.label}`}
       >
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
           <div className="flex-1">
             <p
-              className="font-space-grotesk text-xs font-medium uppercase tracking-[0.6px]"
+              className="font-space-grotesk text-xs font-medium uppercase tracking-[0.6px] flex items-center gap-1.5"
               style={{ color: verdict.color }}
             >
+              {verdictIcons[v.paceVerdict] || verdictIcons.on_pace}
               {verdict.label}
             </p>
             <h2 className="mt-2 font-instrument-serif text-3xl tracking-[-0.6px] text-[#E7E5E4]">

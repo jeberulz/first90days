@@ -329,14 +329,17 @@ export default function TodayPage() {
         })}
 
         {completed.map((activity) => {
-          const colors = categoryColors[activity.category] || categoryColors.learning;
           return (
             <div
               key={activity._id}
               className="bg-[#1C1917]/50 border border-[#2C2825]/50 rounded-xl p-4 border-l-4 border-l-[#2C2825] opacity-60"
             >
               <div className="flex items-start gap-3">
-                <div className="mt-0.5 w-5 h-5 rounded bg-[#D97757] flex items-center justify-center flex-shrink-0" aria-hidden="true">
+                <div
+                  className="mt-0.5 w-5 h-5 rounded bg-[#D97757] flex items-center justify-center flex-shrink-0"
+                  role="img"
+                  aria-label="Completed"
+                >
                   <svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M2 6l3 3 5-5" />
                   </svg>

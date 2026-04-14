@@ -374,12 +374,18 @@ export default function WeekDetailPage({ params }) {
                             onClick={() =>
                               completeActivity({ id: activity._id })
                             }
+                            aria-label={`Mark "${activity.title}" as complete`}
                             className="mt-0.5 w-5 h-5 rounded border-2 border-[#44403C] hover:border-[#D97757] transition-colors flex-shrink-0"
                           />
                         )}
                         {isDone && (
-                          <div className="mt-0.5 w-5 h-5 rounded bg-[#D97757] flex items-center justify-center flex-shrink-0">
+                          <div
+                            className="mt-0.5 w-5 h-5 rounded bg-[#D97757] flex items-center justify-center flex-shrink-0"
+                            role="img"
+                            aria-label="Completed"
+                          >
                             <svg
+                              aria-hidden="true"
                               width="12"
                               height="12"
                               viewBox="0 0 12 12"
@@ -394,8 +400,14 @@ export default function WeekDetailPage({ params }) {
                           </div>
                         )}
                         {isSkipped && (
-                          <div className="mt-0.5 w-5 h-5 rounded bg-[#292524] flex items-center justify-center flex-shrink-0">
-                            <span className="text-[#A8A29E] text-xs">—</span>
+                          <div
+                            className="mt-0.5 w-5 h-5 rounded bg-[#292524] flex items-center justify-center flex-shrink-0"
+                            role="img"
+                            aria-label="Skipped"
+                          >
+                            <svg aria-hidden="true" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#A8A29E" strokeWidth="1.5" strokeLinecap="round">
+                              <path d="M2 5h6" />
+                            </svg>
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
@@ -423,6 +435,11 @@ export default function WeekDetailPage({ params }) {
                             <span className="font-space-grotesk text-xs text-[#A8A29E]">
                               {activity.priority}
                             </span>
+                            {isSkipped && (
+                              <span className="font-space-grotesk text-[10px] uppercase tracking-wide text-[#78716C]">
+                                Skipped
+                              </span>
+                            )}
                             {activity.source === "seed" && (
                               <span className="font-space-grotesk text-[10px] uppercase tracking-wide text-[#78716C]">
                                 Seed · editable
