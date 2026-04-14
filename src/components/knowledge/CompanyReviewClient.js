@@ -228,19 +228,21 @@ export default function CompanyReviewClient() {
             {selected ? (
               <>
                 <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-5">
-                  <div className="flex items-start gap-2 flex-wrap mb-4">
-                    <h2 className="text-lg sm:text-xl font-medium text-white tracking-tight">
-                      {selected.title}
-                    </h2>
-                    {selected.angle && (
-                      <span className="text-[10px] uppercase tracking-wider px-2 py-1 rounded-md bg-[#1F1510] border border-[#D97757]/25 text-[#D97757] shrink-0">
-                        {kbDraftAngleLabel(selected.angle)}
-                      </span>
-                    )}
+                  <div className="max-w-prose">
+                    <div className="flex items-start gap-2 flex-wrap mb-4">
+                      <h2 className="text-lg sm:text-xl font-medium text-white tracking-tight">
+                        {selected.title}
+                      </h2>
+                      {selected.angle && (
+                        <span className="text-[10px] uppercase tracking-wider px-2 py-1 rounded-md bg-[#1F1510] border border-[#D97757]/25 text-[#D97757] shrink-0">
+                          {kbDraftAngleLabel(selected.angle)}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-[#D6D3D1] whitespace-pre-wrap leading-relaxed">
+                      {selected.content}
+                    </p>
                   </div>
-                  <p className="text-sm text-[#D6D3D1] whitespace-pre-wrap leading-relaxed">
-                    {selected.content}
-                  </p>
                 </div>
                 <div className="shrink-0 border-t border-[#2C2825] bg-[#1C1917]/95 px-4 sm:px-6 py-4 flex flex-wrap items-center gap-2">
                   <button
