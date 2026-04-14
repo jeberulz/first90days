@@ -22,7 +22,7 @@ export default function AIEnrichmentQueue() {
           <div className="p-1.5 bg-[#1F1510] rounded-md text-[#D97757]">
             <Icon icon="solar:magic-stick-3-linear" width={18} />
           </div>
-          <h2 className="text-base font-medium tracking-tight text-white">
+          <h2 className="text-lg font-medium tracking-tight text-white">
             AI Enrichment
           </h2>
         </div>

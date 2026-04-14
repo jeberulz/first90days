@@ -89,7 +89,7 @@ export default function DraftReviewQueue() {
               <Icon icon="solar:document-add-linear" width={18} />
             </div>
             <div className="min-w-0">
-              <h2 className="text-base font-medium tracking-tight text-white">
+              <h2 className="text-lg font-medium tracking-tight text-white">
                 Company research drafts
               </h2>
               <p className="text-xs text-[#A8A29E] mt-0.5">

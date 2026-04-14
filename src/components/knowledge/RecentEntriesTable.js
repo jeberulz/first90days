@@ -123,7 +123,7 @@ export default function RecentEntriesTable() {
           <div className="p-1.5 bg-[#2C2825] rounded-md text-white">
             <Icon icon="solar:clock-circle-linear" width={18} />
           </div>
-          <h2 className="text-base font-medium tracking-tight text-white">
+          <h2 className="text-lg font-medium tracking-tight text-white">
             Recent Entries
           </h2>
         </div>

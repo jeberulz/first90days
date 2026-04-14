@@ -37,7 +37,7 @@ export default function AIMemoryStream() {
             <Icon icon="solar:cpu-bolt-linear" width={18} />
           </div>
           <div>
-            <h2 className="text-base font-medium tracking-tight text-white">
+            <h2 className="text-lg font-medium tracking-tight text-white">
               AI Memory Stream
             </h2>
             <p className="text-[10px] text-[#A8A29E] mt-0.5">
