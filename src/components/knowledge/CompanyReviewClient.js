@@ -186,8 +186,10 @@ export default function CompanyReviewClient() {
       )}
 
       {hasDrafts && (
-        <div className="flex flex-col lg:flex-row rounded-xl border border-[#D97757]/20 bg-gradient-to-br from-[#1C1917] via-[#1C1917] to-[#1F1510] overflow-hidden min-h-[min(640px,75vh)] shadow-sm">
-          <aside className="lg:w-[min(100%,280px)] shrink-0 border-b lg:border-b-0 lg:border-r border-[#2C2825] bg-[#1C1917]/90 flex flex-col max-h-[40vh] lg:max-h-none">
+        <div
+          className="flex flex-col lg:flex-row rounded-xl border border-[#D97757]/20 bg-gradient-to-br from-[#1C1917] via-[#1C1917] to-[#1F1510] overflow-hidden shadow-sm h-[min(72dvh,calc(100dvh-8rem))] min-h-[280px]"
+        >
+          <aside className="lg:w-[min(100%,280px)] shrink-0 border-b lg:border-b-0 lg:border-r border-[#2C2825] bg-[#1C1917]/90 flex flex-col min-h-0 max-h-[min(220px,36dvh)] lg:max-h-none lg:h-full">
             <div className="px-4 py-3 border-b border-[#2C2825] shrink-0">
               <p className="text-[10px] uppercase tracking-wider text-[#78716C]">
                 Sections
@@ -196,7 +198,7 @@ export default function CompanyReviewClient() {
                 {list.length} to review
               </p>
             </div>
-            <ul className="overflow-y-auto flex-1 p-2 space-y-1">
+            <ul className="overflow-y-auto flex-1 min-h-0 p-2 space-y-1">
               {list.map((d) => {
                 const active = d._id === selectedId;
                 return (
@@ -224,12 +226,12 @@ export default function CompanyReviewClient() {
             </ul>
           </aside>
 
-          <main className="flex-1 flex flex-col min-w-0 min-h-[min(360px,50vh)] lg:min-h-0">
+          <main className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden lg:min-h-0">
             {selected ? (
               <>
-                <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-5">
+                <div className="shrink-0 z-10 border-b border-[#2C2825] bg-[#1C1917]/98 px-4 sm:px-6 py-4">
                   <div className="max-w-prose">
-                    <div className="flex items-start gap-2 flex-wrap mb-4">
+                    <div className="flex items-start gap-2 flex-wrap">
                       <h2 className="text-lg sm:text-xl font-medium text-white tracking-tight">
                         {selected.title}
                       </h2>
@@ -239,30 +241,34 @@ export default function CompanyReviewClient() {
                         </span>
                       )}
                     </div>
+                    <div className="mt-4 flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleApprove(selected._id)}
+                        disabled={busyId === selected._id}
+                        className="inline-flex items-center gap-2 min-h-11 px-5 rounded-lg bg-accent hover:bg-accent-hover text-white text-sm font-medium transition-colors disabled:opacity-50"
+                      >
+                        <Icon icon="solar:check-circle-linear" width={18} />
+                        Approve section
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDiscardDraft(selected._id)}
+                        disabled={busyId === selected._id}
+                        className="inline-flex items-center gap-2 min-h-11 px-5 rounded-lg border border-[#2C2825] bg-[#1C1917] text-[#A8A29E] text-sm font-medium hover:border-[#44403C] hover:text-white transition-colors disabled:opacity-50"
+                      >
+                        <Icon icon="solar:close-circle-linear" width={18} />
+                        Discard
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 sm:px-6 py-5">
+                  <div className="max-w-prose">
                     <p className="text-sm text-[#D6D3D1] whitespace-pre-wrap leading-relaxed">
                       {selected.content}
                     </p>
                   </div>
-                </div>
-                <div className="shrink-0 border-t border-[#2C2825] bg-[#1C1917]/95 px-4 sm:px-6 py-4 flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleApprove(selected._id)}
-                    disabled={busyId === selected._id}
-                    className="inline-flex items-center gap-2 min-h-11 px-5 rounded-lg bg-accent hover:bg-accent-hover text-white text-sm font-medium transition-colors disabled:opacity-50"
-                  >
-                    <Icon icon="solar:check-circle-linear" width={18} />
-                    Approve section
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDiscardDraft(selected._id)}
-                    disabled={busyId === selected._id}
-                    className="inline-flex items-center gap-2 min-h-11 px-5 rounded-lg border border-[#2C2825] bg-[#1C1917] text-[#A8A29E] text-sm font-medium hover:border-[#44403C] hover:text-white transition-colors disabled:opacity-50"
-                  >
-                    <Icon icon="solar:close-circle-linear" width={18} />
-                    Discard
-                  </button>
                 </div>
               </>
             ) : (
