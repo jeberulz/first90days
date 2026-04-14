@@ -34,6 +34,12 @@ export default function DraftReviewQueue() {
   const [expandedId, setExpandedId] = useState(null);
   const [busyId, setBusyId] = useState(null);
   const [retrying, setRetrying] = useState(false);
+  const [showAll, setShowAll] = useState(false);
+
+  // Cap the visible list at 5 by default. A long research run (8-12 drafts)
+  // otherwise dominates the entire knowledge page and pushes everything else
+  // below the fold. The user opts in to seeing the full backlog.
+  const COLLAPSED_LIMIT = 5;
 
   // Nothing to show: no drafts and no job history. Keep the slot empty.
   if (drafts !== undefined && drafts.length === 0 && !job) {
@@ -137,7 +143,7 @@ export default function DraftReviewQueue() {
 
         {hasDrafts && (
           <ul className="space-y-3">
-            {drafts.map((d) => {
+            {(showAll ? drafts : drafts.slice(0, COLLAPSED_LIMIT)).map((d) => {
               const expanded = expandedId === d._id;
               const isBusy = busyId === d._id;
               return (
@@ -211,6 +217,26 @@ export default function DraftReviewQueue() {
               );
             })}
           </ul>
+        )}
+
+        {hasDrafts && drafts.length > COLLAPSED_LIMIT && (
+          <button
+            type="button"
+            onClick={() => setShowAll((v) => !v)}
+            className="mt-3 inline-flex items-center gap-1.5 min-h-11 px-4 rounded-lg border border-[#2C2825] bg-[#1C1917]/70 text-sm text-[#A8A29E] hover:border-[#D97757]/30 hover:text-white transition-colors"
+          >
+            <Icon
+              icon={
+                showAll
+                  ? "solar:alt-arrow-up-linear"
+                  : "solar:alt-arrow-down-linear"
+              }
+              width={16}
+            />
+            {showAll
+              ? "Show fewer"
+              : `Show all ${drafts.length} drafts`}
+          </button>
         )}
       </div>
     </div>
