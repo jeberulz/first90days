@@ -153,6 +153,8 @@ export default function DraftReviewQueue() {
                 >
                   <button
                     type="button"
+                    aria-expanded={expanded}
+                    aria-label={`${expanded ? "Collapse" : "Expand"} draft: ${d.title}`}
                     onClick={() =>
                       setExpandedId(expanded ? null : d._id)
                     }
