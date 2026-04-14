@@ -13,6 +13,7 @@ import Field, {
   fieldSelectClass,
 } from "@/components/settings/Field";
 import ToggleRow from "@/components/settings/ToggleRow";
+import { useToast } from "@/components/primitives/Toaster";
 
 const TABS = [
   { id: "profile", label: "Profile", icon: "user" },
@@ -143,6 +144,7 @@ export default function SettingsPage() {
   const removeAvatar = useMutation(api.users.removeAvatar);
   const deleteAccount = useMutation(api.users.deleteAccount);
   const { signOut } = useAuthActions();
+  const addToast = useToast();
 
   const billingStatus = searchParams.get("billing");
   const initialTab = billingStatus ? "billing" : "profile";
@@ -269,8 +271,10 @@ export default function SettingsPage() {
       });
       setProfileSaved(true);
       setTimeout(() => setProfileSaved(false), 2000);
+      addToast("Profile saved", "success");
     } catch (err) {
       setProfileError(err?.message ?? "Failed to save profile");
+      addToast(err?.message ?? "Failed to save profile", "error");
     } finally {
       setProfileSaving(false);
     }
@@ -332,8 +336,10 @@ export default function SettingsPage() {
       });
       setAccountSaved(true);
       setTimeout(() => setAccountSaved(false), 2000);
+      addToast("Account preferences saved", "success");
     } catch (err) {
       setAccountError(err?.message ?? "Failed to save account preferences");
+      addToast(err?.message ?? "Failed to save account preferences", "error");
     } finally {
       setAccountSaving(false);
     }
@@ -355,8 +361,10 @@ export default function SettingsPage() {
       });
       setNotifSaved(true);
       setTimeout(() => setNotifSaved(false), 2000);
+      addToast("Notification preferences saved", "success");
     } catch (err) {
       setNotifError(err?.message ?? "Failed to save notification preferences");
+      addToast(err?.message ?? "Failed to save notification preferences", "error");
     } finally {
       setNotifSaving(false);
     }

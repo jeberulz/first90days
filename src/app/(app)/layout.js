@@ -10,6 +10,7 @@ import AppSidebar from "@/components/app/AppSidebar";
 import MobileBottomNav from "@/components/app/MobileBottomNav";
 import QuickAddFAB from "@/components/app/QuickAddFAB";
 import PhaseCompletionModal from "@/components/milestones/PhaseCompletionModal";
+import { ToastProvider } from "@/components/primitives/Toaster";
 
 // Routes where the phase-completion modal is allowed to pop. Everywhere
 // else (deep reflection flows, settings, knowledge editor, share/invite
@@ -99,6 +100,7 @@ export default function AppLayout({ children }) {
     trialDaysLeft <= 3;
 
   return (
+    <ToastProvider>
     <div className="min-h-[100dvh] min-w-0 bg-paper-dark text-warm-line dark">
       {showTrialBanner && (
         <div
@@ -147,5 +149,6 @@ export default function AppLayout({ children }) {
           />
         )}
     </div>
+    </ToastProvider>
   );
 }

@@ -4,6 +4,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/primitives/Toaster";
 
 const energyEmojis = [
   { level: 1, emoji: "😴", label: "Drained" },
@@ -25,24 +26,31 @@ export default function DailyReflectionPage() {
   const [response, setResponse] = useState(existing?.reflectionResponse || "");
   const [blockers, setBlockers] = useState(existing?.blockers || "");
   const [tomorrowFocus, setTomorrowFocus] = useState(existing?.tomorrowFocus || "");
+  const addToast = useToast();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
     setSaving(true);
-    await saveReflection({
-      date: today,
-      energyLevel: energy,
-      topAccomplishment: accomplishment || undefined,
-      reflectionPrompt: "How are you feeling about your progress today?",
-      reflectionResponse: response,
-      blockers: blockers || undefined,
-      tomorrowFocus: tomorrowFocus || undefined,
-    });
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => router.push("/today"), 1500);
+    try {
+      await saveReflection({
+        date: today,
+        energyLevel: energy,
+        topAccomplishment: accomplishment || undefined,
+        reflectionPrompt: "How are you feeling about your progress today?",
+        reflectionResponse: response,
+        blockers: blockers || undefined,
+        tomorrowFocus: tomorrowFocus || undefined,
+      });
+      addToast("Reflection saved", "success");
+      setSaved(true);
+      setTimeout(() => router.push("/today"), 1500);
+    } catch (err) {
+      addToast(err?.message ?? "Failed to save reflection", "error");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (

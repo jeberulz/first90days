@@ -5,6 +5,7 @@ import { api } from "../../../../convex/_generated/api";
 import { useState } from "react";
 import Link from "next/link";
 import StakeholderNudges from "@/components/stakeholders/StakeholderNudges";
+import { useToast } from "@/components/primitives/Toaster";
 
 const categoryColors = {
   learning: { bg: "bg-blue-500/10", border: "border-l-blue-500", text: "text-blue-400" },
@@ -31,6 +32,7 @@ export default function TodayPage() {
   const skipActivity = useMutation(api.activities.skip);
   const rescheduleActivity = useMutation(api.activities.reschedule);
 
+  const addToast = useToast();
   const [completingId, setCompletingId] = useState(null);
   const [noteText, setNoteText] = useState("");
   const [reschedulingId, setReschedulingId] = useState(null);
@@ -113,7 +115,12 @@ export default function TodayPage() {
   /* ── Active plan state ── */
   async function handleComplete(id) {
     if (completingId === id) {
-      await completeActivity({ id, completionNotes: noteText || undefined });
+      try {
+        await completeActivity({ id, completionNotes: noteText || undefined });
+        addToast("Activity marked complete", "success");
+      } catch (err) {
+        addToast(err?.message ?? "Failed to complete activity", "error");
+      }
       setCompletingId(null);
       setNoteText("");
     } else {
