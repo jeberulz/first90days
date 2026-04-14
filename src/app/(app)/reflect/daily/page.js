@@ -80,14 +80,16 @@ export default function DailyReflectionPage() {
                   key={e.level}
                   type="button"
                   onClick={() => setEnergy(e.level)}
+                  aria-label={`Energy level: ${e.label} (${e.level})`}
+                  aria-pressed={energy === e.level}
                   className={`flex flex-col items-center gap-1 p-3 rounded-xl transition ${
                     energy === e.level
                       ? "bg-[#D97757]/10 ring-2 ring-[#D97757]"
                       : "hover:bg-[#292524]"
                   }`}
                 >
-                  <span className="text-2xl">{e.emoji}</span>
-                  <span className="font-space-grotesk text-xs text-[#A8A29E]">
+                  <span aria-hidden="true" className="text-2xl">{e.emoji}</span>
+                  <span aria-hidden="true" className="font-space-grotesk text-xs text-[#A8A29E]">
                     {e.label}
                   </span>
                 </button>

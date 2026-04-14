@@ -78,7 +78,7 @@ export default function TodayPage() {
               href="/dashboard"
               className="flex flex-col items-center gap-2 bg-[#292524]/50 rounded-lg p-4 hover:bg-[#292524] transition"
             >
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#D97757" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#D97757" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M3 7l7-4 7 4v8a1 1 0 01-1 1H4a1 1 0 01-1-1V7z" />
                 <path d="M8 16V10h4v6" />
               </svg>
@@ -88,7 +88,7 @@ export default function TodayPage() {
               href="/stakeholders"
               className="flex flex-col items-center gap-2 bg-[#292524]/50 rounded-lg p-4 hover:bg-[#292524] transition"
             >
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#D97757" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#D97757" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="10" cy="7" r="3" />
                 <path d="M4 17v-1a4 4 0 014-4h4a4 4 0 014 4v1" />
               </svg>
@@ -98,7 +98,7 @@ export default function TodayPage() {
               href="/knowledge"
               className="flex flex-col items-center gap-2 bg-[#292524]/50 rounded-lg p-4 hover:bg-[#292524] transition"
             >
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#D97757" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#D97757" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M4 4h12a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z" />
                 <path d="M7 1v3M13 1v3M3 8h14" />
               </svg>
@@ -216,6 +216,7 @@ export default function TodayPage() {
               <div className="flex items-start gap-3">
                 <button
                   onClick={() => handleComplete(activity._id)}
+                  aria-label={`Mark "${activity.title}" as complete`}
                   className="mt-0.5 w-5 h-5 rounded border-2 border-[#44403C] hover:border-[#D97757] transition-colors flex-shrink-0"
                 />
                 <div className="flex-1 min-w-0">
@@ -251,20 +252,20 @@ export default function TodayPage() {
                       tomorrow.setDate(tomorrow.getDate() + 1);
                       setRescheduleDate(tomorrow.toISOString().split("T")[0]);
                     }}
+                    aria-label="Reschedule"
                     className="p-1.5 rounded-md text-[#A8A29E] hover:text-[#E7E5E4] hover:bg-[#292524] transition-colors"
-                    title="Reschedule"
                   >
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
                       <rect x="1" y="2" width="12" height="11" rx="1" />
                       <path d="M4 1v2M10 1v2M1 5h12" />
                     </svg>
                   </button>
                   <button
                     onClick={() => skipActivity({ id: activity._id })}
+                    aria-label="Skip"
                     className="p-1.5 rounded-md text-[#A8A29E] hover:text-[#E7E5E4] hover:bg-[#292524] transition-colors"
-                    title="Skip"
                   >
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
                       <path d="M4 2l6 5-6 5V2z" />
                       <line x1="11" y1="2" x2="11" y2="12" />
                     </svg>
@@ -335,8 +336,8 @@ export default function TodayPage() {
               className="bg-[#1C1917]/50 border border-[#2C2825]/50 rounded-xl p-4 border-l-4 border-l-[#2C2825] opacity-60"
             >
               <div className="flex items-start gap-3">
-                <div className="mt-0.5 w-5 h-5 rounded bg-[#D97757] flex items-center justify-center flex-shrink-0">
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <div className="mt-0.5 w-5 h-5 rounded bg-[#D97757] flex items-center justify-center flex-shrink-0" aria-hidden="true">
+                  <svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M2 6l3 3 5-5" />
                   </svg>
                 </div>

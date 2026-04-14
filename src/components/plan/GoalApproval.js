@@ -51,7 +51,7 @@ export function GoalApprovalBadge({ goal }) {
       }
     >
       {label.tone === "approved" && (
-        <svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg aria-hidden="true" width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M2 6l3 3 5-5" />
         </svg>
       )}

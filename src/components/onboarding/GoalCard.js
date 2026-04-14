@@ -19,6 +19,7 @@ export default function GoalCard({ icon, label, description, selected, onToggle 
         }`}
       >
         <svg
+          aria-hidden="true"
           className={`w-3 h-3 text-white transition-opacity ${selected ? "opacity-100" : "opacity-0"}`}
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 24 24"
