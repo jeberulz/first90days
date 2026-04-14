@@ -188,7 +188,7 @@ export default function DraftReviewQueue() {
 
                   {expanded && (
                     <div className="px-4 pb-4 pl-11">
-                      <p className="text-xs text-[#D6D3D1] whitespace-pre-wrap leading-relaxed">
+                      <p className="text-sm text-[#D6D3D1] whitespace-pre-wrap leading-relaxed max-w-2xl">
                         {d.content}
                       </p>
                       <div className="flex items-center gap-2 mt-4">
