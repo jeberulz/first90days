@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { KB_CATEGORIES } from "@/lib/kbCategories";
@@ -12,6 +12,16 @@ export default function AddKnowledgeModal({ open, onClose, defaultCategory }) {
   const [content, setContent] = useState("");
   const [category, setCategory] = useState(defaultCategory || "goals_notes");
   const [submitting, setSubmitting] = useState(false);
+
+  // Sync the category select with the latest defaultCategory each time the
+  // modal is opened. Without this, opening from the "Add Team & People"
+  // suggestion CTA after previously opening from the generic Add button
+  // would still show the old selection.
+  useEffect(() => {
+    if (open) {
+      setCategory(defaultCategory || "goals_notes");
+    }
+  }, [open, defaultCategory]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -61,7 +71,7 @@ export default function AddKnowledgeModal({ open, onClose, defaultCategory }) {
                 Saving…
               </>
             ) : (
-              "Save & enrich"
+              "Save"
             )}
           </button>
         </div>
@@ -69,7 +79,7 @@ export default function AddKnowledgeModal({ open, onClose, defaultCategory }) {
     >
       <form id="add-knowledge-form" onSubmit={handleSubmit} className="space-y-4">
         <p className="text-xs text-warm-300">
-          Embedding + AI enrichment runs in the background. The brain learns from this entry within ~30 seconds.
+          Indexed and ready to ground your plan within about 30 seconds.
         </p>
 
         <div className="space-y-1.5">
@@ -97,11 +107,11 @@ export default function AddKnowledgeModal({ open, onClose, defaultCategory }) {
             onChange={(e) => setContent(e.target.value)}
             className="w-full bg-warm-surfaceDark border border-warm-borderMuted rounded-lg px-3 py-2.5 font-space-grotesk text-sm text-warm-line placeholder:text-warm-500 resize-y focus:outline-none focus:ring-1 focus:ring-accent min-h-[160px]"
             rows={8}
-            placeholder="Paste a doc, write notes, or describe context the AI brain should know about."
+            placeholder="Paste a doc, write notes, or describe context First90 should know about."
             required
           />
           <p className="text-xs text-warm-300">
-            Tip: Entries shorter than 200 characters skip enrichment. Aim for at least a paragraph for the best AI memory extraction.
+            Tip: shorter than a paragraph and we&apos;ll skip extracting structured insights. A few sentences is enough.
           </p>
         </div>
 

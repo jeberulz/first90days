@@ -75,6 +75,7 @@ function initialData() {
     challenges: "",
     successDefinition: "",
     scope: "",
+    jobDescription: "",
   };
 }
 
@@ -87,6 +88,9 @@ export default function OnboardingStepPage({ params }) {
   const seedPlan = useMutation(api.seed.seedJohnsPlan);
   const generatePlan = useAction(api.ai.generatePlan);
   const createStakeholdersBatch = useMutation(api.stakeholders.createBatch);
+  const requestCompanyResearch = useMutation(
+    api.companyResearchJobs.requestCompanyResearch
+  );
 
   const [data, setData] = useState(initialData);
   const [generating, setGenerating] = useState(false);
@@ -150,6 +154,7 @@ export default function OnboardingStepPage({ params }) {
         existingContext: data.existingContext || undefined,
         challenges: data.challenges || undefined,
         successDefinition: data.successDefinition || undefined,
+        jobDescription: data.jobDescription || undefined,
       });
 
       const validStakeholders = data.stakeholders.filter(
@@ -171,6 +176,12 @@ export default function OnboardingStepPage({ params }) {
       } else {
         if (!viewer?._id) throw new Error("Not signed in. Please refresh and try again.");
         await generatePlan({ userId: viewer._id });
+        // Fire-and-forget: kick off the company research drafts agent.
+        // Research failure must never block onboarding, so we swallow errors
+        // here and let the user retry from the DraftReviewQueue.
+        requestCompanyResearch({ trigger: "onboarding" }).catch((err) => {
+          console.error("requestCompanyResearch failed:", err);
+        });
       }
 
       sessionStorage.removeItem("onboarding_data");
@@ -638,6 +649,19 @@ export default function OnboardingStepPage({ params }) {
               </div>
 
               <div className="space-y-5 mt-6">
+                <div>
+                  <label className={labelClass}>Paste your job description (optional)</label>
+                  <p className="text-xs text-warm-300 mb-2 font-space-grotesk">
+                    If you have it, paste the full JD here. We&apos;ll use it to research your company and pre-build context into your knowledge base.
+                  </p>
+                  <textarea
+                    rows={5}
+                    value={data.jobDescription}
+                    onChange={(e) => update("jobDescription", e.target.value)}
+                    className={inputClass}
+                    placeholder="Paste the full job description text here..."
+                  />
+                </div>
                 <div>
                   <label className={labelClass}>What do you already know about the team or company? (optional)</label>
                   <p className="text-xs text-warm-300 mb-2 font-space-grotesk">Any intel from interviews, conversations, or research.</p>

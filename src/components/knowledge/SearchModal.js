@@ -5,7 +5,9 @@ import Link from "next/link";
 import { useAction } from "convex/react";
 import { Icon } from "@iconify/react";
 import { api } from "../../../convex/_generated/api";
-import { KB_CATEGORY_BY_SLUG } from "@/lib/kbCategories";
+import { KB_CATEGORY_BY_SLUG, KB_CATEGORY_ICON_ACCENT } from "@/lib/kbCategories";
+import { kbCard } from "@/lib/kbKnowledgeChrome";
+import { cn } from "@/lib/utils";
 
 /**
  * Cmd+K semantic search modal. Mounted only on /knowledge* routes — see
@@ -65,10 +67,10 @@ export default function SearchModal({ open, onClose }) {
       onClick={onClose}
     >
       <div
-        className="bg-[#1C1917] border border-[#2C2825] rounded-xl w-full max-w-2xl shadow-2xl overflow-hidden"
+        className={cn(kbCard, "w-full max-w-2xl shadow-2xl overflow-hidden")}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-[#2C2825]">
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-[#44403C]/55">
           <Icon icon="solar:magnifer-linear" width={20} className="text-[#A8A29E]" />
           <input
             ref={inputRef}
@@ -80,7 +82,7 @@ export default function SearchModal({ open, onClose }) {
           {loading && (
             <div className="w-4 h-4 border-2 border-[#D97757] border-t-transparent rounded-full animate-spin" />
           )}
-          <kbd className="text-[10px] bg-[#2C2825] text-[#A8A29E] px-1.5 py-0.5 rounded">
+          <kbd className="text-[10px] bg-[#1C1917] border border-[#44403C]/80 text-[#A8A29E] px-1.5 py-0.5 rounded">
             ESC
           </kbd>
         </div>
@@ -97,17 +99,20 @@ export default function SearchModal({ open, onClose }) {
             </div>
           )}
           {results.length > 0 && (
-            <div className="divide-y divide-[#2C2825]">
+            <div className="divide-y divide-[#44403C]/50">
               {results.map((r) => {
                 const cat = r.category ? KB_CATEGORY_BY_SLUG[r.category] : null;
+                const ia = KB_CATEGORY_ICON_ACCENT;
                 return (
                   <Link
                     key={r.documentId || r.title}
                     href={r.documentId ? `/knowledge/${r.documentId}` : "#"}
                     onClick={onClose}
-                    className="flex items-start gap-3 px-4 py-3 hover:bg-[#2C2825]/40 transition"
+                    className="flex items-start gap-3 px-4 py-3 hover:bg-[#1C1917]/80 transition"
                   >
-                    <div className="w-8 h-8 rounded-md bg-[#2C2825] flex items-center justify-center text-[#A8A29E] shrink-0">
+                    <div
+                      className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 border ${ia.bg} ${ia.text} ${ia.border}`}
+                    >
                       <Icon icon={cat?.icon || "solar:file-text-linear"} width={16} />
                     </div>
                     <div className="flex-1 min-w-0">

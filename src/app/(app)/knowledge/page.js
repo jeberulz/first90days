@@ -1,21 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Icon } from "@iconify/react";
-import AIBrainStatusCard from "@/components/knowledge/AIBrainStatusCard";
+import KnowledgeStatusCard from "@/components/knowledge/KnowledgeStatusCard";
+import DraftReviewQueue from "@/components/knowledge/DraftReviewQueue";
 import KnowledgeMap from "@/components/knowledge/KnowledgeMap";
-import AIMemoryStream from "@/components/knowledge/AIMemoryStream";
 import ConnectedSources from "@/components/knowledge/ConnectedSources";
 import AIEnrichmentQueue from "@/components/knowledge/AIEnrichmentQueue";
 import RecentEntriesTable from "@/components/knowledge/RecentEntriesTable";
 import AddKnowledgeModal from "@/components/knowledge/AddKnowledgeModal";
 import SearchModal from "@/components/knowledge/SearchModal";
 import { ErrorBoundary } from "@/components/primitives";
+import { kbToolbarBtn } from "@/lib/kbKnowledgeChrome";
+import { cn } from "@/lib/utils";
 
 function SectionErrorFallback({ label }) {
   return (
-    <div className="rounded-xl border border-warm-borderDark bg-warm-cardDark/60 px-4 py-6 text-center">
-      <p className="font-space-grotesk text-sm text-warm-300">
+    <div className="rounded-xl border border-[#44403C]/90 bg-[#1C1917]/60 px-4 py-6 text-center">
+      <p className="font-space-grotesk text-sm text-[#A8A29E]">
         {label} couldn&apos;t load. Refresh the page or try again shortly.
       </p>
     </div>
@@ -24,7 +26,16 @@ function SectionErrorFallback({ label }) {
 
 export default function KnowledgeBasePage() {
   const [addOpen, setAddOpen] = useState(false);
+  const [addCategory, setAddCategory] = useState(undefined);
   const [searchOpen, setSearchOpen] = useState(false);
+
+  // Open Add Knowledge modal, optionally pre-filled with a category. The
+  // KnowledgeStatusCard "Add <empty category>" CTA wires through this so a
+  // single click jumps straight to filling the gap.
+  const handleOpenAdd = useCallback((category) => {
+    setAddCategory(category);
+    setAddOpen(true);
+  }, []);
 
   // Cmd+K shortcut — only on /knowledge* routes (this page lives there).
   useEffect(() => {
@@ -48,30 +59,36 @@ export default function KnowledgeBasePage() {
           <h1 className="font-instrument-serif tracking-[-0.5px] sm:tracking-[-0.9px] text-2xl sm:text-3xl md:text-4xl leading-tight text-white">
             Knowledge Base
           </h1>
-          <p className="text-xs sm:text-sm text-[#A8A29E] mt-1">
-            Your AI-enriched memory — everything First90 knows about your onboarding context.
+          <p className="font-space-grotesk text-xs sm:text-sm text-[#A8A29E] mt-1">
+            Everything First90 knows about your role, team, and company. Used to ground every plan and suggestion.
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setSearchOpen(true)}
             aria-label="Search knowledge"
-            className="flex sm:hidden items-center justify-center w-11 h-11 rounded-lg border border-[#2C2825] bg-[#1C1917] text-[#A8A29E] hover:border-[#D97757]/30"
+            className={cn(
+              kbToolbarBtn,
+              "flex sm:hidden items-center justify-center w-11 h-11"
+            )}
           >
             <Icon icon="solar:magnifer-linear" width={18} />
           </button>
           <button
             onClick={() => setSearchOpen(true)}
-            className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg border border-[#2C2825] bg-[#1C1917] text-sm text-[#A8A29E] hover:border-[#D97757]/30 min-h-11"
+            className={cn(
+              kbToolbarBtn,
+              "hidden sm:flex items-center gap-2 px-3 py-2 text-sm min-h-11"
+            )}
           >
             <Icon icon="solar:magnifer-linear" width={16} />
             <span>Search knowledge…</span>
-            <kbd className="ml-2 text-[10px] bg-[#2C2825] text-[#A8A29E] px-1.5 py-0.5 rounded">
+            <kbd className="ml-2 text-[10px] bg-[#1C1917] border border-[#44403C]/80 text-[#A8A29E] px-1.5 py-0.5 rounded">
               ⌘K
             </kbd>
           </button>
           <button
-            onClick={() => setAddOpen(true)}
+            onClick={() => handleOpenAdd(undefined)}
             className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-accent hover:bg-accent-hover text-white text-sm font-medium transition-colors shadow-sm min-h-11"
           >
             <Icon icon="solar:add-circle-linear" width={16} />
@@ -81,9 +98,14 @@ export default function KnowledgeBasePage() {
         </div>
       </div>
 
-      {/* AI Brain Status */}
-      <ErrorBoundary fallback={<SectionErrorFallback label="Brain status" />}>
-        <AIBrainStatusCard />
+      {/* Knowledge Status */}
+      <ErrorBoundary fallback={<SectionErrorFallback label="Knowledge status" />}>
+        <KnowledgeStatusCard onAddKnowledge={handleOpenAdd} />
+      </ErrorBoundary>
+
+      {/* Company research drafts awaiting review */}
+      <ErrorBoundary fallback={<SectionErrorFallback label="Research drafts" />}>
+        <DraftReviewQueue />
       </ErrorBoundary>
 
       {/* Knowledge Map */}
@@ -91,29 +113,30 @@ export default function KnowledgeBasePage() {
         <KnowledgeMap />
       </ErrorBoundary>
 
-      {/* Two-col: memory stream + sources/queue */}
+      {/* Two-col: recent entries (primary) + sources/queue (meta).
+          Memory stream lives on each doc detail page now (DocumentMemoryList)
+          since memories are an audit trail of one doc, not a top-level surface. */}
       <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
         <div className="xl:col-span-3">
-          <ErrorBoundary fallback={<SectionErrorFallback label="AI memory stream" />}>
-            <AIMemoryStream />
+          <ErrorBoundary fallback={<SectionErrorFallback label="Recent entries" />}>
+            <RecentEntriesTable />
           </ErrorBoundary>
         </div>
         <div className="xl:col-span-2 space-y-6">
           <ErrorBoundary fallback={<SectionErrorFallback label="Connected sources" />}>
             <ConnectedSources />
           </ErrorBoundary>
-          <ErrorBoundary fallback={<SectionErrorFallback label="Enrichment queue" />}>
+          <ErrorBoundary fallback={<SectionErrorFallback label="Processing queue" />}>
             <AIEnrichmentQueue />
           </ErrorBoundary>
         </div>
       </div>
 
-      {/* Recent entries */}
-      <ErrorBoundary fallback={<SectionErrorFallback label="Recent entries" />}>
-        <RecentEntriesTable />
-      </ErrorBoundary>
-
-      <AddKnowledgeModal open={addOpen} onClose={() => setAddOpen(false)} />
+      <AddKnowledgeModal
+        open={addOpen}
+        defaultCategory={addCategory}
+        onClose={() => setAddOpen(false)}
+      />
       <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
   );

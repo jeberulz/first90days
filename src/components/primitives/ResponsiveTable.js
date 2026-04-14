@@ -15,14 +15,23 @@ export default function ResponsiveTable({
   loading = false,
   className,
   cardClassName,
+  /** When set, borders match /knowledge chrome (#44403C) instead of warm-* */
+  variant = "default",
 }) {
+  const kb = variant === "knowledge";
+
   if (loading) {
     return (
       <div className="space-y-2">
         {[0, 1, 2].map((i) => (
           <div
             key={i}
-            className="h-14 rounded-xl border border-warm-borderDark bg-warm-cardDark/60 animate-pulse"
+            className={cn(
+              "h-14 rounded-xl border animate-pulse",
+              kb
+                ? "border-[#44403C]/90 bg-[#1C1917]/60"
+                : "border-warm-borderDark bg-warm-cardDark/60"
+            )}
           />
         ))}
       </div>
@@ -31,7 +40,14 @@ export default function ResponsiveTable({
 
   if (!rows || rows.length === 0) {
     return (
-      <div className="rounded-xl border border-warm-borderDark bg-warm-cardDark/60 px-4 py-8 text-center font-space-grotesk text-sm text-warm-300">
+      <div
+        className={cn(
+          "rounded-xl border px-4 py-8 text-center font-space-grotesk text-sm",
+          kb
+            ? "border-[#44403C]/90 bg-[#1C1917]/60 text-[#A8A29E]"
+            : "border-warm-borderDark bg-warm-cardDark/60 text-warm-300"
+        )}
+      >
         {emptyLabel}
       </div>
     );
@@ -45,15 +61,28 @@ export default function ResponsiveTable({
   return (
     <div className={className}>
       {/* Desktop / tablet table */}
-      <div className="hidden md:block overflow-x-auto rounded-xl border border-warm-borderDark">
+      <div
+        className={cn(
+          "hidden md:block overflow-x-auto rounded-xl border",
+          kb ? "border-[#44403C]/90" : "border-warm-borderDark"
+        )}
+      >
         <table className="w-full">
           <thead>
-            <tr className="border-b border-warm-borderDark bg-warm-cardDark/40">
+            <tr
+              className={cn(
+                "border-b",
+                kb
+                  ? "border-[#44403C]/55 bg-[#1C1917]/45"
+                  : "border-warm-borderDark bg-warm-cardDark/40"
+              )}
+            >
               {columns.map((col) => (
                 <th
                   key={col.key}
                   className={cn(
-                    "text-left font-space-grotesk text-xs font-medium uppercase tracking-wider text-warm-300 px-4 py-3",
+                    "text-left font-space-grotesk text-xs font-medium uppercase tracking-wider px-4 py-3",
+                    kb ? "text-[#A8A29E]" : "text-warm-300",
                     col.hideBelow && HIDE_BELOW_MAP[col.hideBelow],
                     col.headerClassName
                   )}
@@ -67,13 +96,19 @@ export default function ResponsiveTable({
             {rows.map((row) => (
               <tr
                 key={getRowKey(row)}
-                className="border-b border-warm-borderDark/60 last:border-b-0 hover:bg-warm-surfaceDark/40 transition-colors"
+                className={cn(
+                  "border-b last:border-b-0 transition-colors",
+                  kb
+                    ? "border-[#44403C]/40 hover:bg-[#1C1917]/55"
+                    : "border-warm-borderDark/60 hover:bg-warm-surfaceDark/40"
+                )}
               >
                 {columns.map((col) => (
                   <td
                     key={col.key}
                     className={cn(
-                      "px-4 py-3 font-space-grotesk text-sm text-warm-line align-top",
+                      "px-4 py-3 font-space-grotesk text-sm align-top",
+                      kb ? "text-[#E7E5E4]" : "text-warm-line",
                       col.hideBelow && HIDE_BELOW_MAP[col.hideBelow],
                       col.cellClassName
                     )}
@@ -93,24 +128,47 @@ export default function ResponsiveTable({
           <div
             key={getRowKey(row)}
             className={cn(
-              "rounded-xl border border-warm-borderDark bg-warm-cardDark p-4 space-y-3",
+              "rounded-xl border p-4 space-y-3",
+              kb
+                ? "border-[#44403C]/90 bg-[#1C1917]"
+                : "border-warm-borderDark bg-warm-cardDark",
               cardClassName
             )}
           >
-            <div className="font-space-grotesk text-sm text-warm-line">
+            <div
+              className={cn(
+                "font-space-grotesk text-sm",
+                kb ? "text-[#E7E5E4]" : "text-warm-line"
+              )}
+            >
               {primaryColumn.cell(row)}
             </div>
             {mobileSecondaryColumns.length > 0 && (
-              <dl className="grid grid-cols-1 gap-2 pt-2 border-t border-warm-borderDark/60">
+              <dl
+                className={cn(
+                  "grid grid-cols-1 gap-2 pt-2 border-t",
+                  kb ? "border-[#44403C]/50" : "border-warm-borderDark/60"
+                )}
+              >
                 {mobileSecondaryColumns.map((col) => (
                   <div
                     key={col.key}
                     className="flex items-start justify-between gap-3"
                   >
-                    <dt className="font-space-grotesk text-[11px] font-medium uppercase tracking-wider text-warm-300 shrink-0">
+                    <dt
+                      className={cn(
+                        "font-space-grotesk text-[11px] font-medium uppercase tracking-wider shrink-0",
+                        kb ? "text-[#A8A29E]" : "text-warm-300"
+                      )}
+                    >
                       {col.header}
                     </dt>
-                    <dd className="font-space-grotesk text-sm text-warm-line text-right min-w-0">
+                    <dd
+                      className={cn(
+                        "font-space-grotesk text-sm text-right min-w-0",
+                        kb ? "text-[#E7E5E4]" : "text-warm-line"
+                      )}
+                    >
                       {col.cell(row)}
                     </dd>
                   </div>

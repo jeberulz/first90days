@@ -47,6 +47,7 @@ export const save = mutation({
     existingContext: v.optional(v.string()),
     challenges: v.optional(v.string()),
     successDefinition: v.optional(v.string()),
+    jobDescription: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const userId = await auth.getUserId(ctx);

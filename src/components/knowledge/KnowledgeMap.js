@@ -4,10 +4,9 @@ import Link from "next/link";
 import { useQuery } from "convex/react";
 import { Icon } from "@iconify/react";
 import { api } from "../../../convex/_generated/api";
-import {
-  KB_CATEGORIES,
-  ACCENT_CLASSES,
-} from "@/lib/kbCategories";
+import { KB_CATEGORIES, KB_CATEGORY_ICON_ACCENT } from "@/lib/kbCategories";
+import { kbCard, kbCardHover } from "@/lib/kbKnowledgeChrome";
+import { cn } from "@/lib/utils";
 
 export default function KnowledgeMap() {
   const stats = useQuery(api.kb.categoryStats);
@@ -23,39 +22,26 @@ export default function KnowledgeMap() {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {KB_CATEGORIES.map((cat) => {
           const stat = byCat[cat.slug];
-          const accent = ACCENT_CLASSES[cat.accent] || ACCENT_CLASSES.brand;
-          const enrichmentPct = stat?.enrichmentPct ?? 0;
           const running = stat?.running ?? 0;
-          let badgeLabel;
-          let badgeClass;
-          if (running > 0) {
-            badgeLabel = "Enriching…";
-            badgeClass =
-              "bg-[#1F1510] text-[#D97757] border border-[#D97757]/20";
-          } else if (enrichmentPct >= 80 && (stat?.count ?? 0) > 0) {
-            badgeLabel = "AI Enriched";
-            badgeClass =
-              "bg-emerald-900/20 text-emerald-400 border border-emerald-800/50";
-          } else {
-            badgeLabel = "Manual";
-            badgeClass = "bg-[#2C2825] text-[#A8A29E]";
-          }
 
           return (
             <Link
               key={cat.slug}
               href={`/knowledge/category/${cat.slug}`}
-              className="group bg-[#1C1917] rounded-xl border border-[#2C2825] p-5 shadow-sm hover:shadow-md hover:border-[#D97757]/20 transition-all"
+              className={cn("group p-5", kbCard, kbCardHover)}
             >
               <div className="flex items-start justify-between mb-4">
-                <div className={`p-2 rounded-lg ${accent.bg} ${accent.text} border ${accent.border}`}>
+                <div
+                  className={`p-2 rounded-lg border ${KB_CATEGORY_ICON_ACCENT.bg} ${KB_CATEGORY_ICON_ACCENT.text} ${KB_CATEGORY_ICON_ACCENT.border}`}
+                >
                   <Icon icon={cat.icon} width={20} />
                 </div>
-                <span
-                  className={`flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full ${badgeClass}`}
-                >
-                  {badgeLabel}
-                </span>
+                {running > 0 && (
+                  <span className="flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-[#1F1510] text-[#D97757] border border-[#D97757]/25">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#D97757] animate-pulse" />
+                    Processing
+                  </span>
+                )}
               </div>
               <h3 className="text-sm font-medium tracking-tight text-white mb-1">
                 {cat.label}

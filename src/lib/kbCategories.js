@@ -112,18 +112,26 @@ export const ACCENT_CLASSES = {
   },
 };
 
+/** Knowledge Map + category headers: same warm icon tile as Your Goals & Notes. */
+export const KB_CATEGORY_ICON_ACCENT = ACCENT_CLASSES.brand;
+
+// Provenance labels — what the user sees in the Source column / connectors list.
+// Frame as "where did this come from" in plain language, not internal type names.
 export const SOURCE_TYPE_LABELS = {
-  manual: "Manual",
-  upload: "Upload",
-  reflection_autocapture: "Reflection",
-  interaction_autocapture: "Interaction",
-  activity_completion_autocapture: "Activity Note",
-  ai_generated: "AI Generated",
+  manual: "Added by you",
+  upload: "File upload",
+  reflection_autocapture: "From a reflection",
+  interaction_autocapture: "From a stakeholder note",
+  activity_completion_autocapture: "From an activity",
+  ai_generated: "From research",
 };
 
+// Status labels used by the Recent Entries Type column. Most of the time we
+// only care whether something is "ready" (we collapse all success states) vs
+// still being processed.
 export const TYPE_BADGE_LABELS = {
-  ai_enriched: "AI Enriched",
-  ai_generated: "AI Generated",
-  imported: "Imported",
-  draft: "Draft",
+  ai_enriched: "Ready",
+  ai_generated: "Ready",
+  imported: "Ready",
+  draft: "Processing",
 };

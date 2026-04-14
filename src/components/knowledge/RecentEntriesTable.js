@@ -6,11 +6,13 @@ import { Icon } from "@iconify/react";
 import { api } from "../../../convex/_generated/api";
 import {
   KB_CATEGORY_BY_SLUG,
-  ACCENT_CLASSES,
+  KB_CATEGORY_ICON_ACCENT,
   SOURCE_TYPE_LABELS,
   TYPE_BADGE_LABELS,
 } from "@/lib/kbCategories";
+import { kbCard } from "@/lib/kbKnowledgeChrome";
 import { ResponsiveTable } from "@/components/primitives";
+import { cn } from "@/lib/utils";
 
 function relativeTime(ts) {
   if (!ts) return "—";
@@ -26,18 +28,14 @@ function relativeTime(ts) {
   return new Date(ts).toLocaleDateString();
 }
 
-function TypeBadge({ type }) {
-  const map = {
-    ai_enriched: { icon: "solar:verified-check-linear", className: "text-emerald-400" },
-    ai_generated: { icon: "solar:cpu-bolt-linear", className: "text-[#D97757]" },
-    imported: { icon: "solar:document-linear", className: "text-[#A8A29E]" },
-    draft: { icon: "solar:pen-linear", className: "text-[#A8A29E]" },
-  };
-  const meta = map[type] || map.draft;
+// Returns null for any "ready" state — the user only needs to see this column
+// when something is actually still processing.
+function ProcessingBadge({ type }) {
+  if (type !== "draft") return null;
   return (
-    <div className={`inline-flex items-center gap-1 text-[11px] font-medium ${meta.className}`}>
-      <Icon icon={meta.icon} width={12} />
-      {TYPE_BADGE_LABELS[type] || type}
+    <div className="inline-flex items-center gap-1 text-[11px] font-medium text-[#D97757]">
+      <Icon icon="solar:refresh-circle-linear" width={12} />
+      {TYPE_BADGE_LABELS[type]}
     </div>
   );
 }
@@ -45,10 +43,10 @@ function TypeBadge({ type }) {
 function CategoryBadge({ slug }) {
   const cat = KB_CATEGORY_BY_SLUG[slug];
   if (!cat) return null;
-  const accent = ACCENT_CLASSES[cat.accent];
+  const a = KB_CATEGORY_ICON_ACCENT;
   return (
     <span
-      className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full border ${accent.bg} ${accent.text} ${accent.border}`}
+      className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full border ${a.bg} ${a.text} ${a.border}`}
     >
       {cat.label}
     </span>
@@ -57,13 +55,11 @@ function CategoryBadge({ slug }) {
 
 function EntryCell({ doc }) {
   const cat = KB_CATEGORY_BY_SLUG[doc.category];
-  const accent = cat ? ACCENT_CLASSES[cat.accent] : null;
+  const a = KB_CATEGORY_ICON_ACCENT;
   return (
     <Link href={`/knowledge/${doc._id}`} className="flex items-center gap-3 group">
       <div
-        className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 border ${
-          accent ? `${accent.bg} ${accent.text} ${accent.border}` : "bg-[#2C2825] border-[#44403C]"
-        }`}
+        className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 border ${a.bg} ${a.text} ${a.border}`}
       >
         <Icon icon={cat?.icon || "solar:file-text-linear"} width={14} />
       </div>
@@ -76,6 +72,10 @@ function EntryCell({ doc }) {
 
 export default function RecentEntriesTable() {
   const docs = useQuery(api.kb.recentDocuments, { limit: 8 });
+
+  // Only show the status column when at least one row is still processing.
+  // If everything is ready, the column adds noise without information.
+  const hasProcessing = (docs || []).some((d) => d.type === "draft");
 
   const columns = [
     {
@@ -100,11 +100,15 @@ export default function RecentEntriesTable() {
         </span>
       ),
     },
-    {
-      key: "type",
-      header: "Type",
-      cell: (d) => <TypeBadge type={d.type} />,
-    },
+    ...(hasProcessing
+      ? [
+          {
+            key: "status",
+            header: "Status",
+            cell: (d) => <ProcessingBadge type={d.type} />,
+          },
+        ]
+      : []),
     {
       key: "updated",
       header: "Updated",
@@ -117,13 +121,15 @@ export default function RecentEntriesTable() {
   ];
 
   return (
-    <section className="bg-[#1C1917] rounded-xl border border-[#2C2825] shadow-sm overflow-hidden">
+    <section className={cn(kbCard, "overflow-hidden")}>
       <div className="flex items-center justify-between p-4 sm:p-6 pb-3 sm:pb-4">
         <div className="flex items-center gap-2">
-          <div className="p-1.5 bg-[#2C2825] rounded-md text-white">
+          <div
+            className={`p-1.5 rounded-md border shrink-0 ${KB_CATEGORY_ICON_ACCENT.bg} ${KB_CATEGORY_ICON_ACCENT.text} ${KB_CATEGORY_ICON_ACCENT.border}`}
+          >
             <Icon icon="solar:clock-circle-linear" width={18} />
           </div>
-          <h2 className="text-base font-medium tracking-tight text-white">
+          <h2 className="text-lg font-medium tracking-tight text-white">
             Recent Entries
           </h2>
         </div>
@@ -135,7 +141,8 @@ export default function RecentEntriesTable() {
           rows={docs || []}
           getRowKey={(d) => d._id}
           loading={docs === undefined}
-          emptyLabel="No entries yet. Click Add Knowledge above to seed the brain."
+          emptyLabel="No entries yet. Click Add Knowledge above to add your first one."
+          variant="knowledge"
         />
       </div>
     </section>
