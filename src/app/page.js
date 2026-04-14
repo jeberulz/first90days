@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Navbar } from "@/components/ui/Navbar";
 import { Hero } from "@/components/ui/Hero";
 import { Mockup } from "@/components/ui/Mockup";
@@ -7,6 +6,7 @@ import { FeatureManagerSync } from "@/components/ui/FeatureManagerSync";
 import { FeatureProgress } from "@/components/ui/FeatureProgress";
 import { FeatureKnowledge } from "@/components/ui/FeatureKnowledge";
 import { HowItWorks } from "@/components/ui/HowItWorks";
+import { WaitlistForm } from "@/components/ui/WaitlistForm";
 import { Footer } from "@/components/ui/Footer";
 
 export default function Home() {
@@ -32,25 +32,12 @@ export default function Home() {
       <section className="py-16 sm:py-24 lg:py-32 relative overflow-hidden bg-[#F5F2E8] dark:bg-[#0F0E0D] transition-colors duration-300">
         <div className="max-w-xl mx-auto px-4 sm:px-6 text-center relative z-10">
           <h2 className="t-display-md tracking-tight mb-4 sm:mb-6 text-[#1C1917] dark:text-white">
-            Ready to hit the ground running?
+            Start your first 90 days with a plan.
           </h2>
           <p className="text-sm sm:text-base text-[#57534E] dark:text-[#D6D3D1] mb-6 sm:mb-8 font-normal font-space-grotesk">
-            Join 10,000+ professionals who mastered their onboarding.
+            Join the waitlist and get early access when we launch in May 2026.
           </p>
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4">
-            <Link
-              href="/signup"
-              className="w-full sm:w-auto bg-accent h-12 px-6 sm:px-8 rounded-full text-sm font-semibold hover:bg-accent-hover transition-colors shadow-lg shadow-orange-500/20 font-space-grotesk text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0F0E0D] flex items-center justify-center"
-            >
-              Get Started Free
-            </Link>
-            <Link
-              href="/login"
-              className="w-full sm:w-auto border h-12 px-6 sm:px-8 rounded-full text-sm font-semibold transition-colors font-space-grotesk border-[#D1CDC7] dark:border-[#44403C] text-[#1C1917] dark:text-white dark:hover:bg-[#1C1917] hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-accent flex items-center justify-center"
-            >
-              Log in
-            </Link>
-          </div>
+          <WaitlistForm source="cta" />
         </div>
       </section>
 

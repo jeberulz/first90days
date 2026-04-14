@@ -646,4 +646,14 @@ export default defineSchema({
     processedAt: v.number(),
     error: v.optional(v.string()),
   }).index("by_event", ["eventId"]),
+
+  // ── Waitlist signups ────────────────────────────────────────────────────────
+  // Captures pre-launch email signups from the landing page.
+  waitlistSignups: defineTable({
+    email: v.string(),
+    source: v.optional(v.string()), // e.g. "hero", "cta", "footer"
+    createdAt: v.number(),
+  })
+    .index("by_email", ["email"])
+    .index("by_created", ["createdAt"]),
 });

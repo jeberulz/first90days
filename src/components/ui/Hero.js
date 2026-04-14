@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { WaitlistForm } from "@/components/ui/WaitlistForm";
 
 export function Hero() {
   return (
@@ -8,7 +8,7 @@ export function Hero() {
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75" />
           <span className="relative inline-flex rounded-full h-2 w-2 bg-accent" />
         </span>
-        <span className="font-space-grotesk">Support all roles</span>
+        <span className="font-space-grotesk">Early Access — Launching May 2026</span>
       </div>
 
       <h1
@@ -27,27 +27,18 @@ export function Hero() {
         className="t-body-lg text-[#57534E] dark:text-[#D6D3D1] max-w-2xl mx-auto mb-8 sm:mb-10 font-normal animate-fade-up px-2"
         style={{ animationDelay: "0.2s" }}
       >
-        Finally — anyone can generate a comprehensive, role-specific 30-60-90 day
-        plan instantly using AI. Align with your manager and hit the ground
-        running.
+        Generate a tailored 30-60-90 day plan in 5 minutes. Get daily actions,
+        align with your manager, and ramp faster — no more guessing what success looks like.
       </p>
 
       <div
-        className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4 animate-fade-up max-w-sm sm:max-w-none mx-auto"
+        className="animate-fade-up"
         style={{ animationDelay: "0.3s" }}
       >
-        <Link
-          href="/signup"
-          className="h-12 px-6 sm:px-8 rounded-full bg-[#F5F2E8] dark:bg-[#1C1917] text-[#1C1917] dark:text-white border border-[#A8A29E] dark:border-[#44403C] font-semibold font-space-grotesk dark:hover:bg-[#2C2825] hover:shadow-md transition-all flex items-center justify-center gap-2 hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-        >
-          Start for free
-        </Link>
-        <Link
-          href="/login"
-          className="h-12 px-6 sm:px-8 rounded-full bg-transparent text-[#57534E] dark:text-[#D6D3D1] font-semibold font-space-grotesk hover:text-[#1C1917] dark:hover:text-white transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-accent flex items-center justify-center"
-        >
-          Log in →
-        </Link>
+        <WaitlistForm source="hero" className="mb-4" />
+        <p className="text-xs text-[#A8A29E] font-space-grotesk">
+          No spam. Unsubscribe anytime.
+        </p>
       </div>
     </div>
   );
