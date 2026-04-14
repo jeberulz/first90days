@@ -3,19 +3,34 @@
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
 
+const MESSAGES = [
+  "Analyzing your role and goals...",
+  "Mapping your stakeholder landscape...",
+  "Building your 30-day priorities...",
+  "Crafting week-by-week activities...",
+  "Finalizing your 90-day plan...",
+];
+
+const MESSAGE_INTERVAL_MS = 3500;
+const SLOW_THRESHOLD_S = 15;
+
 export default function CompletionOverlay({ error, onRetry, onDashboard }) {
   const [progress, setProgress] = useState(0);
   const [ready, setReady] = useState(false);
-  const intervalRef = useRef(null);
+  const [messageIdx, setMessageIdx] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
+  const progressRef = useRef(null);
+  const messageRef = useRef(null);
+  const elapsedRef = useRef(null);
 
   useEffect(() => {
     if (error) return;
 
-    intervalRef.current = setInterval(() => {
+    progressRef.current = setInterval(() => {
       setProgress((prev) => {
         const next = prev + Math.random() * 12 + 4;
         if (next >= 100) {
-          clearInterval(intervalRef.current);
+          clearInterval(progressRef.current);
           setTimeout(() => setReady(true), 600);
           return 100;
         }
@@ -23,7 +38,19 @@ export default function CompletionOverlay({ error, onRetry, onDashboard }) {
       });
     }, 500);
 
-    return () => clearInterval(intervalRef.current);
+    messageRef.current = setInterval(() => {
+      setMessageIdx((prev) => (prev + 1) % MESSAGES.length);
+    }, MESSAGE_INTERVAL_MS);
+
+    elapsedRef.current = setInterval(() => {
+      setElapsed((prev) => prev + 1);
+    }, 1000);
+
+    return () => {
+      clearInterval(progressRef.current);
+      clearInterval(messageRef.current);
+      clearInterval(elapsedRef.current);
+    };
   }, [error]);
 
   if (error) {
@@ -68,10 +95,22 @@ export default function CompletionOverlay({ error, onRetry, onDashboard }) {
         <div className="onboarding-fade-in-d4">
           {!ready ? (
             <div className="mb-8">
-              <div className="flex items-center justify-center gap-3 text-sm text-warm-500 mb-4">
-                <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-                <span>Generating your plan...</span>
+              <div className="flex items-center justify-center gap-3 text-sm text-warm-500 mb-3 min-h-[1.5rem]">
+                <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin shrink-0" />
+                <span
+                  key={messageIdx}
+                  className="animate-fade-in-up"
+                  aria-live="polite"
+                  aria-atomic="true"
+                >
+                  {MESSAGES[messageIdx]}
+                </span>
               </div>
+              {elapsed >= SLOW_THRESHOLD_S && (
+                <p className="text-xs text-warm-300 mb-3 animate-fade-in-up">
+                  Taking a little longer than usual — almost there.
+                </p>
+              )}
               <div className="w-full bg-warm-line rounded-full h-1.5 max-w-xs mx-auto overflow-hidden">
                 <div
                   className="bg-accent h-1.5 rounded-full transition-all duration-1000"
