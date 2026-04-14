@@ -635,6 +635,9 @@ export default defineSchema({
     cancelAtPeriodEnd: v.boolean(),
     stripeUpdatedAt: v.number(),
     updatedAt: v.number(),
+    // Set when invoice.payment_failed fires; cleared when subscription recovers
+    // to active/trialing. Used by in-app UI to surface a payment failure banner.
+    paymentFailedAt: v.optional(v.number()),
   })
     .index("by_user", ["userId"])
     .index("by_stripe_customer", ["stripeCustomerId"])

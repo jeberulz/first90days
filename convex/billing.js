@@ -4,6 +4,7 @@ import {
   internalQuery,
   query,
 } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { auth } from "./auth";
 import {
   BILLING_TIERS,
@@ -46,6 +47,7 @@ export async function computeEntitlements(ctx, userId) {
     currentPeriodEnd: sub?.currentPeriodEnd ?? null,
     dailyEnrichCap: capForTier(tier),
     usedToday: user.settings?.kb?.enrichmentBudgetUsedToday ?? 0,
+    paymentFailedAt: sub?.paymentFailedAt ?? null,
   };
 }
 
@@ -77,8 +79,10 @@ export const processStripeEvent = internalMutation({
         eventType === "customer.subscription.deleted"
       ) {
         await handleSubscriptionEvent(ctx, payload, eventType);
+      } else if (eventType === "invoice.payment_failed") {
+        await handlePaymentFailed(ctx, payload);
       }
-      // invoice.paid + invoice.payment_failed: logged for idempotency only.
+      // invoice.paid: logged for idempotency only.
       // subscription.updated carries the authoritative status change.
 
       await ctx.db.insert("billingWebhookLog", {
@@ -199,6 +203,55 @@ async function handleSubscriptionEvent(ctx, sub, eventType) {
       await ctx.db.patch(user._id, { billingTier: cached });
     }
   }
+
+  // Clear paymentFailedAt when subscription recovers to a healthy state.
+  if (
+    (sub.status === "active" || sub.status === "trialing") &&
+    existing?.paymentFailedAt !== undefined
+  ) {
+    await ctx.db.patch(existing._id, { paymentFailedAt: undefined });
+  }
+}
+
+/**
+ * Handle invoice.payment_failed: record the failure timestamp on the
+ * subscription row so the in-app UI can surface a payment failure banner,
+ * and schedule an email notification to the user.
+ *
+ * The subscription status transition to past_due is delivered separately via
+ * customer.subscription.updated; this event adds the precise failure timestamp
+ * and triggers dunning outreach.
+ */
+async function handlePaymentFailed(ctx, invoice) {
+  const customerId =
+    typeof invoice.customer === "string" ? invoice.customer : null;
+  if (!customerId) {
+    console.warn("[invoice.payment_failed] missing customer field on invoice");
+    return;
+  }
+
+  const sub = await ctx.db
+    .query("billingSubscriptions")
+    .withIndex("by_stripe_customer", (q) =>
+      q.eq("stripeCustomerId", customerId)
+    )
+    .first();
+
+  if (!sub) {
+    console.warn(
+      `[invoice.payment_failed] no subscription found for customer ${customerId}`
+    );
+    return;
+  }
+
+  await ctx.db.patch(sub._id, { paymentFailedAt: Date.now() });
+
+  // Schedule out-of-transaction email notification — fire and forget.
+  await ctx.scheduler.runAfter(
+    0,
+    internal.billingActions.sendPaymentFailedNotification,
+    { userId: sub.userId }
+  );
 }
 
 /**

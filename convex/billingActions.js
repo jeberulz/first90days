@@ -96,3 +96,70 @@ export const cancelSubscriptionForUser = internalAction({
     });
   },
 });
+
+/**
+ * Send a payment failure notification to the user. Triggered by the
+ * invoice.payment_failed webhook handler. Uses Beehiiv to trigger a dunning
+ * automation if BEEHIIV_PAYMENT_FAILED_AUTOMATION_ID is configured; logs a
+ * warning and returns cleanly otherwise so missing config doesn't block the
+ * webhook from succeeding.
+ *
+ * To enable: create a "Payment Failed" automation in the Beehiiv dashboard
+ * and set BEEHIIV_PAYMENT_FAILED_AUTOMATION_ID to its ID.
+ */
+export const sendPaymentFailedNotification = internalAction({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => {
+    const user = await ctx.runQuery(
+      internal.billing.getUserForBillingInternal,
+      { userId }
+    );
+    if (!user?.email) {
+      console.warn(
+        `[sendPaymentFailedNotification] no email for user ${userId} — skipping`
+      );
+      return;
+    }
+
+    const apiKey = process.env.BEEHIIV_API_KEY;
+    const publicationId = process.env.BEEHIIV_PUBLICATION_ID;
+    const automationId = process.env.BEEHIIV_PAYMENT_FAILED_AUTOMATION_ID;
+
+    if (!apiKey || !publicationId || !automationId) {
+      console.warn(
+        `[sendPaymentFailedNotification] payment failure email skipped for ` +
+          `${user.email} — BEEHIIV_PAYMENT_FAILED_AUTOMATION_ID not configured`
+      );
+      return;
+    }
+
+    const res = await fetch(
+      `https://api.beehiiv.com/v2/publications/${publicationId}/subscriptions`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          email: user.email,
+          reactivate_existing: false,
+          send_welcome_email: false,
+          automation_ids: [automationId],
+        }),
+      }
+    );
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      console.error(
+        `[sendPaymentFailedNotification] Beehiiv error for ${user.email}: ` +
+          `${res.status} ${JSON.stringify(data)}`
+      );
+    } else {
+      console.log(
+        `[sendPaymentFailedNotification] dunning email triggered for ${user.email}`
+      );
+    }
+  },
+});

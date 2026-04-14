@@ -180,6 +180,143 @@ describe("processStripeEvent", () => {
     expect(user.billingTier).toBe("pro_legacy");
   });
 
+  it("invoice.payment_failed sets paymentFailedAt on the subscription row", async () => {
+    const t = convexTest(schema);
+    const userId = await t.run(async (ctx) =>
+      ctx.db.insert("users", { email: "fail@example.com" })
+    );
+    const sub = buildSubscription({
+      metadata: { convexUserId: userId },
+      status: "past_due",
+    });
+    // First create the subscription via a subscription event
+    await t.mutation(internal.billing.processStripeEvent, {
+      eventId: "evt_sub_create",
+      eventType: "customer.subscription.created",
+      payload: sub,
+    });
+
+    const before = await t.run(async (ctx) =>
+      ctx.db
+        .query("billingSubscriptions")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .unique()
+    );
+    expect(before.paymentFailedAt).toBeUndefined();
+
+    // Now fire the payment_failed event
+    const invoicePayload = { customer: CUSTOMER_ID, id: "in_test_1" };
+    const beforeTs = Date.now();
+    await t.mutation(internal.billing.processStripeEvent, {
+      eventId: "evt_invoice_fail",
+      eventType: "invoice.payment_failed",
+      payload: invoicePayload,
+    });
+
+    const row = await t.run(async (ctx) =>
+      ctx.db
+        .query("billingSubscriptions")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .unique()
+    );
+    expect(row.paymentFailedAt).toBeGreaterThanOrEqual(beforeTs);
+  });
+
+  it("invoice.payment_failed is idempotent: duplicate event is a no-op", async () => {
+    const t = convexTest(schema);
+    const userId = await t.run(async (ctx) =>
+      ctx.db.insert("users", { email: "faildup@example.com" })
+    );
+    const sub = buildSubscription({ metadata: { convexUserId: userId } });
+    await t.mutation(internal.billing.processStripeEvent, {
+      eventId: "evt_sub_for_dup",
+      eventType: "customer.subscription.created",
+      payload: sub,
+    });
+
+    const invoicePayload = { customer: CUSTOMER_ID, id: "in_dup_1" };
+    await t.mutation(internal.billing.processStripeEvent, {
+      eventId: "evt_fail_dup",
+      eventType: "invoice.payment_failed",
+      payload: invoicePayload,
+    });
+    const firstTs = await t.run(async (ctx) => {
+      const row = await ctx.db
+        .query("billingSubscriptions")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .unique();
+      return row.paymentFailedAt;
+    });
+
+    // Same eventId — should be skipped
+    await t.mutation(internal.billing.processStripeEvent, {
+      eventId: "evt_fail_dup",
+      eventType: "invoice.payment_failed",
+      payload: invoicePayload,
+    });
+    const secondTs = await t.run(async (ctx) => {
+      const row = await ctx.db
+        .query("billingSubscriptions")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .unique();
+      return row.paymentFailedAt;
+    });
+    expect(secondTs).toBe(firstTs);
+  });
+
+  it("subscription recovery to active clears paymentFailedAt", async () => {
+    const t = convexTest(schema);
+    const userId = await t.run(async (ctx) =>
+      ctx.db.insert("users", { email: "recover@example.com" })
+    );
+    const nowSec = Math.floor(Date.now() / 1000);
+    const sub = buildSubscription({
+      metadata: { convexUserId: userId },
+      status: "past_due",
+      updated: nowSec - 10,
+    });
+    await t.mutation(internal.billing.processStripeEvent, {
+      eventId: "evt_sub_pastdue",
+      eventType: "customer.subscription.created",
+      payload: sub,
+    });
+
+    // Simulate payment_failed setting the timestamp
+    await t.mutation(internal.billing.processStripeEvent, {
+      eventId: "evt_fail_recover",
+      eventType: "invoice.payment_failed",
+      payload: { customer: CUSTOMER_ID, id: "in_recover_1" },
+    });
+    const afterFail = await t.run(async (ctx) => {
+      const row = await ctx.db
+        .query("billingSubscriptions")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .unique();
+      return row.paymentFailedAt;
+    });
+    expect(typeof afterFail).toBe("number");
+
+    // Subscription recovers to active
+    const recovered = buildSubscription({
+      metadata: { convexUserId: userId },
+      status: "active",
+      updated: nowSec,
+    });
+    await t.mutation(internal.billing.processStripeEvent, {
+      eventId: "evt_sub_recovered",
+      eventType: "customer.subscription.updated",
+      payload: recovered,
+    });
+
+    const row = await t.run(async (ctx) =>
+      ctx.db
+        .query("billingSubscriptions")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .unique()
+    );
+    expect(row.paymentFailedAt).toBeUndefined();
+  });
+
   it("checkout.session.completed sets trialUsedAt and stripeCustomerId", async () => {
     const t = convexTest(schema);
     const userId = await t.run(async (ctx) =>
