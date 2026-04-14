@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Icon } from "@iconify/react";
-import AIBrainStatusCard from "@/components/knowledge/AIBrainStatusCard";
+import KnowledgeStatusCard from "@/components/knowledge/KnowledgeStatusCard";
 import DraftReviewQueue from "@/components/knowledge/DraftReviewQueue";
 import KnowledgeMap from "@/components/knowledge/KnowledgeMap";
 import ConnectedSources from "@/components/knowledge/ConnectedSources";
@@ -26,7 +26,16 @@ function SectionErrorFallback({ label }) {
 
 export default function KnowledgeBasePage() {
   const [addOpen, setAddOpen] = useState(false);
+  const [addCategory, setAddCategory] = useState(undefined);
   const [searchOpen, setSearchOpen] = useState(false);
+
+  // Open Add Knowledge modal, optionally pre-filled with a category. The
+  // KnowledgeStatusCard "Add <empty category>" CTA wires through this so a
+  // single click jumps straight to filling the gap.
+  const handleOpenAdd = useCallback((category) => {
+    setAddCategory(category);
+    setAddOpen(true);
+  }, []);
 
   // Cmd+K shortcut — only on /knowledge* routes (this page lives there).
   useEffect(() => {
@@ -79,7 +88,7 @@ export default function KnowledgeBasePage() {
             </kbd>
           </button>
           <button
-            onClick={() => setAddOpen(true)}
+            onClick={() => handleOpenAdd(undefined)}
             className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-accent hover:bg-accent-hover text-white text-sm font-medium transition-colors shadow-sm min-h-11"
           >
             <Icon icon="solar:add-circle-linear" width={16} />
@@ -91,7 +100,7 @@ export default function KnowledgeBasePage() {
 
       {/* Knowledge Status */}
       <ErrorBoundary fallback={<SectionErrorFallback label="Knowledge status" />}>
-        <AIBrainStatusCard />
+        <KnowledgeStatusCard onAddKnowledge={handleOpenAdd} />
       </ErrorBoundary>
 
       {/* Company research drafts awaiting review */}
@@ -123,7 +132,11 @@ export default function KnowledgeBasePage() {
         </div>
       </div>
 
-      <AddKnowledgeModal open={addOpen} onClose={() => setAddOpen(false)} />
+      <AddKnowledgeModal
+        open={addOpen}
+        defaultCategory={addCategory}
+        onClose={() => setAddOpen(false)}
+      />
       <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { KB_CATEGORIES } from "@/lib/kbCategories";
@@ -12,6 +12,16 @@ export default function AddKnowledgeModal({ open, onClose, defaultCategory }) {
   const [content, setContent] = useState("");
   const [category, setCategory] = useState(defaultCategory || "goals_notes");
   const [submitting, setSubmitting] = useState(false);
+
+  // Sync the category select with the latest defaultCategory each time the
+  // modal is opened. Without this, opening from the "Add Team & People"
+  // suggestion CTA after previously opening from the generic Add button
+  // would still show the old selection.
+  useEffect(() => {
+    if (open) {
+      setCategory(defaultCategory || "goals_notes");
+    }
+  }, [open, defaultCategory]);
 
   async function handleSubmit(e) {
     e.preventDefault();
