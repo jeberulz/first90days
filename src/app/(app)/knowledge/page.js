@@ -51,7 +51,7 @@ export default function KnowledgeBasePage() {
             Knowledge Base
           </h1>
           <p className="font-space-grotesk text-xs sm:text-sm text-[#A8A29E] mt-1">
-            Your AI-enriched memory — everything First90 knows about your onboarding context.
+            Everything First90 knows about your role, team, and company. Used to ground every plan and suggestion.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -89,8 +89,8 @@ export default function KnowledgeBasePage() {
         </div>
       </div>
 
-      {/* AI Brain Status */}
-      <ErrorBoundary fallback={<SectionErrorFallback label="Brain status" />}>
+      {/* Knowledge Status */}
+      <ErrorBoundary fallback={<SectionErrorFallback label="Knowledge status" />}>
         <AIBrainStatusCard />
       </ErrorBoundary>
 
@@ -117,7 +117,7 @@ export default function KnowledgeBasePage() {
           <ErrorBoundary fallback={<SectionErrorFallback label="Connected sources" />}>
             <ConnectedSources />
           </ErrorBoundary>
-          <ErrorBoundary fallback={<SectionErrorFallback label="Enrichment queue" />}>
+          <ErrorBoundary fallback={<SectionErrorFallback label="Processing queue" />}>
             <AIEnrichmentQueue />
           </ErrorBoundary>
         </div>

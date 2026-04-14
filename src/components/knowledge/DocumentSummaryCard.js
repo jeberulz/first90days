@@ -4,65 +4,55 @@ import { Icon } from "@iconify/react";
 import { kbCard } from "@/lib/kbKnowledgeChrome";
 import { cn } from "@/lib/utils";
 
-// Status labels per pipeline stage. Embedding = vector indexing; Enrichment
-// = LLM summary + memory extraction. They have different success verbs.
-const EMBED_STATUS = {
-  pending: {
-    label: "Pending",
-    className: "bg-[#1C1917] text-[#A8A29E] border border-[#44403C]/70",
-  },
-  running: { label: "Indexing", className: "bg-[#1F1510] text-[#D97757]" },
-  done: { label: "Indexed", className: "bg-emerald-900/20 text-emerald-400" },
-  failed: { label: "Failed", className: "bg-red-900/20 text-red-400" },
-  skipped: {
-    label: "Skipped",
-    className: "bg-[#1C1917] text-[#A8A29E] border border-[#44403C]/70",
-  },
-};
-const ENRICH_STATUS = {
-  pending: {
-    label: "Pending",
-    className: "bg-[#1C1917] text-[#A8A29E] border border-[#44403C]/70",
-  },
-  running: { label: "Enriching", className: "bg-[#1F1510] text-[#D97757]" },
-  done: { label: "Enriched", className: "bg-emerald-900/20 text-emerald-400" },
-  failed: { label: "Failed", className: "bg-red-900/20 text-red-400" },
-  skipped: {
-    label: "Skipped",
-    className: "bg-[#1C1917] text-[#A8A29E] border border-[#44403C]/70",
-  },
-};
+// Combined "ready / processing / failed" state for the summary card. The
+// internal pipeline has two stages (embed + enrich) but the user only needs
+// one rolled-up status: is this entry working for me yet?
+function summaryStatus(doc) {
+  if (doc.embeddingStatus === "failed" || doc.enrichmentStatus === "failed") {
+    return {
+      label: "Couldn't process",
+      className: "bg-red-900/20 text-red-400",
+    };
+  }
+  if (
+    doc.embeddingStatus === "done" &&
+    (doc.enrichmentStatus === "done" || doc.enrichmentStatus === "skipped")
+  ) {
+    return {
+      label: "Ready",
+      className: "bg-emerald-900/20 text-emerald-400",
+    };
+  }
+  return {
+    label: "Processing…",
+    className: "bg-[#1F1510] text-[#D97757]",
+  };
+}
 
 export default function DocumentSummaryCard({ doc }) {
   if (!doc) return null;
 
-  const enrichmentBadge = ENRICH_STATUS[doc.enrichmentStatus] || ENRICH_STATUS.pending;
-  const embedBadge = EMBED_STATUS[doc.embeddingStatus] || EMBED_STATUS.pending;
+  const status = summaryStatus(doc);
 
   return (
     <div className={cn(kbCard, "p-6 space-y-5")}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="p-1.5 bg-[#1F1510] rounded-md text-[#D97757]">
-            <Icon icon="solar:cpu-bolt-linear" width={18} />
+            <Icon icon="solar:notes-minimalistic-linear" width={18} />
           </div>
-          <h3 className="text-base font-medium text-white">AI summary</h3>
+          <h3 className="text-base font-medium text-white">Summary</h3>
         </div>
-        <div className="flex items-center gap-2 text-[10px]">
-          <span className={`px-2 py-0.5 rounded-full ${embedBadge.className}`}>
-            Embedding: {embedBadge.label}
-          </span>
-          <span className={`px-2 py-0.5 rounded-full ${enrichmentBadge.className}`}>
-            Enrichment: {enrichmentBadge.label}
-          </span>
-        </div>
+        <span className={`text-[10px] px-2 py-0.5 rounded-full ${status.className}`}>
+          {status.label}
+        </span>
       </div>
 
       {doc.summary ? (
         <p className="text-sm text-[#E7E5E4] leading-relaxed">{doc.summary}</p>
       ) : (
         <p className="text-xs text-[#A8A29E] italic">
-          No AI summary yet — the brain is still processing this entry, or the content is too short to enrich.
+          No summary yet — still processing, or the content is too short to extract from.
         </p>
       )}
 

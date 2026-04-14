@@ -145,8 +145,8 @@ export default function CompanyReviewClient() {
           Company context review
         </h1>
         <p className="font-space-grotesk text-xs sm:text-sm text-[#A8A29E] mt-1 max-w-2xl">
-          Read each research section, then approve or discard. Nothing is embedded
-          into your brain until you approve.
+          Read each section, then approve to add it to your knowledge base, or
+          skip the ones that look wrong.
         </p>
       </div>
 
@@ -154,7 +154,7 @@ export default function CompanyReviewClient() {
         <div className="flex items-center gap-3 rounded-xl border border-[#44403C]/90 bg-[#1C1917]/60 px-4 py-5">
           <div className="w-4 h-4 border-2 border-[#D97757] border-t-transparent rounded-full animate-spin shrink-0" />
           <p className="text-sm text-[#A8A29E]">
-            Building your company context. Sections will appear here as they are
+            Researching your company. Sections will appear here as they are
             ready.
           </p>
         </div>
@@ -178,8 +178,8 @@ export default function CompanyReviewClient() {
           <p className="text-sm text-[#D6D3D1] font-medium">Nothing to review</p>
           <p className="text-xs text-[#A8A29E] mt-1 max-w-md mx-auto">
             {finishedEmpty
-              ? "Research finished without drafts you can review. You can run research again from Knowledge Base."
-              : "You are caught up. When new company research drafts arrive, open this workspace from the Knowledge Base page."}
+              ? "Research finished without anything to review. You can run it again from Knowledge Base."
+              : "You're caught up. When new sections arrive, open this workspace from Knowledge Base."}
           </p>
           <Link
             href="/knowledge"

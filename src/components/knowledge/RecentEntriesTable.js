@@ -28,18 +28,14 @@ function relativeTime(ts) {
   return new Date(ts).toLocaleDateString();
 }
 
-function TypeBadge({ type }) {
-  const map = {
-    ai_enriched: { icon: "solar:verified-check-linear", className: "text-emerald-400" },
-    ai_generated: { icon: "solar:cpu-bolt-linear", className: "text-[#D97757]" },
-    imported: { icon: "solar:document-linear", className: "text-[#A8A29E]" },
-    draft: { icon: "solar:pen-linear", className: "text-[#A8A29E]" },
-  };
-  const meta = map[type] || map.draft;
+// Returns null for any "ready" state — the user only needs to see this column
+// when something is actually still processing.
+function ProcessingBadge({ type }) {
+  if (type !== "draft") return null;
   return (
-    <div className={`inline-flex items-center gap-1 text-[11px] font-medium ${meta.className}`}>
-      <Icon icon={meta.icon} width={12} />
-      {TYPE_BADGE_LABELS[type] || type}
+    <div className="inline-flex items-center gap-1 text-[11px] font-medium text-[#D97757]">
+      <Icon icon="solar:refresh-circle-linear" width={12} />
+      {TYPE_BADGE_LABELS[type]}
     </div>
   );
 }
@@ -77,6 +73,10 @@ function EntryCell({ doc }) {
 export default function RecentEntriesTable() {
   const docs = useQuery(api.kb.recentDocuments, { limit: 8 });
 
+  // Only show the status column when at least one row is still processing.
+  // If everything is ready, the column adds noise without information.
+  const hasProcessing = (docs || []).some((d) => d.type === "draft");
+
   const columns = [
     {
       key: "title",
@@ -100,11 +100,15 @@ export default function RecentEntriesTable() {
         </span>
       ),
     },
-    {
-      key: "type",
-      header: "Type",
-      cell: (d) => <TypeBadge type={d.type} />,
-    },
+    ...(hasProcessing
+      ? [
+          {
+            key: "status",
+            header: "Status",
+            cell: (d) => <ProcessingBadge type={d.type} />,
+          },
+        ]
+      : []),
     {
       key: "updated",
       header: "Updated",
@@ -137,7 +141,7 @@ export default function RecentEntriesTable() {
           rows={docs || []}
           getRowKey={(d) => d._id}
           loading={docs === undefined}
-          emptyLabel="No entries yet. Click Add Knowledge above to seed the brain."
+          emptyLabel="No entries yet. Click Add Knowledge above to add your first one."
           variant="knowledge"
         />
       </div>

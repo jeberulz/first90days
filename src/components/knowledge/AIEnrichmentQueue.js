@@ -6,11 +6,14 @@ import { api } from "../../../convex/_generated/api";
 import { kbCard } from "@/lib/kbKnowledgeChrome";
 import { cn } from "@/lib/utils";
 
+// Plain-language verbs for what each pipeline stage is doing. The user
+// doesn't need to know the difference between "embedding" and "consolidating
+// memory" — they need to know what's happening to their entry right now.
 const KIND_LABEL = {
-  embed: "Embedding",
-  enrich: "Extracting insights",
-  memory_consolidate: "Consolidating memory",
-  extract_text: "Extracting text",
+  embed: "Indexing",
+  enrich: "Extracting key facts",
+  memory_consolidate: "Updating context",
+  extract_text: "Reading the file",
 };
 
 export default function AIEnrichmentQueue() {
@@ -25,7 +28,7 @@ export default function AIEnrichmentQueue() {
             <Icon icon="solar:magic-stick-3-linear" width={18} />
           </div>
           <h2 className="text-lg font-medium tracking-tight text-white">
-            AI Enrichment
+            Processing
           </h2>
         </div>
       </div>

@@ -7,6 +7,20 @@ import { KB_CATEGORY_ICON_ACCENT, SOURCE_TYPE_LABELS } from "@/lib/kbCategories"
 import { kbCard, kbDashed } from "@/lib/kbKnowledgeChrome";
 import { cn } from "@/lib/utils";
 
+// Synthetic providers are internal "buckets" that the schema requires for
+// every kbDocument (manual entries, autocapture from reflections, etc.).
+// They aren't real connectors — they're not something the user "connected" —
+// so they shouldn't appear in this list. Reserve this surface for genuine
+// external integrations (Notion, Slack, Drive, etc.) when they ship.
+const SYNTHETIC_PROVIDERS = new Set([
+  "manual",
+  "upload",
+  "reflection_autocapture",
+  "interaction_autocapture",
+  "activity_completion_autocapture",
+  "ai_generated",
+]);
+
 const PROVIDER_ICONS = {
   manual: "solar:pen-new-square-linear",
   upload: "solar:upload-linear",
@@ -52,7 +66,11 @@ export default function ConnectedSources() {
         )}
         {sources &&
           sources
-            .filter((s) => (s.syncedDocCount ?? 0) > 0)
+            .filter(
+              (s) =>
+                !SYNTHETIC_PROVIDERS.has(s.provider) &&
+                (s.syncedDocCount ?? 0) > 0
+            )
             .map((s) => (
               <div
                 key={s._id}

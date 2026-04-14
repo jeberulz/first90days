@@ -131,7 +131,7 @@ export default function CategoryDetailPage({ params }) {
                   </h3>
                   <p className="font-space-grotesk text-sm text-[#A8A29E]">
                     {EMPTY_STATE_SUGGESTIONS[slug] ||
-                      "Add a doc and the brain will categorize, summarize, and extract memories from it within ~30 seconds."}
+                      "Add a doc and we'll categorize, summarize, and pull out the key facts within about 30 seconds."}
                   </p>
                 </div>
                 <button

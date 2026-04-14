@@ -50,7 +50,7 @@ export default function DraftReviewQueue() {
             </div>
             <div className="min-w-0">
               <h2 className="text-lg font-medium tracking-tight text-white">
-                Company research drafts
+                Company research
               </h2>
               <p className="text-xs text-[#A8A29E] mt-0.5">
                 {isBuilding
@@ -58,10 +58,10 @@ export default function DraftReviewQueue() {
                   : hasFailed
                   ? "Research didn't finish. You can try again."
                   : hasDrafts
-                  ? `${drafts.length} draft${drafts.length === 1 ? "" : "s"} ready to review in the workspace. Nothing is embedded until you approve each section.`
+                  ? `${drafts.length} section${drafts.length === 1 ? "" : "s"} ready to review. Approve each one to add it to your knowledge base.`
                   : finishedEmpty
-                  ? "Research finished but produced no usable drafts. You can run it again."
-                  : "No drafts pending."}
+                  ? "Research finished without anything to review. You can run it again."
+                  : "Nothing pending."}
               </p>
             </div>
           </div>
@@ -93,7 +93,7 @@ export default function DraftReviewQueue() {
           <div className="mt-4 flex items-center gap-3 rounded-lg border border-[#44403C]/90 bg-[#1C1917]/60 px-4 py-4">
             <div className="w-4 h-4 border-2 border-[#D97757] border-t-transparent rounded-full animate-spin shrink-0" />
             <p className="text-xs text-[#A8A29E]">
-              Building your company brain. This usually takes a few seconds. You can
+              Researching your company. This usually takes a few seconds. You can
               open the workspace to watch sections appear.
             </p>
           </div>
