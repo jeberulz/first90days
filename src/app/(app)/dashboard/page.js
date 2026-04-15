@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import {
   GoalApprovalBadge,
@@ -21,13 +21,15 @@ const PRE_BOARDING_CHECKLIST = [
 
 function useChecklistState() {
   const [checked, setChecked] = useState({});
+  const [hydrated, setHydrated] = useState(false);
 
-  useEffect(() => {
+  if (!hydrated && typeof window !== "undefined") {
+    setHydrated(true);
     try {
       const stored = localStorage.getItem("preboarding_checklist");
       if (stored) setChecked(JSON.parse(stored));
     } catch {}
-  }, []);
+  }
 
   function toggle(id) {
     setChecked((prev) => {
@@ -110,12 +112,12 @@ export default function DashboardPage() {
               </button>
             )}
             {!user.isPilotUser && (
-              <a
+              <Link
                 href="/onboarding/1"
                 className="inline-flex bg-[#D97757] hover:bg-[#C26242] text-white rounded-lg px-6 py-2.5 font-space-grotesk text-sm font-medium transition shadow-sm"
               >
                 Continue setup
-              </a>
+              </Link>
             )}
           </div>
         </div>
