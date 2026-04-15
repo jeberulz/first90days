@@ -14,15 +14,24 @@ export default function OnboardingIndex() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (viewer === undefined || plan === undefined) return;
+    // `viewer` can be `null` briefly after sign-in while Convex is
+    // propagating the auth token to the query layer, or if the user row
+    // hasn't materialized yet. Treat null the same as loading — without
+    // this guard, `viewer.isPilotUser` below crashes with a TypeError
+    // and Next.js shows a generic client-side exception.
+    if (viewer === undefined || viewer === null || plan === undefined) return;
 
-    if (!viewer.isPilotUser) {
-      router.replace("/onboarding/1");
+    // A user who already has a plan is effectively onboarded — bounce
+    // them to the dashboard regardless of pilot status so existing
+    // non-pilot users don't get trapped back in the wizard on every
+    // login.
+    if (plan !== null) {
+      router.replace("/dashboard");
       return;
     }
 
-    if (plan !== null) {
-      router.replace("/dashboard");
+    if (!viewer.isPilotUser) {
+      router.replace("/onboarding/1");
       return;
     }
 

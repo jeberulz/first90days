@@ -55,11 +55,19 @@ export default function AppLayout({ children }) {
     }
   }, [isAuthenticated, isLoading, router]);
 
+  // Onboarding gate: send to /onboarding only if the user genuinely has
+  // no plan yet. A user with an existing plan is effectively onboarded
+  // even if `onboardingComplete` is stale (legacy accounts, interrupted
+  // seed). Without the `plan === null` check, pilot users whose flag was
+  // never backfilled got caught in a /dashboard ↔ /onboarding loop —
+  // React then threw "Maximum update depth exceeded" and Next.js surfaced
+  // it as a generic client-side exception on production.
   useEffect(() => {
-    if (user && !user.onboardingComplete) {
+    if (!user || plan === undefined) return;
+    if (plan === null && !user.onboardingComplete) {
       router.push("/onboarding");
     }
-  }, [user, router]);
+  }, [user, plan, router]);
 
   useEffect(() => {
     if (!user || !user.isPilotUser) return;
