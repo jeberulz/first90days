@@ -1,6 +1,7 @@
 import Script from "next/script";
 import { Inter, Instrument_Serif, Space_Grotesk } from "next/font/google";
 import ConvexClientProvider from "@/components/providers/ConvexClientProvider";
+import IconifyProvider from "@/components/providers/IconifyProvider";
 import "./globals.css";
 
 const inter = Inter({
@@ -57,9 +58,11 @@ export default function RootLayout({ children }) {
         <Script id="theme-init" strategy="beforeInteractive">
           {themeInit}
         </Script>
-        <ConvexClientProvider>
-          {children}
-        </ConvexClientProvider>
+        <IconifyProvider>
+          <ConvexClientProvider>
+            {children}
+          </ConvexClientProvider>
+        </IconifyProvider>
       </body>
     </html>
   );
