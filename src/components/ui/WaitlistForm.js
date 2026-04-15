@@ -36,7 +36,7 @@ export function WaitlistForm({ source = "hero", className = "" }) {
           </span>
         </div>
         <p className="text-xs text-[#78716C] dark:text-[#A8A29E] font-space-grotesk">
-          We'll email you when early access opens.
+          We&apos;ll email you when early access opens.
         </p>
       </div>
     );

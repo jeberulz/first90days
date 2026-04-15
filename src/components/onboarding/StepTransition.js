@@ -1,27 +1,31 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 
 export default function StepTransition({ stepKey, children }) {
   const [displayedKey, setDisplayedKey] = useState(stepKey);
   const [phase, setPhase] = useState("visible");
-  const pendingKey = useRef(stepKey);
+  const [prevStepKey, setPrevStepKey] = useState(stepKey);
+
+  if (stepKey !== prevStepKey) {
+    setPrevStepKey(stepKey);
+    setPhase("exiting");
+  }
 
   useEffect(() => {
-    if (stepKey === displayedKey) return;
-
-    pendingKey.current = stepKey;
-    setPhase("exiting");
-
+    if (phase !== "exiting") return;
     const timer = setTimeout(() => {
-      setDisplayedKey(pendingKey.current);
+      setDisplayedKey(stepKey);
       setPhase("entering");
-      const enterTimer = setTimeout(() => setPhase("visible"), 400);
-      return () => clearTimeout(enterTimer);
     }, 300);
-
     return () => clearTimeout(timer);
-  }, [stepKey, displayedKey]);
+  }, [phase, stepKey]);
+
+  useEffect(() => {
+    if (phase !== "entering") return;
+    const timer = setTimeout(() => setPhase("visible"), 400);
+    return () => clearTimeout(timer);
+  }, [phase]);
 
   const animClass =
     phase === "exiting"

@@ -80,7 +80,7 @@ export default function DailyReflectionPage() {
           {/* Energy level */}
           <div className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-6">
             <label className="font-space-grotesk text-sm font-medium text-[#A8A29E] block mb-4">
-              How's your energy today?
+              How&apos;s your energy today?
             </label>
             <div className="flex items-center justify-center gap-4">
               {energyEmojis.map((e) => (
@@ -153,7 +153,7 @@ export default function DailyReflectionPage() {
           {/* Tomorrow */}
           <div className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-6 space-y-2">
             <label className="font-space-grotesk text-sm font-medium text-[#A8A29E]">
-              Tomorrow's focus
+              Tomorrow&apos;s focus
             </label>
             <input
               value={tomorrowFocus}
