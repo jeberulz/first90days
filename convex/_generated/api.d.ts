@@ -48,6 +48,7 @@ import type * as seed from "../seed.js";
 import type * as stakeholders from "../stakeholders.js";
 import type * as stripeWebhook from "../stripeWebhook.js";
 import type * as users from "../users.js";
+import type * as waitlist from "../waitlist.js";
 
 import type {
   ApiFromModules,
@@ -96,6 +97,7 @@ declare const fullApi: ApiFromModules<{
   stakeholders: typeof stakeholders;
   stripeWebhook: typeof stripeWebhook;
   users: typeof users;
+  waitlist: typeof waitlist;
 }>;
 
 /**
