@@ -28,20 +28,20 @@ export const getFull = query({
       .first();
     if (!plan) return null;
 
-    const phases = await ctx.db
-      .query("phases")
-      .withIndex("by_plan", (q) => q.eq("planId", plan._id))
-      .collect();
-
-    const weeks = await ctx.db
-      .query("weeks")
-      .withIndex("by_plan", (q) => q.eq("planId", plan._id))
-      .collect();
-
-    const activities = await ctx.db
-      .query("activities")
-      .withIndex("by_plan", (q) => q.eq("planId", plan._id))
-      .collect();
+    const [phases, weeks, activities] = await Promise.all([
+      ctx.db
+        .query("phases")
+        .withIndex("by_plan", (q) => q.eq("planId", plan._id))
+        .collect(),
+      ctx.db
+        .query("weeks")
+        .withIndex("by_plan", (q) => q.eq("planId", plan._id))
+        .collect(),
+      ctx.db
+        .query("activities")
+        .withIndex("by_plan", (q) => q.eq("planId", plan._id))
+        .collect(),
+    ]);
 
     return {
       ...plan,
@@ -96,28 +96,29 @@ export const getSharedFull = query({
     if (!access) return null;
     const { plan } = access;
 
-    const phases = await ctx.db
-      .query("phases")
-      .withIndex("by_plan", (q) => q.eq("planId", plan._id))
-      .collect();
-    const weeks = await ctx.db
-      .query("weeks")
-      .withIndex("by_plan", (q) => q.eq("planId", plan._id))
-      .collect();
-    const activities = await ctx.db
-      .query("activities")
-      .withIndex("by_plan", (q) => q.eq("planId", plan._id))
-      .collect();
-
-    const owner = await ctx.db.get(plan.userId);
-    const onboarding = await ctx.db
-      .query("onboardingData")
-      .withIndex("by_user", (q) => q.eq("userId", plan.userId))
-      .first();
-    const goals = await ctx.db
-      .query("goals")
-      .withIndex("by_user", (q) => q.eq("userId", plan.userId))
-      .collect();
+    const [phases, weeks, activities, owner, onboarding, goals] = await Promise.all([
+      ctx.db
+        .query("phases")
+        .withIndex("by_plan", (q) => q.eq("planId", plan._id))
+        .collect(),
+      ctx.db
+        .query("weeks")
+        .withIndex("by_plan", (q) => q.eq("planId", plan._id))
+        .collect(),
+      ctx.db
+        .query("activities")
+        .withIndex("by_plan", (q) => q.eq("planId", plan._id))
+        .collect(),
+      ctx.db.get(plan.userId),
+      ctx.db
+        .query("onboardingData")
+        .withIndex("by_user", (q) => q.eq("userId", plan.userId))
+        .first(),
+      ctx.db
+        .query("goals")
+        .withIndex("by_user", (q) => q.eq("userId", plan.userId))
+        .collect(),
+    ]);
 
     return {
       ...plan,
