@@ -38,6 +38,7 @@ import type * as lib_stakeholderCadence from "../lib/stakeholderCadence.js";
 import type * as logEntries from "../logEntries.js";
 import type * as migrations_grandfather from "../migrations/grandfather.js";
 import type * as migrations_legacyKnowledgeToDocuments from "../migrations/legacyKnowledgeToDocuments.js";
+import type * as migrations_pilotKbSeed from "../migrations/pilotKbSeed.js";
 import type * as milestones from "../milestones.js";
 import type * as onboarding from "../onboarding.js";
 import type * as planComments from "../planComments.js";
@@ -87,6 +88,7 @@ declare const fullApi: ApiFromModules<{
   logEntries: typeof logEntries;
   "migrations/grandfather": typeof migrations_grandfather;
   "migrations/legacyKnowledgeToDocuments": typeof migrations_legacyKnowledgeToDocuments;
+  "migrations/pilotKbSeed": typeof migrations_pilotKbSeed;
   milestones: typeof milestones;
   onboarding: typeof onboarding;
   planComments: typeof planComments;
