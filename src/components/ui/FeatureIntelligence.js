@@ -65,9 +65,9 @@ export function FeatureIntelligence() {
 
           <div className="lg:col-span-8 w-full relative group">
             <div className="absolute inset-0 bg-gradient-to-tr from-accent/10 via-transparent to-accent/5 rounded-3xl transform rotate-1 scale-[1.02] opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
-            <div className="relative bg-[#FAF9F6] dark:bg-[#1C1917] rounded-2xl border border-[#E7E5E4] dark:border-[#2C2825] shadow-2xl overflow-hidden transition-all duration-500 group-hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.15)] flex flex-col h-[600px]">
-              <div className="h-14 border-b border-[#E7E5E4] dark:border-[#2C2825] dark:bg-[#292524] px-6 flex items-center justify-between shrink-0 z-20 bg-white">
-                <div className="flex items-center gap-6">
+            <div className="relative bg-[#FAF9F6] dark:bg-[#1C1917] rounded-2xl border border-[#E7E5E4] dark:border-[#2C2825] shadow-2xl overflow-hidden transition-all duration-500 group-hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.15)] flex flex-col h-[450px] sm:h-[500px] md:h-[600px]">
+              <div className="h-14 border-b border-[#E7E5E4] dark:border-[#2C2825] dark:bg-[#292524] px-3 sm:px-6 flex items-center justify-between shrink-0 z-20 bg-white gap-3">
+                <div className="flex items-center gap-3 sm:gap-6 min-w-0 overflow-x-auto no-scrollbar">
                   <div className="flex gap-2">
                     <div className="w-3 h-3 rounded-full bg-[#E7E5E4] dark:bg-[#44403C]" />
                     <div className="w-3 h-3 rounded-full bg-[#E7E5E4] dark:bg-[#44403C]" />
@@ -101,14 +101,14 @@ export function FeatureIntelligence() {
                     </button>
                   </div>
                 </div>
-                <span className="text-[10px] dark:text-emerald-400 font-mono flex items-center gap-1.5 dark:bg-emerald-900/20 px-2 py-1 rounded border dark:border-emerald-900/30 text-emerald-600 bg-emerald-50 border-emerald-100">
+                <span className="text-[10px] dark:text-emerald-400 font-mono hidden xs:flex items-center gap-1.5 dark:bg-emerald-900/20 px-2 py-1 rounded border dark:border-emerald-900/30 text-emerald-600 bg-emerald-50 border-emerald-100 shrink-0">
                   <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
                   Analysis Complete
                 </span>
               </div>
 
               <div className="flex-1 flex overflow-hidden">
-                <div className="w-64 border-r border-[#E7E5E4] dark:border-[#2C2825] bg-[#FAF9F6] dark:bg-[#1C1917] flex flex-col py-6 px-4 hidden sm:flex">
+                <div className="w-64 border-r border-[#E7E5E4] dark:border-[#2C2825] bg-[#FAF9F6] dark:bg-[#1C1917] py-6 px-4 hidden sm:flex sm:flex-col">
                   <div className="text-[10px] uppercase font-bold text-[#A8A29E] tracking-wider mb-4 font-space-grotesk pl-2">
                     Detected Attributes
                   </div>
@@ -153,7 +153,7 @@ export function FeatureIntelligence() {
 
                 <div className="flex-1 dark:bg-[#1C1917] relative overflow-y-auto no-scrollbar bg-white">
                   {tab === "1" && (
-                    <div className="tab-content p-8 animate-fade-up">
+                    <div className="tab-content p-4 sm:p-6 md:p-8 animate-fade-up">
                       <div className="flex justify-between items-end mb-8">
                         <div>
                           <h3 className="text-xl font-bold text-[#1C1917] dark:text-white font-instrument-serif mb-2">
@@ -224,7 +224,7 @@ export function FeatureIntelligence() {
                   )}
 
                   {tab === "2" && (
-                    <div className="tab-content p-8 animate-fade-up">
+                    <div className="tab-content p-4 sm:p-6 md:p-8 animate-fade-up">
                       <div className="flex justify-between items-end mb-8">
                         <div>
                           <h3 className="text-xl font-bold text-[#1C1917] dark:text-white font-instrument-serif mb-2">
@@ -309,7 +309,7 @@ export function FeatureIntelligence() {
                   )}
 
                   {tab === "3" && (
-                    <div className="tab-content p-8 animate-fade-up">
+                    <div className="tab-content p-4 sm:p-6 md:p-8 animate-fade-up">
                       <div className="flex justify-between items-end mb-8">
                         <div>
                           <h3 className="text-xl font-bold text-[#1C1917] dark:text-white font-instrument-serif mb-2">
