@@ -13,8 +13,8 @@ export function FeatureManagerSync() {
       <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-accent/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
 
       <div className="w-full max-w-[1800px] mx-auto px-4 sm:px-6 md:px-12 py-16 sm:py-24 lg:py-32 relative z-10">
-        <div className="grid lg:grid-cols-12 gap-8 sm:gap-12 lg:gap-24 items-start">
-          <div className="lg:col-span-4 lg:sticky lg:top-32 lg:pt-8">
+        <div className="grid lg:grid-cols-12 gap-8 sm:gap-12 lg:gap-24 items-start min-w-0">
+          <div className="lg:col-span-4 lg:sticky lg:top-32 lg:pt-8 min-w-0">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-accent/20 bg-accent/5 text-[10px] uppercase tracking-wider font-bold text-accent mb-6 sm:mb-8 font-space-grotesk">
               <Icon icon="solar:users-group-two-rounded-linear" width={12} height={12} />
               Manager Alignment
@@ -66,7 +66,7 @@ export function FeatureManagerSync() {
             </div>
           </div>
 
-          <div className="lg:col-span-8 w-full relative z-20">
+          <div className="lg:col-span-8 w-full relative z-20 min-w-0 overflow-hidden">
             <div className="absolute -inset-4 bg-gradient-to-r from-accent/20 to-purple-500/10 rounded-[2rem] blur-3xl opacity-0 group-hover/section:opacity-100 transition-opacity duration-700" />
             <div className="relative dark:bg-[#1C1917] rounded-2xl border border-[#E7E5E4] dark:border-[#2C2825] shadow-2xl overflow-hidden min-h-0 sm:min-h-[600px] md:min-h-[700px] flex flex-col transition-all duration-500 group-hover/section:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.2)] bg-white">
               <div className="min-h-[3.5rem] border-b border-[#E7E5E4] dark:border-[#2C2825] bg-[#FAF9F6] dark:bg-[#292524] px-3 sm:px-6 flex items-center justify-between shrink-0 flex-wrap gap-2 py-2 sm:py-0 sm:h-14">
