@@ -71,7 +71,9 @@ export const generatePlan = action({
     });
     if (!onboardingData) throw new Error("No onboarding data found");
 
-    const userContext = buildUserContext(onboardingData);
+    const stakeholders = await ctx.runQuery(api.stakeholders.list, {});
+
+    const userContext = buildUserContext(onboardingData, stakeholders);
 
     // Pull KB context — the unlock. Every existing KB doc + memory flows
     // into the plan prompt so the plan is grounded in what we already know

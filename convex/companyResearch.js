@@ -86,6 +86,10 @@ export const generateDraftsForUser = internalAction({
         isNewTeam: onboarding.isNewTeam,
         reportsTo: onboarding.reportsTo,
         jobDescription: onboarding.jobDescription,
+        selectedGoals: onboarding.selectedGoals,
+        existingContext: onboarding.existingContext,
+        challenges: onboarding.challenges,
+        successDefinition: onboarding.successDefinition,
       });
 
       const raw = await generateText(
