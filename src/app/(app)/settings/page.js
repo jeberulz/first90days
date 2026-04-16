@@ -14,6 +14,11 @@ import Field, {
 } from "@/components/settings/Field";
 import ToggleRow from "@/components/settings/ToggleRow";
 import { useToast } from "@/components/primitives/Toaster";
+import {
+  passwordRequirements,
+  passwordStrength,
+  PASSWORD_MIN_LENGTH,
+} from "@/lib/passwordValidation";
 import { displayName, splitFullNameDisplay, userInitials } from "@/lib/userDisplay";
 
 const TABS = [
@@ -123,7 +128,7 @@ export default function SettingsPage() {
   const setAvatar = useMutation(api.users.setAvatar);
   const removeAvatar = useMutation(api.users.removeAvatar);
   const deleteAccount = useMutation(api.users.deleteAccount);
-  const { signOut } = useAuthActions();
+  const { signIn, signOut } = useAuthActions();
   const addToast = useToast();
 
   const billingStatus = searchParams.get("billing");
@@ -652,7 +657,7 @@ export default function SettingsPage() {
               id={panelId("account")}
               aria-labelledby={tabId("account")}
               tabIndex={0}
-              className="focus:outline-none"
+              className="space-y-8 focus:outline-none"
             >
               <AccountSection
                 accountForm={accountForm}
@@ -662,6 +667,16 @@ export default function SettingsPage() {
                 accountError={accountError}
                 onSave={handleAccountSave}
               />
+              <ChangePasswordSection
+                email={user?.email}
+                signIn={signIn}
+                addToast={addToast}
+              />
+              <ChangeEmailSection
+                currentEmail={user?.email}
+                addToast={addToast}
+              />
+              <SessionManagementSection addToast={addToast} />
             </div>
           )}
 
@@ -839,7 +854,7 @@ function ProfileSection({
               </div>
               <Field
                 label="Email address"
-                hint="Contact support to change your email."
+                hint="You can change your email in the Account tab."
               >
                 <input
                   type="email"
@@ -1061,6 +1076,442 @@ function AccountSection({
             onSave={onSave}
           />
         </form>
+      </SettingsCard>
+    </section>
+  );
+}
+
+function ChangePasswordSection({ email, signIn, addToast }) {
+  const [step, setStep] = useState("idle"); // idle | codeSent | submitting
+  const [code, setCode] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [error, setError] = useState("");
+  const [sending, setSending] = useState(false);
+
+  const reqs = passwordRequirements(newPassword, email);
+  const strength = passwordStrength(newPassword, email);
+  const allPassed = reqs.every((r) => r.passed);
+
+  async function handleRequestCode() {
+    setError("");
+    setSending(true);
+    try {
+      await signIn("password", { email, flow: "reset" });
+      setStep("codeSent");
+      addToast("Reset code sent to your email", "success");
+    } catch {
+      setError("Could not send reset code. Try again.");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  async function handleChangePassword(e) {
+    e.preventDefault();
+    setError("");
+    if (!allPassed) {
+      const f = reqs.find((r) => !r.passed);
+      setError(f?.label ?? "Password does not meet requirements.");
+      return;
+    }
+    if (newPassword !== confirm) {
+      setError("Passwords do not match.");
+      return;
+    }
+    setStep("submitting");
+    try {
+      await signIn("password", {
+        email,
+        code: code.trim(),
+        newPassword,
+        flow: "reset-verification",
+      });
+      addToast("Password changed", "success");
+      setStep("idle");
+      setCode("");
+      setNewPassword("");
+      setConfirm("");
+    } catch {
+      setError("Invalid code or an error occurred. Try again.");
+      setStep("codeSent");
+    }
+  }
+
+  return (
+    <section className="space-y-4">
+      <SectionHeader
+        title="Change password"
+        description="We&rsquo;ll email you a verification code, then you can set a new password."
+      />
+      <SettingsCard>
+        {step === "idle" ? (
+          <div className="p-6">
+            <button
+              type="button"
+              onClick={handleRequestCode}
+              disabled={sending}
+              className={`font-space-grotesk text-sm font-medium px-4 py-2.5 rounded-lg bg-[#2C2825] text-white hover:bg-[#44403C] transition-colors disabled:opacity-50 ${FOCUS_RING}`}
+            >
+              {sending ? "Sending code..." : "Send password reset code"}
+            </button>
+            {error && (
+              <p className="mt-3 font-space-grotesk text-xs text-red-400" role="alert">
+                {error}
+              </p>
+            )}
+          </div>
+        ) : (
+          <form onSubmit={handleChangePassword}>
+            <div className="p-6 space-y-4">
+              {error && (
+                <p className="font-space-grotesk text-xs text-red-400" role="alert">
+                  {error}
+                </p>
+              )}
+              <Field label="Verification code" hint="Check your email for an 8-digit code.">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  autoComplete="one-time-code"
+                  required
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  className={`${fieldInputClass} tracking-widest`}
+                  placeholder="12345678"
+                  maxLength={12}
+                />
+              </Field>
+              <Field label="New password">
+                <input
+                  type="password"
+                  required
+                  minLength={PASSWORD_MIN_LENGTH}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className={fieldInputClass}
+                  placeholder={`At least ${PASSWORD_MIN_LENGTH} characters`}
+                />
+                {newPassword.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    <div
+                      className="h-1.5 rounded-full bg-[#2C2825] overflow-hidden"
+                      aria-hidden="true"
+                    >
+                      <div
+                        className={`h-full transition-all ${
+                          ({ empty: "bg-[#44403C]", weak: "bg-red-400", fair: "bg-amber-400", good: "bg-lime-500", strong: "bg-emerald-500" })[strength.level] ?? "bg-[#44403C]"
+                        }`}
+                        style={{ width: `${Math.round(strength.score * 100)}%` }}
+                      />
+                    </div>
+                    <p className="font-space-grotesk text-xs text-[#A8A29E]">
+                      {strength.passed}/{strength.total} requirements met
+                    </p>
+                  </div>
+                )}
+              </Field>
+              <Field label="Confirm new password">
+                <input
+                  type="password"
+                  required
+                  value={confirm}
+                  onChange={(e) => setConfirm(e.target.value)}
+                  className={fieldInputClass}
+                  placeholder="Re-enter new password"
+                />
+                {confirm.length > 0 && confirm !== newPassword && (
+                  <p className="mt-1 font-space-grotesk text-xs text-red-400">
+                    Passwords do not match.
+                  </p>
+                )}
+              </Field>
+            </div>
+            <div className="border-t border-[#2C2825] px-6 py-4 flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setStep("idle");
+                  setCode("");
+                  setNewPassword("");
+                  setConfirm("");
+                  setError("");
+                }}
+                className={`font-space-grotesk text-sm text-[#A8A29E] hover:text-[#E7E5E4] px-3 py-2 rounded-lg transition-colors ${FOCUS_RING}`}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={step === "submitting"}
+                className={`font-space-grotesk text-sm font-medium px-4 py-2.5 rounded-lg bg-[#D97757] text-white hover:bg-[#C26644] transition-colors disabled:opacity-50 ${FOCUS_RING}`}
+              >
+                {step === "submitting" ? "Updating..." : "Update password"}
+              </button>
+            </div>
+          </form>
+        )}
+      </SettingsCard>
+    </section>
+  );
+}
+
+function ChangeEmailSection({ currentEmail, addToast }) {
+  const initiate = useMutation(api.emailChange.initiate);
+  const verify = useMutation(api.emailChange.verify);
+  const cancel = useMutation(api.emailChange.cancel);
+
+  const [step, setStep] = useState("idle"); // idle | codeSent | verifying
+  const [newEmail, setNewEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [error, setError] = useState("");
+  const [sending, setSending] = useState(false);
+
+  async function handleSendCode() {
+    setError("");
+    const trimmed = newEmail.trim().toLowerCase();
+    if (!trimmed || !trimmed.includes("@")) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+    if (trimmed === currentEmail) {
+      setError("This is already your current email.");
+      return;
+    }
+    setSending(true);
+    try {
+      await initiate({ newEmail: trimmed });
+      setStep("codeSent");
+      addToast("Verification code sent to new email", "success");
+    } catch (err) {
+      setError(err?.data ?? err?.message ?? "Could not send verification code.");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  async function handleVerify(e) {
+    e.preventDefault();
+    setError("");
+    setStep("verifying");
+    try {
+      await verify({ code: code.trim() });
+      addToast("Email address updated", "success");
+      setStep("idle");
+      setNewEmail("");
+      setCode("");
+    } catch (err) {
+      setError(err?.data ?? err?.message ?? "Verification failed.");
+      setStep("codeSent");
+    }
+  }
+
+  async function handleCancel() {
+    await cancel().catch(() => {});
+    setStep("idle");
+    setNewEmail("");
+    setCode("");
+    setError("");
+  }
+
+  return (
+    <section className="space-y-4">
+      <SectionHeader
+        title="Change email"
+        description="Update the email address associated with your account."
+      />
+      <SettingsCard>
+        {step === "idle" ? (
+          <div className="p-6 space-y-4">
+            <Field label="New email address">
+              <input
+                type="email"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                className={fieldInputClass}
+                placeholder="newemail@company.com"
+              />
+            </Field>
+            {error && (
+              <p className="font-space-grotesk text-xs text-red-400" role="alert">
+                {error}
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={handleSendCode}
+              disabled={sending || !newEmail.trim()}
+              className={`font-space-grotesk text-sm font-medium px-4 py-2.5 rounded-lg bg-[#2C2825] text-white hover:bg-[#44403C] transition-colors disabled:opacity-50 ${FOCUS_RING}`}
+            >
+              {sending ? "Sending code..." : "Send verification code"}
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleVerify}>
+            <div className="p-6 space-y-4">
+              <p className="font-space-grotesk text-sm text-[#A8A29E]">
+                We sent a verification code to{" "}
+                <span className="text-[#E7E5E4]">{newEmail.trim().toLowerCase()}</span>.
+                Enter it below to confirm the change.
+              </p>
+              {error && (
+                <p className="font-space-grotesk text-xs text-red-400" role="alert">
+                  {error}
+                </p>
+              )}
+              <Field label="Verification code" hint="Check your new email for an 8-digit code.">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  autoComplete="one-time-code"
+                  required
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  className={`${fieldInputClass} tracking-widest`}
+                  placeholder="12345678"
+                  maxLength={12}
+                />
+              </Field>
+            </div>
+            <div className="border-t border-[#2C2825] px-6 py-4 flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={handleCancel}
+                className={`font-space-grotesk text-sm text-[#A8A29E] hover:text-[#E7E5E4] px-3 py-2 rounded-lg transition-colors ${FOCUS_RING}`}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={step === "verifying"}
+                className={`font-space-grotesk text-sm font-medium px-4 py-2.5 rounded-lg bg-[#D97757] text-white hover:bg-[#C26644] transition-colors disabled:opacity-50 ${FOCUS_RING}`}
+              >
+                {step === "verifying" ? "Verifying..." : "Confirm email change"}
+              </button>
+            </div>
+          </form>
+        )}
+      </SettingsCard>
+    </section>
+  );
+}
+
+function SessionManagementSection({ addToast }) {
+  const sessions = useQuery(api.sessions.list);
+  const revokeSession = useMutation(api.sessions.revoke);
+  const revokeAllOther = useMutation(api.sessions.revokeAllOther);
+  const [revoking, setRevoking] = useState(null);
+  const [revokingAll, setRevokingAll] = useState(false);
+
+  const otherSessions = (sessions ?? []).filter((s) => !s.isCurrent);
+
+  async function handleRevoke(sessionId) {
+    setRevoking(sessionId);
+    try {
+      await revokeSession({ sessionId });
+      addToast("Session revoked", "success");
+    } catch (err) {
+      addToast(err?.data ?? "Could not revoke session", "error");
+    } finally {
+      setRevoking(null);
+    }
+  }
+
+  async function handleRevokeAll() {
+    setRevokingAll(true);
+    try {
+      const result = await revokeAllOther();
+      addToast(`${result.revoked} session${result.revoked === 1 ? "" : "s"} revoked`, "success");
+    } catch (err) {
+      addToast(err?.data ?? "Could not revoke sessions", "error");
+    } finally {
+      setRevokingAll(false);
+    }
+  }
+
+  function formatSessionDate(ms) {
+    try {
+      return new Date(ms).toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return "Unknown";
+    }
+  }
+
+  return (
+    <section className="space-y-4">
+      <SectionHeader
+        title="Active sessions"
+        description="Devices and browsers where you&rsquo;re currently signed in."
+      />
+      <SettingsCard>
+        <div className="p-6 space-y-4">
+          {sessions === undefined ? (
+            <p className="font-space-grotesk text-sm text-[#A8A29E]">
+              Loading sessions...
+            </p>
+          ) : sessions.length === 0 ? (
+            <p className="font-space-grotesk text-sm text-[#A8A29E]">
+              No active sessions found.
+            </p>
+          ) : (
+            <>
+              <ul className="divide-y divide-[#2C2825]">
+                {sessions.map((session) => (
+                  <li
+                    key={session._id}
+                    className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-space-grotesk text-sm text-[#E7E5E4] flex items-center gap-2">
+                        {session.isCurrent ? "This session" : "Other session"}
+                        {session.isCurrent && (
+                          <span className="font-space-grotesk text-xs uppercase tracking-wide text-emerald-400 border border-emerald-700/40 rounded px-1.5 py-0.5">
+                            current
+                          </span>
+                        )}
+                      </p>
+                      <p className="font-space-grotesk text-xs text-[#A8A29E] mt-0.5">
+                        Created {formatSessionDate(session._creationTime)}
+                      </p>
+                    </div>
+                    {!session.isCurrent && (
+                      <button
+                        type="button"
+                        onClick={() => handleRevoke(session._id)}
+                        disabled={revoking === session._id}
+                        className={`shrink-0 font-space-grotesk text-xs font-medium px-3 py-1.5 rounded-lg bg-red-900/20 text-red-400 border border-red-900/50 hover:bg-red-900/40 transition-colors disabled:opacity-50 ${FOCUS_RING}`}
+                      >
+                        {revoking === session._id ? "Revoking..." : "Revoke"}
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              {otherSessions.length > 0 && (
+                <div className="pt-3 border-t border-[#2C2825]">
+                  <button
+                    type="button"
+                    onClick={handleRevokeAll}
+                    disabled={revokingAll}
+                    className={`font-space-grotesk text-sm font-medium px-4 py-2.5 rounded-lg bg-red-900/20 text-red-400 border border-red-900/50 hover:bg-red-900/40 transition-colors disabled:opacity-50 ${FOCUS_RING}`}
+                  >
+                    {revokingAll
+                      ? "Revoking all..."
+                      : `Sign out all other sessions (${otherSessions.length})`}
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </SettingsCard>
     </section>
   );

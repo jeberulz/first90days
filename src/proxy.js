@@ -1,15 +1,56 @@
 import { NextResponse } from 'next/server';
 
-/**
- * In-memory sliding-window rate limiter.
- *
- * Limitation: state is not shared across serverless function instances.
- * For multi-instance / distributed deployments replace with a Redis-backed
- * store such as Upstash (@upstash/ratelimit + @upstash/redis).
- */
+// ── Distributed rate limiter (Upstash Redis) ─────────────────────────
+// When UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN are set, all
+// rate limiting goes through Redis so it works across serverless instances.
+// Falls back to the in-memory sliding window when either var is missing.
+
+let redis = null;
+let redisAvailable = false;
+
+if (
+  typeof process !== 'undefined' &&
+  process.env.UPSTASH_REDIS_REST_URL &&
+  process.env.UPSTASH_REDIS_REST_TOKEN
+) {
+  try {
+    // Dynamic import so the fallback path never tries to resolve the package.
+    const { Redis } = await import('@upstash/redis');
+    redis = new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    });
+    redisAvailable = true;
+  } catch {
+    // Package not installed or env misconfigured — fall through to in-memory.
+  }
+}
+
+// ── Redis sliding window ─────────────────────────────────────────────
+async function redisSlidingWindow(key, limit, windowSec) {
+  const now = Date.now();
+  const windowKey = `rl:${key}`;
+  const pipe = redis.pipeline();
+
+  // Remove entries outside the window, add the current timestamp, count.
+  pipe.zremrangebyscore(windowKey, 0, now - windowSec * 1000);
+  pipe.zadd(windowKey, { score: now, member: `${now}:${Math.random()}` });
+  pipe.zcard(windowKey);
+  pipe.expire(windowKey, windowSec + 1);
+
+  const results = await pipe.exec();
+  const count = results[2];
+
+  if (count > limit) {
+    return { allowed: false, resetIn: windowSec };
+  }
+  return { allowed: true, resetIn: 0 };
+}
+
+// ── In-memory fallback ───────────────────────────────────────────────
 const store = new Map();
 
-function slidingWindow(key, limit, windowMs) {
+function memorySlidingWindow(key, limit, windowMs) {
   const now = Date.now();
   const timestamps = (store.get(key) ?? []).filter((t) => now - t < windowMs);
 
@@ -21,7 +62,6 @@ function slidingWindow(key, limit, windowMs) {
   timestamps.push(now);
   store.set(key, timestamps);
 
-  // Probabilistic cleanup to prevent unbounded memory growth.
   if (Math.random() < 0.01) {
     const cutoff = Date.now();
     for (const [k, ts] of store.entries()) {
@@ -32,6 +72,18 @@ function slidingWindow(key, limit, windowMs) {
   return { allowed: true, resetIn: 0 };
 }
 
+// ── Unified check ────────────────────────────────────────────────────
+async function checkRateLimit(key, limit, windowMs) {
+  if (redisAvailable) {
+    try {
+      return await redisSlidingWindow(key, limit, Math.ceil(windowMs / 1000));
+    } catch {
+      // Redis error — graceful degradation to in-memory.
+    }
+  }
+  return memorySlidingWindow(key, limit, windowMs);
+}
+
 function getIp(request) {
   return (
     request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
@@ -40,17 +92,15 @@ function getIp(request) {
   );
 }
 
-// Rate-limit budgets per route group (requests per minute).
 const LIMITS = {
   auth: { limit: 5, windowMs: 60_000 },
   billing: { limit: 10, windowMs: 60_000 },
 };
 
-export function proxy(request) {
+export async function proxy(request) {
   const { pathname } = request.nextUrl;
   const { method } = request;
 
-  // Only rate-limit mutating requests.
   if (method !== 'POST') return NextResponse.next();
 
   let group;
@@ -64,7 +114,11 @@ export function proxy(request) {
 
   const ip = getIp(request);
   const key = `${group}:${ip}`;
-  const { allowed, resetIn } = slidingWindow(key, LIMITS[group].limit, LIMITS[group].windowMs);
+  const { allowed, resetIn } = await checkRateLimit(
+    key,
+    LIMITS[group].limit,
+    LIMITS[group].windowMs
+  );
 
   if (!allowed) {
     return NextResponse.json(
