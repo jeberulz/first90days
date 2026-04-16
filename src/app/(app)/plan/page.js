@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import SharePlanModal from "@/components/plan/SharePlanModal";
 import RegeneratePlanModal from "@/components/plan/RegeneratePlanModal";
+import NoPlanEmptyState from "@/components/app/NoPlanEmptyState";
 import {
   buildPlanMarkdown,
   buildPlanJson,
@@ -87,13 +88,32 @@ export default function PlanPage() {
     setExportOpen(false);
   }
 
-  if (!fullPlan) {
+  if (fullPlan === undefined) {
     return (
       <div className="space-y-4">
         <div className="h-10 bg-[#1C1917] rounded-lg animate-pulse w-2/3" />
         {[1, 2, 3, 4].map((i) => (
           <div key={i} className="h-24 bg-[#1C1917] border border-[#2C2825] rounded-xl animate-pulse" />
         ))}
+      </div>
+    );
+  }
+
+  if (fullPlan === null) {
+    return (
+      <div className="space-y-6 sm:space-y-8">
+        <div>
+          <h1 className="font-instrument-serif tracking-[-0.5px] sm:tracking-[-0.9px] text-2xl sm:text-3xl md:text-4xl leading-tight">
+            Your 90-Day Trajectory
+          </h1>
+          <p className="mt-2 font-space-grotesk text-sm sm:text-base text-[#A8A29E]">
+            Your strategic plan
+          </p>
+        </div>
+        <NoPlanEmptyState
+          heading="Your plan starts here"
+          description="This is where your strategic plan lives — 12 weeks of activities across three phases (Learn, Contribute, Lead). Complete onboarding to generate a plan tailored to your role and company."
+        />
       </div>
     );
   }

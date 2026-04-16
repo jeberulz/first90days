@@ -4,11 +4,13 @@ import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { ResponsiveModal } from "@/components/primitives";
+import { useHasPlan } from "@/hooks/useHasPlan";
 
 export default function QuickAddFAB() {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState(null); // 'activity' | 'win' | 'learning'
   const dayInfo = useQuery(api.users.getDayNumber);
+  const { hasPlan, isLoading: planLoading } = useHasPlan();
   const createActivity = useMutation(api.activities.create);
   const createLogEntry = useMutation(api.logEntries.create);
 
@@ -98,20 +100,33 @@ export default function QuickAddFAB() {
       {open && !mode && (
         <div className="fixed right-[max(1.25rem,env(safe-area-inset-right))] z-[55] bg-warm-cardDark border border-warm-borderDark rounded-xl shadow-xl w-56 overflow-hidden bottom-[calc(var(--bottom-nav-h)+5rem)] lg:bottom-[calc(2rem+4.5rem)]">
           {[
-            { key: "activity", label: "Add Activity", icon: "📋" },
+            { key: "activity", label: "Add Activity", icon: "📋", requiresPlan: true },
             { key: "win", label: "Log a Win", icon: "🏆" },
             { key: "learning", label: "Log a Learning", icon: "💡" },
-          ].map((item) => (
-            <button
-              key={item.key}
-              type="button"
-              onClick={() => setMode(item.key)}
-              className="w-full flex items-center gap-3 px-4 py-3 font-space-grotesk text-sm text-warm-line hover:bg-warm-surfaceDark transition-colors text-left min-h-11"
-            >
-              <span aria-hidden="true">{item.icon}</span>
-              {item.label}
-            </button>
-          ))}
+          ].map((item) => {
+            const disabled = item.requiresPlan && (!hasPlan || planLoading);
+            return (
+              <button
+                key={item.key}
+                type="button"
+                disabled={disabled}
+                onClick={() => !disabled && setMode(item.key)}
+                className={`w-full flex items-center gap-3 px-4 py-3 font-space-grotesk text-sm text-left min-h-11 ${
+                  disabled
+                    ? "text-warm-500 cursor-not-allowed opacity-50"
+                    : "text-warm-line hover:bg-warm-surfaceDark transition-colors"
+                }`}
+              >
+                <span aria-hidden="true">{item.icon}</span>
+                <span className="flex flex-col">
+                  {item.label}
+                  {disabled && (
+                    <span className="text-[10px] text-warm-500">Requires a plan</span>
+                  )}
+                </span>
+              </button>
+            );
+          })}
         </div>
       )}
 

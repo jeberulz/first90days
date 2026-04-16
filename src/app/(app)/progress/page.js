@@ -2,7 +2,7 @@
 
 import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
-import Link from "next/link";
+import NoPlanEmptyState from "@/components/app/NoPlanEmptyState";
 
 const categoryLabels = {
   learning: "Learning",
@@ -100,25 +100,19 @@ export default function ProgressPage() {
 
   if (v === null) {
     return (
-      <div className="space-y-6">
-        <h1 className="font-instrument-serif text-4xl tracking-[-0.9px] leading-[40px]">
-          Progress
-        </h1>
-        <div className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-8 text-center">
-          <p className="font-instrument-serif text-2xl text-[#E7E5E4]">
-            No plan yet
+      <div className="space-y-6 sm:space-y-8">
+        <div>
+          <h1 className="font-instrument-serif text-4xl tracking-[-0.9px] leading-[40px]">
+            Progress & Velocity
+          </h1>
+          <p className="mt-2 font-space-grotesk text-sm sm:text-base text-[#A8A29E]">
+            Your performance tracker
           </p>
-          <p className="mt-2 font-space-grotesk text-sm text-[#A8A29E]">
-            Finish onboarding to generate a plan — velocity tracking starts the
-            moment you have activities scheduled.
-          </p>
-          <Link
-            href="/onboarding/1"
-            className="inline-block mt-4 bg-[#D97757] hover:bg-[#C26242] text-white rounded-lg px-4 py-2 font-space-grotesk text-sm font-medium transition"
-          >
-            Continue setup →
-          </Link>
         </div>
+        <NoPlanEmptyState
+          heading="See how you're tracking"
+          description="Track how you're performing against your 90-day plan — pace ratio, weekly burn-up, and category balance. Complete onboarding to start tracking."
+        />
       </div>
     );
   }
