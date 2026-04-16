@@ -118,6 +118,7 @@ export default function SettingsPage() {
 
   const updateSettings = useMutation(api.users.updateSettings);
   const updateProfile = useMutation(api.users.updateProfile);
+  const updateOnboardingContext = useMutation(api.onboarding.updateContext);
   const generateAvatarUploadUrl = useMutation(api.users.generateAvatarUploadUrl);
   const setAvatar = useMutation(api.users.setAvatar);
   const removeAvatar = useMutation(api.users.removeAvatar);
@@ -156,6 +157,18 @@ export default function SettingsPage() {
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
   const [profileError, setProfileError] = useState("");
+
+  const [contextForm, setContextForm] = useState({
+    scope: "",
+    reportsTo: "",
+    successDefinition: "",
+    existingContext: "",
+    challenges: "",
+    jobDescription: "",
+  });
+  const [contextSaving, setContextSaving] = useState(false);
+  const [contextSaved, setContextSaved] = useState(false);
+  const [contextError, setContextError] = useState("");
 
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarError, setAvatarError] = useState("");
@@ -217,6 +230,26 @@ export default function SettingsPage() {
   }, [onboarding?.roleTitle]);
 
   useEffect(() => {
+    if (!onboarding) return;
+    setContextForm({
+      scope: onboarding.scope ?? "",
+      reportsTo: onboarding.reportsTo ?? "",
+      successDefinition: onboarding.successDefinition ?? "",
+      existingContext: onboarding.existingContext ?? "",
+      challenges: onboarding.challenges ?? "",
+      jobDescription: onboarding.jobDescription ?? "",
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    onboarding?.scope,
+    onboarding?.reportsTo,
+    onboarding?.successDefinition,
+    onboarding?.existingContext,
+    onboarding?.challenges,
+    onboarding?.jobDescription,
+  ]);
+
+  useEffect(() => {
     if (!user?.settings) return;
     const s = user.settings;
     setAccountForm((prev) => ({
@@ -262,6 +295,29 @@ export default function SettingsPage() {
       addToast(err?.message ?? "Failed to save profile", "error");
     } finally {
       setProfileSaving(false);
+    }
+  }
+
+  async function handleContextSave() {
+    setContextError("");
+    setContextSaving(true);
+    try {
+      await updateOnboardingContext({
+        scope: contextForm.scope,
+        reportsTo: contextForm.reportsTo,
+        successDefinition: contextForm.successDefinition,
+        existingContext: contextForm.existingContext,
+        challenges: contextForm.challenges,
+        jobDescription: contextForm.jobDescription,
+      });
+      setContextSaved(true);
+      setTimeout(() => setContextSaved(false), 2000);
+      addToast("Plan context saved", "success");
+    } catch (err) {
+      setContextError(err?.message ?? "Failed to save plan context");
+      addToast(err?.message ?? "Failed to save plan context", "error");
+    } finally {
+      setContextSaving(false);
     }
   }
 
@@ -565,6 +621,17 @@ export default function SettingsPage() {
                 onProfileSave={handleProfileSave}
               />
 
+              {onboarding && (
+                <PlanContextSection
+                  contextForm={contextForm}
+                  setContextForm={setContextForm}
+                  saving={contextSaving}
+                  saved={contextSaved}
+                  error={contextError}
+                  onSave={handleContextSave}
+                />
+              )}
+
               <DangerZone
                 confirmDelete={confirmDelete}
                 setConfirmDelete={setConfirmDelete}
@@ -800,6 +867,121 @@ function ProfileSection({
             saved={profileSaved}
             error={profileError}
             onSave={onProfileSave}
+          />
+        </form>
+      </SettingsCard>
+    </section>
+  );
+}
+
+function PlanContextSection({
+  contextForm,
+  setContextForm,
+  saving,
+  saved,
+  error,
+  onSave,
+}) {
+  function bind(key) {
+    return (e) =>
+      setContextForm((s) => ({ ...s, [key]: e.target.value }));
+  }
+  return (
+    <section className="space-y-4">
+      <SectionHeader
+        title="Plan context"
+        description="The intel we use when drafting or regenerating your plan. Update anytime — changes take effect the next time you regenerate."
+      />
+
+      <SettingsCard>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            onSave();
+          }}
+        >
+          <div className="p-6 space-y-5">
+            <Field
+              label="Role scope"
+              hint="One sentence on what you're actually doing in this role."
+            >
+              <input
+                type="text"
+                value={contextForm.scope}
+                onChange={bind("scope")}
+                className={fieldInputClass}
+                placeholder="e.g. Leading product design for the Agent Studio team"
+              />
+            </Field>
+
+            <Field label="Who do you report to?">
+              <input
+                type="text"
+                value={contextForm.reportsTo}
+                onChange={bind("reportsTo")}
+                className={fieldInputClass}
+                placeholder="e.g. Sarah Jenkins, VP of Product"
+              />
+            </Field>
+
+            <Field
+              label="What does success look like at 90 days?"
+              hint="Your personal definition — not just what the company expects."
+            >
+              <textarea
+                rows={3}
+                value={contextForm.successDefinition}
+                onChange={bind("successDefinition")}
+                className={fieldInputClass}
+                placeholder="e.g. Strong relationships with key stakeholders, a clear understanding of the roadmap, and one shipped improvement."
+              />
+            </Field>
+
+            <Field
+              label="Existing context"
+              hint="Intel from interviews, conversations, or research."
+            >
+              <textarea
+                rows={3}
+                value={contextForm.existingContext}
+                onChange={bind("existingContext")}
+                className={fieldInputClass}
+                placeholder="e.g. The team recently went through a reorg. Engineering is migrating to a new architecture…"
+              />
+            </Field>
+
+            <Field
+              label="Known challenges or risks"
+              hint="Things you want to watch out for or navigate carefully."
+            >
+              <textarea
+                rows={3}
+                value={contextForm.challenges}
+                onChange={bind("challenges")}
+                className={fieldInputClass}
+                placeholder="e.g. My predecessor left on bad terms. The team hasn't had a dedicated PM in 3 months…"
+              />
+            </Field>
+
+            <Field
+              label="Job description"
+              hint="Paste the full JD. We'll use it for grounding research and plan drafts."
+            >
+              <textarea
+                rows={5}
+                value={contextForm.jobDescription}
+                onChange={bind("jobDescription")}
+                className={fieldInputClass}
+                placeholder="Paste the full job description text here…"
+              />
+            </Field>
+          </div>
+
+          <SaveBar
+            saving={saving}
+            saved={saved}
+            error={error}
+            onSave={onSave}
           />
         </form>
       </SettingsCard>
