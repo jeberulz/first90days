@@ -64,7 +64,7 @@ export default function TasksPage() {
         <NoPlanEmptyState
           heading="Track your progress"
           description="Track and manage every activity in your 90-day plan. Complete onboarding to generate your tasks, grouped by week and category."
-          resumeStep={viewer?.lastOnboardingStep != null ? Math.min(viewer.lastOnboardingStep + 2, 6) : undefined}
+          lastOnboardingStep={viewer?.lastOnboardingStep}
           companyName={viewer?.partialOnboarding?.companyName}
         />
       </div>

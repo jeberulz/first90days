@@ -103,7 +103,8 @@ export default function OnboardingLayout({ children }) {
                       if (parsed.roleType && parsed.function_) step = 1;
                       if (step >= 1 && parsed.companySize && parsed.companyStage && parsed.workModel && parsed.starsSituation) step = 2;
                       if (step >= 2 && parsed.selectedGoals) step = 3;
-                      if (step >= 3) step = 4;
+                      if (step >= 3 && parsed.successDefinition) step = 4;
+                      if (step >= 4) step = 5;
                       const { stakeholders, scope, ...saveable } = parsed;
                       await saveOnboardingProgress({ step, data: saveable });
                     }

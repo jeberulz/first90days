@@ -98,20 +98,29 @@ export default function OnboardingStepPage({ params }) {
   const [data, setData] = useState(initialData);
   const [generating, setGenerating] = useState(false);
   const [planError, setPlanError] = useState(null);
+  const [initialRestoreDone, setInitialRestoreDone] = useState(false);
 
+  // Restore from Convex before we start persisting local state back into
+  // sessionStorage. This avoids a race where the default-data write
+  // clobbers the "onboarding_data" key before the Convex check runs.
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      sessionStorage.setItem("onboarding_data", JSON.stringify(data));
-    }
-  }, [data]);
+    if (viewer === undefined) return;
 
-  // Restore from Convex if sessionStorage is empty (e.g. different device,
-  // cleared cache). Only runs once when viewer data arrives.
-  useEffect(() => {
-    if (viewer?.partialOnboarding && !sessionStorage.getItem("onboarding_data")) {
+    const hasSessionData =
+      typeof window !== "undefined" &&
+      sessionStorage.getItem("onboarding_data") != null;
+
+    if (viewer?.partialOnboarding && !hasSessionData) {
       setData((prev) => ({ ...prev, ...viewer.partialOnboarding }));
     }
-  }, [viewer?.partialOnboarding]);
+
+    setInitialRestoreDone(true);
+  }, [viewer]);
+
+  useEffect(() => {
+    if (!initialRestoreDone || typeof window === "undefined") return;
+    sessionStorage.setItem("onboarding_data", JSON.stringify(data));
+  }, [data, initialRestoreDone]);
 
   useEffect(() => {
     setPlanError(null);
@@ -204,8 +213,8 @@ export default function OnboardingStepPage({ params }) {
         });
       }
 
-      // Clear partial onboarding data from user record
-      await clearOnboardingProgress();
+      // Best-effort cleanup after a successful plan build.
+      await clearOnboardingProgress().catch(() => {});
       sessionStorage.removeItem("onboarding_data");
     } catch (err) {
       console.error("Failed to generate plan:", err);
@@ -214,13 +223,16 @@ export default function OnboardingStepPage({ params }) {
     }
   }
 
-  function handleNext() {
-    // Save progress to Convex on every step advance
+  async function handleNext() {
     const { stakeholders, scope, ...saveable } = data;
-    saveOnboardingProgress({ step: currentStep, data: saveable }).catch(() => {});
     if (currentStep < TOTAL_STEPS - 1) {
+      // Fire-and-forget for intermediate steps — don't block navigation
+      saveOnboardingProgress({ step: currentStep, data: saveable }).catch(() => {});
       router.push(`/onboarding/${currentStep + 2}`);
     } else {
+      // On the final step, await the save so it completes before
+      // handleSubmit's clearOnboardingProgress can race past it.
+      await saveOnboardingProgress({ step: currentStep, data: saveable }).catch(() => {});
       handleSubmit();
     }
   }

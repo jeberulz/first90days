@@ -7,9 +7,12 @@ export default function NoPlanEmptyState({
   description,
   ctaLabel,
   ctaHref,
-  resumeStep,
+  lastOnboardingStep,
   companyName,
 }) {
+  const resumeStep = lastOnboardingStep != null
+    ? Math.min(lastOnboardingStep + 2, 6)
+    : undefined;
   const href = ctaHref || (resumeStep ? `/onboarding/${resumeStep}` : "/onboarding/1");
   const label = ctaLabel || (resumeStep && resumeStep > 1 ? "Continue setup" : "Complete setup");
   const desc = description || (

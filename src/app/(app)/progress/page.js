@@ -113,7 +113,7 @@ export default function ProgressPage() {
         <NoPlanEmptyState
           heading="See how you're tracking"
           description="Track how you're performing against your 90-day plan — pace ratio, weekly burn-up, and category balance. Complete onboarding to start tracking."
-          resumeStep={viewer?.lastOnboardingStep != null ? Math.min(viewer.lastOnboardingStep + 2, 6) : undefined}
+          lastOnboardingStep={viewer?.lastOnboardingStep}
           companyName={viewer?.partialOnboarding?.companyName}
         />
       </div>

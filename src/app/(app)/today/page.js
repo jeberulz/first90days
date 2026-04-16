@@ -62,7 +62,7 @@ export default function TodayPage() {
         <NoPlanEmptyState
           heading="Your day starts with a plan"
           description="The Today view shows your daily activities, progress, and streak. Complete onboarding to generate your personalised 90-day plan."
-          resumeStep={viewer?.lastOnboardingStep != null ? Math.min(viewer.lastOnboardingStep + 2, 6) : undefined}
+          lastOnboardingStep={viewer?.lastOnboardingStep}
           companyName={viewer?.partialOnboarding?.companyName}
         />
       </div>
