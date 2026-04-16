@@ -5,6 +5,8 @@ import { api } from "../../../../../convex/_generated/api";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import NoPlanEmptyState from "@/components/app/NoPlanEmptyState";
+import { useHasPlan } from "@/hooks/useHasPlan";
 
 const defaultQuestions = [
   "What were your biggest accomplishments this week?",
@@ -16,7 +18,9 @@ const defaultQuestions = [
 
 export default function WeeklyReviewPage() {
   const router = useRouter();
+  const { isGenerating } = useHasPlan();
   const dayInfo = useQuery(api.users.getDayNumber);
+  const viewer = useQuery(api.users.viewer);
   const activities = useQuery(api.activities.getByWeek, {
     weekNumber: dayInfo?.weekNumber || 1,
   });
@@ -29,7 +33,48 @@ export default function WeeklyReviewPage() {
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
-  if (!dayInfo || !activities) {
+  if (dayInfo === undefined) {
+    return (
+      <div className="max-w-2xl mx-auto space-y-4">
+        <div className="h-10 bg-[#1C1917] rounded-lg animate-pulse w-1/2" />
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-24 bg-[#1C1917] border border-[#2C2825] rounded-xl animate-pulse" />
+        ))}
+      </div>
+    );
+  }
+
+  if (dayInfo === null) {
+    return (
+      <div className="max-w-2xl mx-auto space-y-6 sm:space-y-8">
+        <div>
+          <h1 className="font-instrument-serif tracking-[-0.5px] sm:tracking-[-0.9px] text-2xl sm:text-3xl md:text-4xl leading-tight">
+            Weekly Review
+          </h1>
+          <p className="mt-2 font-space-grotesk text-sm sm:text-base text-[#A8A29E]">
+            Reflect on your week
+          </p>
+        </div>
+        {isGenerating ? (
+          <div className="bg-[#1C1917] border border-[#D97757]/30 rounded-xl p-6 sm:p-8 text-center space-y-3">
+            <div className="w-8 h-8 mx-auto border-2 border-[#D97757] border-t-transparent rounded-full animate-spin" />
+            <p className="font-space-grotesk text-sm text-[#A8A29E]">
+              Your plan is being generated. Weekly reviews will be available shortly.
+            </p>
+          </div>
+        ) : (
+          <NoPlanEmptyState
+            heading="Weekly reviews need a plan"
+            description="Review your weekly progress, rate your performance, and set priorities for the next week. Complete onboarding to start your 90-day plan."
+            lastOnboardingStep={viewer?.lastOnboardingStep}
+            companyName={viewer?.partialOnboarding?.companyName}
+          />
+        )}
+      </div>
+    );
+  }
+
+  if (!activities) {
     return (
       <div className="max-w-2xl mx-auto space-y-4">
         <div className="h-10 bg-[#1C1917] rounded-lg animate-pulse w-1/2" />

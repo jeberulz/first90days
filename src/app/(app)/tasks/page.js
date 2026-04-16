@@ -33,7 +33,8 @@ export default function TasksPage() {
   const allActivities = useQuery(api.activities.getAll);
   const goals = useQuery(api.goals.list);
   const dayInfo = useQuery(api.users.getDayNumber);
-  const { hasPlan } = useHasPlan();
+  const viewer = useQuery(api.users.viewer);
+  const { hasPlan, isGenerating } = useHasPlan();
   const completeActivity = useMutation(api.activities.complete);
   const [filter, setFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -49,7 +50,7 @@ export default function TasksPage() {
     );
   }
 
-  if (allActivities.length === 0 && !hasPlan) {
+  if (allActivities.length === 0 && (isGenerating || !hasPlan)) {
     return (
       <div className="space-y-6 sm:space-y-8">
         <div>
@@ -60,10 +61,21 @@ export default function TasksPage() {
             Your activity tracker
           </p>
         </div>
-        <NoPlanEmptyState
-          heading="Track your progress"
-          description="Track and manage every activity in your 90-day plan. Complete onboarding to generate your tasks, grouped by week and category."
-        />
+        {isGenerating ? (
+          <div className="bg-[#1C1917] border border-[#D97757]/30 rounded-xl p-6 sm:p-8 text-center space-y-3">
+            <div className="w-8 h-8 mx-auto border-2 border-[#D97757] border-t-transparent rounded-full animate-spin" />
+            <p className="font-space-grotesk text-sm text-[#A8A29E]">
+              Your plan is being generated. Tasks will appear here shortly.
+            </p>
+          </div>
+        ) : (
+          <NoPlanEmptyState
+            heading="Track your progress"
+            description="Track and manage every activity in your 90-day plan. Complete onboarding to generate your tasks, grouped by week and category."
+            lastOnboardingStep={viewer?.lastOnboardingStep}
+            companyName={viewer?.partialOnboarding?.companyName}
+          />
+        )}
       </div>
     );
   }

@@ -1,9 +1,11 @@
 "use client";
 
 import { useAuthActions } from "@convex-dev/auth/react";
+import { useMutation } from "convex/react";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { api } from "../../../../convex/_generated/api";
 import {
   passwordRequirements,
   passwordStrength,
@@ -12,8 +14,10 @@ import {
 
 export default function SignupPage() {
   const { signIn } = useAuthActions();
+  const updateProfile = useMutation(api.users.updateProfile);
   const router = useRouter();
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showRequirements, setShowRequirements] = useState(false);
@@ -37,15 +41,15 @@ export default function SignupPage() {
 
     setLoading(true);
     try {
-      await signIn("password", {
-        email,
-        password,
-        name,
-        flow: "signUp",
+      const name = [firstName.trim(), lastName.trim()].filter(Boolean).join(" ");
+      await signIn("password", { email, password, name, flow: "signUp" });
+      await updateProfile({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
       });
-      // After signup, send the user to email verification before onboarding.
-      // The verify-email page reads ?email= from the URL so it can pass it
-      // back to the password provider on `flow: "email-verification"`.
+      if (typeof sessionStorage !== "undefined") {
+        sessionStorage.removeItem("onboarding_data");
+      }
       router.push(`/verify-email?email=${encodeURIComponent(email)}&next=/onboarding`);
     } catch (err) {
       const message = err?.data ?? err?.message ?? "";
@@ -80,22 +84,43 @@ export default function SignupPage() {
           </div>
         )}
 
-        <div className="space-y-1.5">
-          <label
-            htmlFor="name"
-            className="block font-space-grotesk text-sm font-medium text-[#1C1917]"
-          >
-            Full name
-          </label>
-          <input
-            id="name"
-            type="text"
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full bg-white border border-[#E7E5E4] rounded-lg px-3 py-2.5 font-space-grotesk text-sm text-[#1C1917] placeholder:text-[#D1CDC7] focus:outline-none focus:ring-2 focus:ring-[#D97757]/20 focus:border-[#D97757] transition"
-            placeholder="John Smith"
-          />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label
+              htmlFor="firstName"
+              className="block font-space-grotesk text-sm font-medium text-[#1C1917]"
+            >
+              First name
+            </label>
+            <input
+              id="firstName"
+              type="text"
+              required
+              autoComplete="given-name"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              className="w-full bg-white border border-[#E7E5E4] rounded-lg px-3 py-2.5 font-space-grotesk text-sm text-[#1C1917] placeholder:text-[#D1CDC7] focus:outline-none focus:ring-2 focus:ring-[#D97757]/20 focus:border-[#D97757] transition"
+              placeholder="Jane"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label
+              htmlFor="lastName"
+              className="block font-space-grotesk text-sm font-medium text-[#1C1917]"
+            >
+              Last name
+            </label>
+            <input
+              id="lastName"
+              type="text"
+              required
+              autoComplete="family-name"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              className="w-full bg-white border border-[#E7E5E4] rounded-lg px-3 py-2.5 font-space-grotesk text-sm text-[#1C1917] placeholder:text-[#D1CDC7] focus:outline-none focus:ring-2 focus:ring-[#D97757]/20 focus:border-[#D97757] transition"
+              placeholder="Doe"
+            />
+          </div>
         </div>
 
         <div className="space-y-1.5">

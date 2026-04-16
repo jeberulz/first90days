@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 
+const TOTAL_STEPS = 6;
+
 export default function OnboardingIndex() {
   const router = useRouter();
   const viewer = useQuery(api.users.viewer);
@@ -31,7 +33,11 @@ export default function OnboardingIndex() {
     }
 
     if (!viewer.isPilotUser) {
-      router.replace("/onboarding/1");
+      // Resume from the step after the last completed one
+      const resumeStep = viewer.lastOnboardingStep != null
+        ? Math.min(viewer.lastOnboardingStep + 2, TOTAL_STEPS)
+        : 1;
+      router.replace(`/onboarding/${resumeStep}`);
       return;
     }
 

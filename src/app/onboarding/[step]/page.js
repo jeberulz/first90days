@@ -11,6 +11,7 @@ import GoalCard from "@/components/onboarding/GoalCard";
 import StakeholderRow from "@/components/onboarding/StakeholderRow";
 import CompletionOverlay from "@/components/onboarding/CompletionOverlay";
 import StepTransition from "@/components/onboarding/StepTransition";
+import { splitFullNameDisplay } from "@/lib/userDisplay";
 
 const TOTAL_STEPS = 6;
 
@@ -84,23 +85,70 @@ export default function OnboardingStepPage({ params }) {
   const currentStep = parseInt(step, 10) - 1;
   const router = useRouter();
   const saveOnboarding = useMutation(api.onboarding.save);
+  const updateProfile = useMutation(api.users.updateProfile);
   const viewer = useQuery(api.users.viewer);
+  const existingStakeholders = useQuery(api.stakeholders.list);
   const seedPlan = useMutation(api.seed.seedJohnsPlan);
   const generatePlan = useAction(api.ai.generatePlan);
   const createStakeholdersBatch = useMutation(api.stakeholders.createBatch);
+  const saveOnboardingProgress = useMutation(api.users.saveOnboardingProgress);
+  const clearOnboardingProgress = useMutation(api.users.clearOnboardingProgress);
+  const markGenerating = useMutation(api.planMutations.markGenerating);
+  const markFailed = useMutation(api.planMutations.markFailed);
   const requestCompanyResearch = useMutation(
     api.companyResearchJobs.requestCompanyResearch
   );
 
   const [data, setData] = useState(initialData);
   const [generating, setGenerating] = useState(false);
+  const [generatingComplete, setGeneratingComplete] = useState(false);
   const [planError, setPlanError] = useState(null);
+  const [initialRestoreDone, setInitialRestoreDone] = useState(false);
+
+  // Restore from Convex before we start persisting local state back into
+  // sessionStorage. This avoids a race where the default-data write
+  // clobbers the "onboarding_data" key before the Convex check runs.
+  useEffect(() => {
+    if (viewer === undefined || viewer === null) return;
+
+    const hasSessionData =
+      typeof window !== "undefined" &&
+      sessionStorage.getItem("onboarding_data") != null;
+
+    const vf = viewer.firstName?.trim() ?? "";
+    const vl = viewer.lastName?.trim() ?? "";
+    const split = splitFullNameDisplay(viewer.name ?? "");
+
+    /** Prefer in-progress fields; if they are empty, use account profile / full name. */
+    function withViewerNameFallback(base) {
+      return {
+        ...base,
+        firstName:
+          (base.firstName ?? "").trim() || vf || split.first || "",
+        lastName:
+          (base.lastName ?? "").trim() || vl || split.last || "",
+      };
+    }
+
+    if (!hasSessionData) {
+      if (viewer.partialOnboarding) {
+        const po = viewer.partialOnboarding;
+        setData((prev) => withViewerNameFallback({ ...prev, ...po }));
+      } else if (vf || vl || split.first || split.last) {
+        setData((prev) => withViewerNameFallback(prev));
+      }
+    } else {
+      // Stale sessionStorage often has empty name fields; still hydrate from Convex.
+      setData((prev) => withViewerNameFallback(prev));
+    }
+
+    setInitialRestoreDone(true);
+  }, [viewer]);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      sessionStorage.setItem("onboarding_data", JSON.stringify(data));
-    }
-  }, [data]);
+    if (!initialRestoreDone || typeof window === "undefined") return;
+    sessionStorage.setItem("onboarding_data", JSON.stringify(data));
+  }, [data, initialRestoreDone]);
 
   useEffect(() => {
     setPlanError(null);
@@ -126,11 +174,11 @@ export default function OnboardingStepPage({ params }) {
     setGenerating(true);
     setPlanError(null);
     try {
-      if (data.firstName || data.lastName) {
-        const fullName = [data.firstName, data.lastName].filter(Boolean).join(" ");
-        if (fullName && viewer?._id) {
-          // Name stored on users table via existing name field
-        }
+      if (data.firstName?.trim() || data.lastName?.trim()) {
+        await updateProfile({
+          firstName: data.firstName.trim(),
+          lastName: data.lastName.trim(),
+        });
       }
 
       await saveOnboarding({
@@ -161,20 +209,32 @@ export default function OnboardingStepPage({ params }) {
         (s) => s.name.trim() && s.title.trim()
       );
       if (validStakeholders.length > 0) {
-        await createStakeholdersBatch({
-          stakeholders: validStakeholders.map((s) => ({
-            name: s.name.trim(),
-            role: s.title.trim(),
-            relationshipType: s.relationship || "stakeholder",
-            priority: s.relationship === "manager" ? "Must" : "Should",
-          })),
-        });
+        // Deduplicate against stakeholders already in the database
+        const existingNames = new Set(
+          (existingStakeholders || []).map((s) => s.name.trim().toLowerCase())
+        );
+        const newStakeholders = validStakeholders.filter(
+          (s) => !existingNames.has(s.name.trim().toLowerCase())
+        );
+        if (newStakeholders.length > 0) {
+          await createStakeholdersBatch({
+            stakeholders: newStakeholders.map((s) => ({
+              name: s.name.trim(),
+              role: s.title.trim(),
+              relationshipType: s.relationship || "stakeholder",
+              priority: s.relationship === "manager" ? "Must" : "Should",
+            })),
+          });
+        }
       }
 
       if (viewer?.isPilotUser) {
         await seedPlan();
       } else {
         if (!viewer?._id) throw new Error("Not signed in. Please refresh and try again.");
+        // Create a plan stub with status "generating" so the dashboard
+        // shows a loading state instead of the "no plan" empty state.
+        await markGenerating();
         await generatePlan({ userId: viewer._id });
         // Fire-and-forget: kick off the company research drafts agent.
         // Research failure must never block onboarding, so we swallow errors
@@ -184,18 +244,29 @@ export default function OnboardingStepPage({ params }) {
         });
       }
 
+      setGeneratingComplete(true);
+      // Best-effort cleanup after a successful plan build.
+      await clearOnboardingProgress().catch(() => {});
       sessionStorage.removeItem("onboarding_data");
     } catch (err) {
       console.error("Failed to generate plan:", err);
+      // Mark the plan stub as failed so dashboard shows an error state
+      if (!viewer?.isPilotUser) markFailed().catch(() => {});
       setPlanError(err instanceof Error ? err.message : "Could not build your plan. Try again.");
       setGenerating(false);
     }
   }
 
-  function handleNext() {
+  async function handleNext() {
+    const { stakeholders, scope, ...saveable } = data;
     if (currentStep < TOTAL_STEPS - 1) {
+      // Fire-and-forget for intermediate steps — don't block navigation
+      saveOnboardingProgress({ step: currentStep, data: saveable }).catch(() => {});
       router.push(`/onboarding/${currentStep + 2}`);
     } else {
+      // On the final step, await the save so it completes before
+      // handleSubmit's clearOnboardingProgress can race past it.
+      await saveOnboardingProgress({ step: currentStep, data: saveable }).catch(() => {});
       handleSubmit();
     }
   }
@@ -248,6 +319,7 @@ export default function OnboardingStepPage({ params }) {
         error={planError}
         onRetry={handleSubmit}
         onDashboard={() => router.push("/dashboard")}
+        isComplete={generatingComplete}
       />
     );
   }
@@ -423,6 +495,17 @@ export default function OnboardingStepPage({ params }) {
                       placeholder="e.g. Sarah Jenkins, VP of Product"
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label className={labelClass}>Describe your role scope (optional)</label>
+                  <input
+                    value={data.scope ?? ""}
+                    onChange={(e) => update("scope", e.target.value)}
+                    className={inputClass}
+                    placeholder="e.g. Leading product design for the Agent Studio team"
+                    maxLength={500}
+                  />
                 </div>
 
                 <label className="flex items-center gap-3 cursor-pointer">

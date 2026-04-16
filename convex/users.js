@@ -6,6 +6,53 @@ import { isPilotEmail, PILOT_PLAN_START_DATE } from "./lib/pilotUser";
 import { computePlanDayInfo } from "./lib/planDates";
 import { computeEntitlements } from "./billing";
 
+function splitFullName(fullName) {
+  const t = fullName?.trim();
+  if (!t) return { first: undefined, last: undefined };
+  const parts = t.split(/\s+/);
+  if (parts.length === 1) return { first: parts[0], last: undefined };
+  return { first: parts[0], last: parts.slice(1).join(" ") };
+}
+
+function joinNameParts(first, last) {
+  const f = (first ?? "").trim();
+  const l = (last ?? "").trim();
+  const full = [f, l].filter(Boolean).join(" ");
+  return full || undefined;
+}
+
+/** Returns patch fields for users.name / firstName / lastName, or null if no name args. */
+function resolveDisplayNameFields(existing, args) {
+  const hasPartials =
+    args.firstName !== undefined || args.lastName !== undefined;
+  if (hasPartials) {
+    const first =
+      args.firstName !== undefined
+        ? String(args.firstName).trim()
+        : (existing?.firstName ?? "").trim();
+    const last =
+      args.lastName !== undefined
+        ? String(args.lastName).trim()
+        : (existing?.lastName ?? "").trim();
+    const name = joinNameParts(first, last);
+    return {
+      firstName: first ? first : undefined,
+      lastName: last ? last : undefined,
+      name,
+    };
+  }
+  if (args.name !== undefined) {
+    const trimmed = String(args.name).trim();
+    const { first, last } = splitFullName(trimmed);
+    return {
+      firstName: first,
+      lastName: last,
+      name: trimmed || undefined,
+    };
+  }
+  return null;
+}
+
 export const viewer = query({
   args: {},
   handler: async (ctx) => {
@@ -106,14 +153,18 @@ export const updateSettings = mutation({
 export const updateProfile = mutation({
   args: {
     name: v.optional(v.string()),
+    firstName: v.optional(v.string()),
+    lastName: v.optional(v.string()),
     roleTitle: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const userId = await auth.getUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
-    if (args.name !== undefined) {
-      await ctx.db.patch(userId, { name: args.name });
+    const existing = await ctx.db.get(userId);
+    const resolved = resolveDisplayNameFields(existing, args);
+    if (resolved) {
+      await ctx.db.patch(userId, resolved);
     }
 
     if (args.roleTitle !== undefined) {
@@ -183,6 +234,66 @@ export const completeOnboarding = mutation({
     const userId = await auth.getUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
     await ctx.db.patch(userId, { onboardingComplete: true });
+  },
+});
+
+export const saveOnboardingProgress = mutation({
+  args: {
+    step: v.number(),
+    data: v.object({
+      firstName: v.optional(v.string()),
+      lastName: v.optional(v.string()),
+      roleTitle: v.optional(v.string()),
+      companyName: v.optional(v.string()),
+      startDate: v.optional(v.string()),
+      experienceYears: v.optional(v.number()),
+      isFirstRoleAtLevel: v.optional(v.boolean()),
+      roleType: v.optional(v.string()),
+      function_: v.optional(v.string()),
+      teamSize: v.optional(v.number()),
+      isNewTeam: v.optional(v.boolean()),
+      reportsTo: v.optional(v.string()),
+      companySize: v.optional(v.string()),
+      companyStage: v.optional(v.string()),
+      workModel: v.optional(v.string()),
+      industry: v.optional(v.string()),
+      starsSituation: v.optional(v.string()),
+      selectedGoals: v.optional(v.array(v.string())),
+      successDefinition: v.optional(v.string()),
+      existingContext: v.optional(v.string()),
+      challenges: v.optional(v.string()),
+      jobDescription: v.optional(v.string()),
+    }),
+  },
+  handler: async (ctx, args) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    await ctx.db.patch(userId, {
+      lastOnboardingStep: args.step,
+      partialOnboarding: args.data,
+    });
+
+    const fn = (args.data.firstName ?? "").trim();
+    const ln = (args.data.lastName ?? "").trim();
+    if (fn || ln) {
+      await ctx.db.patch(userId, {
+        firstName: fn || undefined,
+        lastName: ln || undefined,
+        name: joinNameParts(fn, ln),
+      });
+    }
+  },
+});
+
+export const clearOnboardingProgress = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    await ctx.db.patch(userId, {
+      lastOnboardingStep: undefined,
+      partialOnboarding: undefined,
+    });
   },
 });
 

@@ -6,6 +6,7 @@ import { useState } from "react";
 import Link from "next/link";
 import StakeholderNudges from "@/components/stakeholders/StakeholderNudges";
 import NoPlanEmptyState from "@/components/app/NoPlanEmptyState";
+import { useHasPlan } from "@/hooks/useHasPlan";
 import { useToast } from "@/components/primitives/Toaster";
 
 const categoryColors = {
@@ -27,12 +28,14 @@ function formatStartDate(ymd) {
 
 export default function TodayPage() {
   const dayInfo = useQuery(api.users.getDayNumber);
+  const viewer = useQuery(api.users.viewer);
   const todayActivities = useQuery(api.activities.getToday);
   const streak = useQuery(api.reflections.getStreak);
   const completeActivity = useMutation(api.activities.complete);
   const skipActivity = useMutation(api.activities.skip);
   const rescheduleActivity = useMutation(api.activities.reschedule);
 
+  const { isGenerating } = useHasPlan();
   const addToast = useToast();
   const [completingId, setCompletingId] = useState(null);
   const [noteText, setNoteText] = useState("");
@@ -58,10 +61,21 @@ export default function TodayPage() {
             Your daily view
           </p>
         </div>
-        <NoPlanEmptyState
-          heading="Your day starts with a plan"
-          description="The Today view shows your daily activities, progress, and streak. Complete onboarding to generate your personalised 90-day plan."
-        />
+        {isGenerating ? (
+          <div className="bg-[#1C1917] border border-[#D97757]/30 rounded-xl p-6 sm:p-8 text-center space-y-3">
+            <div className="w-8 h-8 mx-auto border-2 border-[#D97757] border-t-transparent rounded-full animate-spin" />
+            <p className="font-space-grotesk text-sm text-[#A8A29E]">
+              Your plan is being generated. Your daily activities will appear here shortly.
+            </p>
+          </div>
+        ) : (
+          <NoPlanEmptyState
+            heading="Your day starts with a plan"
+            description="The Today view shows your daily activities, progress, and streak. Complete onboarding to generate your personalised 90-day plan."
+            lastOnboardingStep={viewer?.lastOnboardingStep}
+            companyName={viewer?.partialOnboarding?.companyName}
+          />
+        )}
       </div>
     );
   }

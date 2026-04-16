@@ -8,6 +8,7 @@ import {
   GoalApprovalBadge,
   GoalApprovalActions,
 } from "@/components/plan/GoalApproval";
+import { preferredFirstName } from "@/lib/userDisplay";
 
 const PRE_BOARDING_CHECKLIST = [
   { id: "news", label: "Research company recent news, earnings, product launches" },
@@ -70,6 +71,7 @@ export default function DashboardPage() {
   if (!user) return null;
 
   const preBoarding = plan && dayInfo && !dayInfo.hasStarted;
+  const greetingFirst = preferredFirstName(user);
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -81,7 +83,7 @@ export default function DashboardPage() {
             : "Welcome to your First 90 Days"}
         </h1>
         <p className="mt-2 font-space-grotesk text-sm sm:text-base text-[#A8A29E]">
-          {user.name ? `Hi ${user.name.split(" ")[0]}, ` : ""}
+          {greetingFirst ? `Hi ${greetingFirst}, ` : ""}
           {preBoarding
             ? `your journey begins on ${formatStartDate(dayInfo.startDate)}`
             : dayInfo && dayInfo.hasStarted
@@ -89,6 +91,50 @@ export default function DashboardPage() {
               : "complete onboarding to generate your personalised plan"}
         </p>
       </div>
+
+      {/* Plan is generating — show loading state */}
+      {plan?.status === "generating" && (
+        <div className="bg-[#1C1917] border border-[#D97757]/30 rounded-xl p-6 sm:p-8 text-center space-y-4">
+          <div className="w-12 h-12 mx-auto rounded-full bg-[#D97757]/10 flex items-center justify-center">
+            <div className="w-6 h-6 border-2 border-[#D97757] border-t-transparent rounded-full animate-spin" />
+          </div>
+          <h2 className="font-instrument-serif text-2xl text-[#E7E5E4]">
+            Building your plan&hellip;
+          </h2>
+          <p className="font-space-grotesk text-sm text-[#A8A29E] max-w-md mx-auto">
+            We&apos;re generating your personalised 90-day plan. This usually takes 30&ndash;60 seconds.
+            You can wait here &mdash; the page will update automatically.
+          </p>
+          <div className="w-48 mx-auto h-1.5 bg-[#292524] rounded-full overflow-hidden">
+            <div className="h-full bg-[#D97757] rounded-full animate-pulse w-3/4" />
+          </div>
+        </div>
+      )}
+
+      {/* Plan generation failed — show error with retry */}
+      {plan?.status === "failed" && (
+        <div className="bg-[#1C1917] border border-red-900/40 rounded-xl p-6 sm:p-8 text-center space-y-4">
+          <div className="w-12 h-12 mx-auto rounded-full bg-red-900/20 flex items-center justify-center">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F87171" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 8v4M12 16h.01" />
+            </svg>
+          </div>
+          <h2 className="font-instrument-serif text-2xl text-red-400">
+            Plan generation failed
+          </h2>
+          <p className="font-space-grotesk text-sm text-[#A8A29E] max-w-md mx-auto">
+            Something went wrong while building your plan. Your information is saved &mdash;
+            click below to try again.
+          </p>
+          <Link
+            href={user.lastOnboardingStep != null ? `/onboarding/${Math.min(user.lastOnboardingStep + 2, 6)}` : "/onboarding/6"}
+            className="inline-flex bg-[#D97757] hover:bg-[#C26242] text-white rounded-lg px-6 py-2.5 font-space-grotesk text-sm font-medium transition shadow-sm"
+          >
+            Try again
+          </Link>
+        </div>
+      )}
 
       {/* No plan state */}
       {!plan && (
@@ -99,7 +145,9 @@ export default function DashboardPage() {
           <p className="font-space-grotesk text-sm text-[#A8A29E] max-w-md mx-auto">
             {user.isPilotUser
               ? "Load your pre-built pilot workspace (same data as first-time signup). If you already have a plan, Load sample syncs dates to the pilot start calendar."
-              : "Continue setup to generate a personalised 90-day plan tailored to your role."}
+              : user.partialOnboarding?.companyName
+                ? `Continue setup to build your plan at ${user.partialOnboarding.companyName}.`
+                : "Continue setup to generate a personalised 90-day plan tailored to your role."}
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             {user.isPilotUser && (
@@ -113,7 +161,7 @@ export default function DashboardPage() {
             )}
             {!user.isPilotUser && (
               <Link
-                href="/onboarding/1"
+                href={user.lastOnboardingStep != null ? `/onboarding/${Math.min(user.lastOnboardingStep + 2, 6)}` : "/onboarding/1"}
                 className="inline-flex bg-[#D97757] hover:bg-[#C26242] text-white rounded-lg px-6 py-2.5 font-space-grotesk text-sm font-medium transition shadow-sm"
               >
                 Continue setup

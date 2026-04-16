@@ -14,6 +14,7 @@ import Field, {
 } from "@/components/settings/Field";
 import ToggleRow from "@/components/settings/ToggleRow";
 import { useToast } from "@/components/primitives/Toaster";
+import { displayName, splitFullNameDisplay, userInitials } from "@/lib/userDisplay";
 
 const TABS = [
   { id: "profile", label: "Profile", icon: "user" },
@@ -106,28 +107,6 @@ function Icon({ name, className = "", size = 18 }) {
   }
 }
 
-function splitName(fullName) {
-  if (!fullName) return { first: "", last: "" };
-  const parts = fullName.trim().split(/\s+/);
-  if (parts.length === 1) return { first: parts[0], last: "" };
-  return { first: parts[0], last: parts.slice(1).join(" ") };
-}
-
-function joinName(first, last) {
-  return [first.trim(), last.trim()].filter(Boolean).join(" ");
-}
-
-function getInitials(name) {
-  if (!name) return "?";
-  return name
-    .split(/\s+/)
-    .map((n) => n[0])
-    .filter(Boolean)
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-}
-
 export default function SettingsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -139,6 +118,7 @@ export default function SettingsPage() {
 
   const updateSettings = useMutation(api.users.updateSettings);
   const updateProfile = useMutation(api.users.updateProfile);
+  const updateOnboardingContext = useMutation(api.onboarding.updateContext);
   const generateAvatarUploadUrl = useMutation(api.users.generateAvatarUploadUrl);
   const setAvatar = useMutation(api.users.setAvatar);
   const removeAvatar = useMutation(api.users.removeAvatar);
@@ -177,6 +157,18 @@ export default function SettingsPage() {
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
   const [profileError, setProfileError] = useState("");
+
+  const [contextForm, setContextForm] = useState({
+    scope: "",
+    reportsTo: "",
+    successDefinition: "",
+    existingContext: "",
+    challenges: "",
+    jobDescription: "",
+  });
+  const [contextSaving, setContextSaving] = useState(false);
+  const [contextSaved, setContextSaved] = useState(false);
+  const [contextError, setContextError] = useState("");
 
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarError, setAvatarError] = useState("");
@@ -217,12 +209,18 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (!user) return;
-    const { first, last } = splitName(user.name ?? "");
-    setFirstName(first);
-    setLastName(last);
-    // Only re-sync when the persisted name itself changes.
+    const f = user.firstName?.trim();
+    const l = user.lastName?.trim();
+    if (f || l) {
+      setFirstName(f ?? "");
+      setLastName(l ?? "");
+    } else {
+      const { first, last } = splitFullNameDisplay(user.name ?? "");
+      setFirstName(first);
+      setLastName(last);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.name]);
+  }, [user?.name, user?.firstName, user?.lastName]);
 
   useEffect(() => {
     if (onboarding) {
@@ -230,6 +228,26 @@ export default function SettingsPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onboarding?.roleTitle]);
+
+  useEffect(() => {
+    if (!onboarding) return;
+    setContextForm({
+      scope: onboarding.scope ?? "",
+      reportsTo: onboarding.reportsTo ?? "",
+      successDefinition: onboarding.successDefinition ?? "",
+      existingContext: onboarding.existingContext ?? "",
+      challenges: onboarding.challenges ?? "",
+      jobDescription: onboarding.jobDescription ?? "",
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    onboarding?.scope,
+    onboarding?.reportsTo,
+    onboarding?.successDefinition,
+    onboarding?.existingContext,
+    onboarding?.challenges,
+    onboarding?.jobDescription,
+  ]);
 
   useEffect(() => {
     if (!user?.settings) return;
@@ -263,9 +281,9 @@ export default function SettingsPage() {
     setProfileError("");
     setProfileSaving(true);
     try {
-      const trimmedName = joinName(firstName, lastName);
-      await updateProfile({
-        name: trimmedName,
+           await updateProfile({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
         // Only send roleTitle if there's an onboarding row to update.
         roleTitle: onboarding ? roleTitle : undefined,
       });
@@ -277,6 +295,29 @@ export default function SettingsPage() {
       addToast(err?.message ?? "Failed to save profile", "error");
     } finally {
       setProfileSaving(false);
+    }
+  }
+
+  async function handleContextSave() {
+    setContextError("");
+    setContextSaving(true);
+    try {
+      await updateOnboardingContext({
+        scope: contextForm.scope,
+        reportsTo: contextForm.reportsTo,
+        successDefinition: contextForm.successDefinition,
+        existingContext: contextForm.existingContext,
+        challenges: contextForm.challenges,
+        jobDescription: contextForm.jobDescription,
+      });
+      setContextSaved(true);
+      setTimeout(() => setContextSaved(false), 2000);
+      addToast("Plan context saved", "success");
+    } catch (err) {
+      setContextError(err?.message ?? "Failed to save plan context");
+      addToast(err?.message ?? "Failed to save plan context", "error");
+    } finally {
+      setContextSaving(false);
     }
   }
 
@@ -464,7 +505,7 @@ export default function SettingsPage() {
     );
   }
 
-  const initials = getInitials(user.name);
+  const initials = userInitials(user);
 
   function tabId(id) {
     return `${tabsBaseId}-tab-${id}`;
@@ -579,6 +620,17 @@ export default function SettingsPage() {
                 profileError={profileError}
                 onProfileSave={handleProfileSave}
               />
+
+              {onboarding && (
+                <PlanContextSection
+                  contextForm={contextForm}
+                  setContextForm={setContextForm}
+                  saving={contextSaving}
+                  saved={contextSaved}
+                  error={contextError}
+                  onSave={handleContextSave}
+                />
+              )}
 
               <DangerZone
                 confirmDelete={confirmDelete}
@@ -701,7 +753,7 @@ function ProfileSection({
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={user.imageUrl}
-                      alt={`${user.name ?? "User"} avatar`}
+                      alt={`${displayName(user) || "User"} avatar`}
                       className="w-full h-full object-cover"
                     />
                   ) : (
@@ -815,6 +867,122 @@ function ProfileSection({
             saved={profileSaved}
             error={profileError}
             onSave={onProfileSave}
+          />
+        </form>
+      </SettingsCard>
+    </section>
+  );
+}
+
+function PlanContextSection({
+  contextForm,
+  setContextForm,
+  saving,
+  saved,
+  error,
+  onSave,
+}) {
+  function bind(key) {
+    return (e) =>
+      setContextForm((s) => ({ ...s, [key]: e.target.value }));
+  }
+  return (
+    <section className="space-y-4">
+      <SectionHeader
+        title="Plan context"
+        description="The intel we use when drafting or regenerating your plan. Update anytime — changes take effect the next time you regenerate."
+      />
+
+      <SettingsCard>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            onSave();
+          }}
+        >
+          <div className="p-6 space-y-5">
+            <Field
+              label="Role scope"
+              hint="One sentence on what you're actually doing in this role."
+            >
+              <input
+                type="text"
+                value={contextForm.scope}
+                onChange={bind("scope")}
+                maxLength={500}
+                className={fieldInputClass}
+                placeholder="e.g. Leading product design for the Agent Studio team"
+              />
+            </Field>
+
+            <Field label="Who do you report to?">
+              <input
+                type="text"
+                value={contextForm.reportsTo}
+                onChange={bind("reportsTo")}
+                className={fieldInputClass}
+                placeholder="e.g. Sarah Jenkins, VP of Product"
+              />
+            </Field>
+
+            <Field
+              label="What does success look like at 90 days?"
+              hint="Your personal definition — not just what the company expects."
+            >
+              <textarea
+                rows={3}
+                value={contextForm.successDefinition}
+                onChange={bind("successDefinition")}
+                className={fieldInputClass}
+                placeholder="e.g. Strong relationships with key stakeholders, a clear understanding of the roadmap, and one shipped improvement."
+              />
+            </Field>
+
+            <Field
+              label="Existing context"
+              hint="Intel from interviews, conversations, or research."
+            >
+              <textarea
+                rows={3}
+                value={contextForm.existingContext}
+                onChange={bind("existingContext")}
+                className={fieldInputClass}
+                placeholder="e.g. The team recently went through a reorg. Engineering is migrating to a new architecture…"
+              />
+            </Field>
+
+            <Field
+              label="Known challenges or risks"
+              hint="Things you want to watch out for or navigate carefully."
+            >
+              <textarea
+                rows={3}
+                value={contextForm.challenges}
+                onChange={bind("challenges")}
+                className={fieldInputClass}
+                placeholder="e.g. My predecessor left on bad terms. The team hasn't had a dedicated PM in 3 months…"
+              />
+            </Field>
+
+            <Field
+              label="Job description"
+              hint="Paste the full JD. We'll use it for grounding research and plan drafts."
+            >
+              <textarea
+                rows={5}
+                value={contextForm.jobDescription}
+                onChange={bind("jobDescription")}
+                className={fieldInputClass}
+                placeholder="Paste the full job description text here…"
+              />
+            </Field>
+          </div>
+
+          <SaveBar
+            saving={saving}
+            saved={saved}
+            error={error}
+            onSave={onSave}
           />
         </form>
       </SettingsCard>
