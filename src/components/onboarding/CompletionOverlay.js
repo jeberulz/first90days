@@ -57,13 +57,18 @@ export default function CompletionOverlay({ error, onRetry, onDashboard, isCompl
   // auto-navigate to dashboard after a brief pause.
   useEffect(() => {
     if (!isComplete) return;
-    setProgress(100);
     clearInterval(progressRef.current);
-    const t = setTimeout(() => {
+    // Use a minimal timeout to avoid calling setState synchronously in an
+    // effect body (react-hooks/set-state-in-effect).
+    const jumpTimer = setTimeout(() => setProgress(100), 0);
+    const navTimer = setTimeout(() => {
       setReady(true);
       onDashboard();
     }, 1500);
-    return () => clearTimeout(t);
+    return () => {
+      clearTimeout(jumpTimer);
+      clearTimeout(navTimer);
+    };
   }, [isComplete, onDashboard]);
 
   if (error) {
