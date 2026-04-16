@@ -909,6 +909,7 @@ function PlanContextSection({
                 type="text"
                 value={contextForm.scope}
                 onChange={bind("scope")}
+                maxLength={500}
                 className={fieldInputClass}
                 placeholder="e.g. Leading product design for the Agent Studio team"
               />

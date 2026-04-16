@@ -98,9 +98,24 @@ export const updateContext = mutation({
       .first();
     if (!existing) throw new Error("No onboarding data found");
 
+    // Server-side length caps. These match the UI constraints but also
+    // protect the prompt-token budget when the Settings page is bypassed.
+    const MAX_LEN = {
+      scope: 500,
+      reportsTo: 200,
+      successDefinition: 2000,
+      existingContext: 4000,
+      challenges: 4000,
+      jobDescription: 12000,
+    };
+
     const patch = {};
     for (const [key, value] of Object.entries(args)) {
-      if (value !== undefined) patch[key] = value;
+      if (value === undefined) continue;
+      if (typeof value === "string" && MAX_LEN[key] && value.length > MAX_LEN[key]) {
+        throw new Error(`${key} exceeds ${MAX_LEN[key]} characters`);
+      }
+      patch[key] = value;
     }
     if (Object.keys(patch).length === 0) return existing._id;
 
