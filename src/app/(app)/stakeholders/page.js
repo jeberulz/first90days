@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { ResponsiveModal, ScrollableTabs } from "@/components/primitives";
 import NoPlanEmptyState from "@/components/app/NoPlanEmptyState";
+import { useHasPlan } from "@/hooks/useHasPlan";
 
 const SORT_TABS = [
   { key: "priority", label: "Priority" },
@@ -28,6 +29,8 @@ const typeBadge = {
 
 export default function StakeholdersPage() {
   const stakeholders = useQuery(api.stakeholders.list);
+  const viewer = useQuery(api.users.viewer);
+  const { hasPlan } = useHasPlan();
   const createStakeholder = useMutation(api.stakeholders.create);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
@@ -89,10 +92,21 @@ export default function StakeholdersPage() {
       </div>
 
       {stakeholders.length === 0 ? (
-        <NoPlanEmptyState
-          heading="Build your network"
-          description="Map out the key people you need to build relationships with. You can add stakeholders now, or complete onboarding to get AI-suggested contacts based on your role."
-        />
+        hasPlan ? (
+          <div className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-6 sm:p-8 text-center space-y-4">
+            <h2 className="font-instrument-serif text-2xl text-[#E7E5E4]">No stakeholders yet</h2>
+            <p className="font-space-grotesk text-sm text-[#A8A29E] max-w-md mx-auto">
+              Map out the key people you need to build relationships with. Click &ldquo;Add stakeholder&rdquo; above to get started.
+            </p>
+          </div>
+        ) : (
+          <NoPlanEmptyState
+            heading="Build your network"
+            description="Map out the key people you need to build relationships with. You can add stakeholders now, or complete onboarding to get AI-suggested contacts based on your role."
+            lastOnboardingStep={viewer?.lastOnboardingStep}
+            companyName={viewer?.partialOnboarding?.companyName}
+          />
+        )
       ) : (
       <>
       {/* Sort */}

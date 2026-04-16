@@ -5,6 +5,8 @@ import { api } from "../../../../../convex/_generated/api";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/primitives/Toaster";
+import { useHasPlan } from "@/hooks/useHasPlan";
+import NoPlanEmptyState from "@/components/app/NoPlanEmptyState";
 
 const energyEmojis = [
   { level: 1, emoji: "😴", label: "Drained" },
@@ -16,6 +18,8 @@ const energyEmojis = [
 
 export default function DailyReflectionPage() {
   const router = useRouter();
+  const { hasPlan, isLoading: planLoading } = useHasPlan();
+  const viewer = useQuery(api.users.viewer);
   const today = new Date().toISOString().split("T")[0];
   const existing = useQuery(api.reflections.getDailyByDate, { date: today });
   const streak = useQuery(api.reflections.getStreak);
@@ -29,6 +33,35 @@ export default function DailyReflectionPage() {
   const addToast = useToast();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  if (planLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="w-8 h-8 border-2 border-[#D97757] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!hasPlan) {
+    return (
+      <div className="max-w-2xl mx-auto space-y-6 sm:space-y-8">
+        <div>
+          <h1 className="font-instrument-serif tracking-[-0.5px] sm:tracking-[-0.9px] text-2xl sm:text-3xl md:text-4xl leading-tight">
+            Daily Check-in
+          </h1>
+          <p className="mt-2 font-space-grotesk text-sm sm:text-base text-[#A8A29E]">
+            Reflect on your day
+          </p>
+        </div>
+        <NoPlanEmptyState
+          heading="Reflections start with a plan"
+          description="Daily check-ins help you track energy, wins, and blockers against your 90-day plan. Complete onboarding to start reflecting."
+          lastOnboardingStep={viewer?.lastOnboardingStep}
+          companyName={viewer?.partialOnboarding?.companyName}
+        />
+      </div>
+    );
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();

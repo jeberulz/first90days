@@ -113,6 +113,8 @@ export default function PlanPage() {
         <NoPlanEmptyState
           heading="Your plan starts here"
           description="This is where your strategic plan lives — 12 weeks of activities across three phases (Learn, Contribute, Lead). Complete onboarding to generate a plan tailored to your role and company."
+          lastOnboardingStep={viewer?.lastOnboardingStep}
+          companyName={viewer?.partialOnboarding?.companyName}
         />
       </div>
     );

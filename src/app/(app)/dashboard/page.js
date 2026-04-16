@@ -99,7 +99,9 @@ export default function DashboardPage() {
           <p className="font-space-grotesk text-sm text-[#A8A29E] max-w-md mx-auto">
             {user.isPilotUser
               ? "Load your pre-built pilot workspace (same data as first-time signup). If you already have a plan, Load sample syncs dates to the pilot start calendar."
-              : "Continue setup to generate a personalised 90-day plan tailored to your role."}
+              : user.partialOnboarding?.companyName
+                ? `Continue setup to build your plan at ${user.partialOnboarding.companyName}.`
+                : "Continue setup to generate a personalised 90-day plan tailored to your role."}
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             {user.isPilotUser && (
@@ -113,7 +115,7 @@ export default function DashboardPage() {
             )}
             {!user.isPilotUser && (
               <Link
-                href="/onboarding/1"
+                href={user.lastOnboardingStep != null ? `/onboarding/${Math.min(user.lastOnboardingStep + 2, 6)}` : "/onboarding/1"}
                 className="inline-flex bg-[#D97757] hover:bg-[#C26242] text-white rounded-lg px-6 py-2.5 font-space-grotesk text-sm font-medium transition shadow-sm"
               >
                 Continue setup

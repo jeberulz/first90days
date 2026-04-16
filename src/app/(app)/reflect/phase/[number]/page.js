@@ -4,6 +4,8 @@ import { useQuery } from "convex/react";
 import { api } from "../../../../../../convex/_generated/api";
 import { use } from "react";
 import Link from "next/link";
+import { useHasPlan } from "@/hooks/useHasPlan";
+import NoPlanEmptyState from "@/components/app/NoPlanEmptyState";
 
 const phaseInfo = {
   1: { name: "Learn", days: "Days 1-30" },
@@ -14,18 +16,47 @@ const phaseInfo = {
 export default function PhaseReviewPage({ params }) {
   const { number } = use(params);
   const phaseNum = parseInt(number, 10);
+  const { hasPlan, isLoading: planLoading } = useHasPlan();
+  const viewer = useQuery(api.users.viewer);
   const goals = useQuery(api.goals.list);
   const allActivities = useQuery(api.activities.getAll);
   const stakeholders = useQuery(api.stakeholders.list);
   const logEntries = useQuery(api.logEntries.list, {});
 
-  if (!goals || !allActivities || !stakeholders || !logEntries) {
+  if (planLoading || !goals || !allActivities || !stakeholders || !logEntries) {
     return (
       <div className="max-w-2xl mx-auto space-y-4">
         <div className="h-10 bg-[#1C1917] rounded-lg animate-pulse w-1/2" />
         {[1, 2, 3].map((i) => (
           <div key={i} className="h-24 bg-[#1C1917] border border-[#2C2825] rounded-xl animate-pulse" />
         ))}
+      </div>
+    );
+  }
+
+  if (!hasPlan) {
+    return (
+      <div className="max-w-2xl mx-auto space-y-6 sm:space-y-8">
+        <Link
+          href="/dashboard"
+          className="font-space-grotesk text-sm text-[#A8A29E] hover:text-[#E7E5E4] transition inline-block"
+        >
+          &larr; Back to dashboard
+        </Link>
+        <div>
+          <h1 className="font-instrument-serif text-4xl tracking-[-0.9px] leading-[40px]">
+            Phase {phaseNum} Review
+          </h1>
+          <p className="mt-2 font-space-grotesk text-base text-[#A8A29E]">
+            {phaseInfo[phaseNum]?.days}
+          </p>
+        </div>
+        <NoPlanEmptyState
+          heading="Phase reviews need a plan"
+          description="Review your accomplishments, goals, and relationships at the end of each phase. Complete onboarding to generate your 90-day plan."
+          lastOnboardingStep={viewer?.lastOnboardingStep}
+          companyName={viewer?.partialOnboarding?.companyName}
+        />
       </div>
     );
   }

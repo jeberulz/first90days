@@ -186,6 +186,56 @@ export const completeOnboarding = mutation({
   },
 });
 
+export const saveOnboardingProgress = mutation({
+  args: {
+    step: v.number(),
+    data: v.object({
+      firstName: v.optional(v.string()),
+      lastName: v.optional(v.string()),
+      roleTitle: v.optional(v.string()),
+      companyName: v.optional(v.string()),
+      startDate: v.optional(v.string()),
+      experienceYears: v.optional(v.number()),
+      isFirstRoleAtLevel: v.optional(v.boolean()),
+      roleType: v.optional(v.string()),
+      function_: v.optional(v.string()),
+      teamSize: v.optional(v.number()),
+      isNewTeam: v.optional(v.boolean()),
+      reportsTo: v.optional(v.string()),
+      companySize: v.optional(v.string()),
+      companyStage: v.optional(v.string()),
+      workModel: v.optional(v.string()),
+      industry: v.optional(v.string()),
+      starsSituation: v.optional(v.string()),
+      selectedGoals: v.optional(v.array(v.string())),
+      successDefinition: v.optional(v.string()),
+      existingContext: v.optional(v.string()),
+      challenges: v.optional(v.string()),
+      jobDescription: v.optional(v.string()),
+    }),
+  },
+  handler: async (ctx, args) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    await ctx.db.patch(userId, {
+      lastOnboardingStep: args.step,
+      partialOnboarding: args.data,
+    });
+  },
+});
+
+export const clearOnboardingProgress = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    await ctx.db.patch(userId, {
+      lastOnboardingStep: undefined,
+      partialOnboarding: undefined,
+    });
+  },
+});
+
 // "plans" is intentionally NOT in this list — we defer deleting plan
 // rows until every plan comment has been swept (which can span multiple
 // batches). Otherwise later retries re-snapshot an empty ownedPlans and

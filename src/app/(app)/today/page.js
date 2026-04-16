@@ -27,6 +27,7 @@ function formatStartDate(ymd) {
 
 export default function TodayPage() {
   const dayInfo = useQuery(api.users.getDayNumber);
+  const viewer = useQuery(api.users.viewer);
   const todayActivities = useQuery(api.activities.getToday);
   const streak = useQuery(api.reflections.getStreak);
   const completeActivity = useMutation(api.activities.complete);
@@ -61,6 +62,8 @@ export default function TodayPage() {
         <NoPlanEmptyState
           heading="Your day starts with a plan"
           description="The Today view shows your daily activities, progress, and streak. Complete onboarding to generate your personalised 90-day plan."
+          lastOnboardingStep={viewer?.lastOnboardingStep}
+          companyName={viewer?.partialOnboarding?.companyName}
         />
       </div>
     );

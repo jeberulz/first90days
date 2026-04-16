@@ -85,9 +85,12 @@ export default function OnboardingStepPage({ params }) {
   const router = useRouter();
   const saveOnboarding = useMutation(api.onboarding.save);
   const viewer = useQuery(api.users.viewer);
+  const existingStakeholders = useQuery(api.stakeholders.list);
   const seedPlan = useMutation(api.seed.seedJohnsPlan);
   const generatePlan = useAction(api.ai.generatePlan);
   const createStakeholdersBatch = useMutation(api.stakeholders.createBatch);
+  const saveOnboardingProgress = useMutation(api.users.saveOnboardingProgress);
+  const clearOnboardingProgress = useMutation(api.users.clearOnboardingProgress);
   const requestCompanyResearch = useMutation(
     api.companyResearchJobs.requestCompanyResearch
   );
@@ -95,12 +98,29 @@ export default function OnboardingStepPage({ params }) {
   const [data, setData] = useState(initialData);
   const [generating, setGenerating] = useState(false);
   const [planError, setPlanError] = useState(null);
+  const [initialRestoreDone, setInitialRestoreDone] = useState(false);
+
+  // Restore from Convex before we start persisting local state back into
+  // sessionStorage. This avoids a race where the default-data write
+  // clobbers the "onboarding_data" key before the Convex check runs.
+  useEffect(() => {
+    if (viewer === undefined) return;
+
+    const hasSessionData =
+      typeof window !== "undefined" &&
+      sessionStorage.getItem("onboarding_data") != null;
+
+    if (viewer?.partialOnboarding && !hasSessionData) {
+      setData((prev) => ({ ...prev, ...viewer.partialOnboarding }));
+    }
+
+    setInitialRestoreDone(true);
+  }, [viewer]);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      sessionStorage.setItem("onboarding_data", JSON.stringify(data));
-    }
-  }, [data]);
+    if (!initialRestoreDone || typeof window === "undefined") return;
+    sessionStorage.setItem("onboarding_data", JSON.stringify(data));
+  }, [data, initialRestoreDone]);
 
   useEffect(() => {
     setPlanError(null);
@@ -161,14 +181,23 @@ export default function OnboardingStepPage({ params }) {
         (s) => s.name.trim() && s.title.trim()
       );
       if (validStakeholders.length > 0) {
-        await createStakeholdersBatch({
-          stakeholders: validStakeholders.map((s) => ({
-            name: s.name.trim(),
-            role: s.title.trim(),
-            relationshipType: s.relationship || "stakeholder",
-            priority: s.relationship === "manager" ? "Must" : "Should",
-          })),
-        });
+        // Deduplicate against stakeholders already in the database
+        const existingNames = new Set(
+          (existingStakeholders || []).map((s) => s.name.trim().toLowerCase())
+        );
+        const newStakeholders = validStakeholders.filter(
+          (s) => !existingNames.has(s.name.trim().toLowerCase())
+        );
+        if (newStakeholders.length > 0) {
+          await createStakeholdersBatch({
+            stakeholders: newStakeholders.map((s) => ({
+              name: s.name.trim(),
+              role: s.title.trim(),
+              relationshipType: s.relationship || "stakeholder",
+              priority: s.relationship === "manager" ? "Must" : "Should",
+            })),
+          });
+        }
       }
 
       if (viewer?.isPilotUser) {
@@ -184,6 +213,8 @@ export default function OnboardingStepPage({ params }) {
         });
       }
 
+      // Best-effort cleanup after a successful plan build.
+      await clearOnboardingProgress().catch(() => {});
       sessionStorage.removeItem("onboarding_data");
     } catch (err) {
       console.error("Failed to generate plan:", err);
@@ -192,10 +223,16 @@ export default function OnboardingStepPage({ params }) {
     }
   }
 
-  function handleNext() {
+  async function handleNext() {
+    const { stakeholders, scope, ...saveable } = data;
     if (currentStep < TOTAL_STEPS - 1) {
+      // Fire-and-forget for intermediate steps — don't block navigation
+      saveOnboardingProgress({ step: currentStep, data: saveable }).catch(() => {});
       router.push(`/onboarding/${currentStep + 2}`);
     } else {
+      // On the final step, await the save so it completes before
+      // handleSubmit's clearOnboardingProgress can race past it.
+      await saveOnboardingProgress({ step: currentStep, data: saveable }).catch(() => {});
       handleSubmit();
     }
   }

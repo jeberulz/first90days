@@ -12,6 +12,33 @@ export default defineSchema({
     image: v.optional(v.string()),
     isAnonymous: v.optional(v.boolean()),
     onboardingComplete: v.optional(v.boolean()),
+    lastOnboardingStep: v.optional(v.number()),
+    partialOnboarding: v.optional(
+      v.object({
+        firstName: v.optional(v.string()),
+        lastName: v.optional(v.string()),
+        roleTitle: v.optional(v.string()),
+        companyName: v.optional(v.string()),
+        startDate: v.optional(v.string()),
+        experienceYears: v.optional(v.number()),
+        isFirstRoleAtLevel: v.optional(v.boolean()),
+        roleType: v.optional(v.string()),
+        function_: v.optional(v.string()),
+        teamSize: v.optional(v.number()),
+        isNewTeam: v.optional(v.boolean()),
+        reportsTo: v.optional(v.string()),
+        companySize: v.optional(v.string()),
+        companyStage: v.optional(v.string()),
+        workModel: v.optional(v.string()),
+        industry: v.optional(v.string()),
+        starsSituation: v.optional(v.string()),
+        selectedGoals: v.optional(v.array(v.string())),
+        successDefinition: v.optional(v.string()),
+        existingContext: v.optional(v.string()),
+        challenges: v.optional(v.string()),
+        jobDescription: v.optional(v.string()),
+      })
+    ),
     billingTier: v.optional(
       v.union(
         v.literal("free"),

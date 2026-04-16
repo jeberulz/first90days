@@ -33,6 +33,7 @@ export default function TasksPage() {
   const allActivities = useQuery(api.activities.getAll);
   const goals = useQuery(api.goals.list);
   const dayInfo = useQuery(api.users.getDayNumber);
+  const viewer = useQuery(api.users.viewer);
   const { hasPlan } = useHasPlan();
   const completeActivity = useMutation(api.activities.complete);
   const [filter, setFilter] = useState("all");
@@ -63,6 +64,8 @@ export default function TasksPage() {
         <NoPlanEmptyState
           heading="Track your progress"
           description="Track and manage every activity in your 90-day plan. Complete onboarding to generate your tasks, grouped by week and category."
+          lastOnboardingStep={viewer?.lastOnboardingStep}
+          companyName={viewer?.partialOnboarding?.companyName}
         />
       </div>
     );
