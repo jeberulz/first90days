@@ -283,6 +283,11 @@ async function _seedPlanData(ctx, userId) {
         companyStage: "Growth",
         starsSituation: "Turnaround",
         scope: "Leading product design for Agent Studio, defining design direction and interaction patterns for AI agent interfaces",
+        experienceYears: 8,
+        teamSize: 12,
+        isNewTeam: true,
+        workModel: "Hybrid",
+        reportsTo: "Imogen Chen, VP of Product",
       },
     });
     await ctx.scheduler.runAfter(
