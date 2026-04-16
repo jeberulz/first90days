@@ -1,11 +1,14 @@
 "use client";
 
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useMutation, useQuery } from "convex/react";
-import { useEffect, useState } from "react";
+import { useMutation } from "convex/react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "../../../../convex/_generated/api";
+
+const MAX_CLIENT_ATTEMPTS = 5;
+const LOCKOUT_MS = 15 * 60 * 1000;
 
 export default function LoginPage() {
   const { signIn } = useAuthActions();
@@ -15,11 +18,10 @@ export default function LoginPage() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [lockoutMs, setLockoutMs] = useState(0);
+  const failCount = useRef(0);
 
-  const trackFailed = useMutation(api.loginAttempts.trackFailedAttempt);
-  const clearAttempts = useMutation(api.loginAttempts.clearAttempts);
+  const clearMyAttempts = useMutation(api.loginAttempts.clearMyAttempts);
 
-  // Countdown timer for lockout display.
   useEffect(() => {
     if (lockoutMs <= 0) return;
     const id = setInterval(() => {
@@ -45,12 +47,14 @@ export default function LoginPage() {
 
     try {
       await signIn("password", { email, password, flow: "signIn" });
-      clearAttempts({ email }).catch(() => {});
+      failCount.current = 0;
+      clearMyAttempts().catch(() => {});
       router.push("/dashboard");
     } catch {
-      const result = await trackFailed({ email }).catch(() => null);
-      if (result?.locked) {
-        setLockoutMs(result.remainingMs);
+      failCount.current += 1;
+      if (failCount.current >= MAX_CLIENT_ATTEMPTS) {
+        setLockoutMs(LOCKOUT_MS);
+        failCount.current = 0;
         setError(null);
       } else {
         setError("Invalid email or password. Please try again.");

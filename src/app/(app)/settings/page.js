@@ -1433,7 +1433,7 @@ function SessionManagementSection({ addToast }) {
 
   function formatSessionDate(ms) {
     try {
-      return new Date(ms).toLocaleDateString(undefined, {
+      return new Date(ms).toLocaleString(undefined, {
         year: "numeric",
         month: "short",
         day: "numeric",

@@ -11,8 +11,11 @@ export const sendVerificationEmail = internalAction({
   handler: async (_ctx, { email, code }) => {
     const apiKey = process.env.AUTH_RESEND_KEY;
     if (!apiKey) {
+      if (process.env.NODE_ENV !== "development") {
+        throw new Error("AUTH_RESEND_KEY is not configured.");
+      }
       console.warn(
-        `[emailChange] AUTH_RESEND_KEY not set — email to ${email} would contain code ${code}`
+        `[emailChange] AUTH_RESEND_KEY not set; skipping email change verification in development for ${email}`
       );
       return;
     }

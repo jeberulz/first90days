@@ -1,11 +1,12 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { mutation, internalMutation, internalQuery } from "./_generated/server";
+import { auth } from "./auth";
 
 const MAX_ATTEMPTS = 5;
 const WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 const LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes
 
-export const checkLockout = query({
+export const checkLockout = internalQuery({
   args: { email: v.string() },
   handler: async (ctx, { email }) => {
     const normalised = email.trim().toLowerCase();
@@ -21,7 +22,6 @@ export const checkLockout = query({
       return { locked: true, remainingMs: row.lockedUntil - now };
     }
 
-    // Window expired — not locked.
     if (now - row.firstAttemptAt > WINDOW_MS) {
       return { locked: false, remainingMs: 0 };
     }
@@ -30,7 +30,7 @@ export const checkLockout = query({
   },
 });
 
-export const trackFailedAttempt = mutation({
+export const trackFailedAttempt = internalMutation({
   args: { email: v.string() },
   handler: async (ctx, { email }) => {
     const normalised = email.trim().toLowerCase();
@@ -50,7 +50,6 @@ export const trackFailedAttempt = mutation({
       return { locked: false, remainingMs: 0 };
     }
 
-    // If the window has expired, start a fresh window.
     if (now - row.firstAttemptAt > WINDOW_MS) {
       await ctx.db.patch(row._id, {
         attempts: 1,
@@ -76,13 +75,30 @@ export const trackFailedAttempt = mutation({
   },
 });
 
-export const clearAttempts = mutation({
+export const clearAttempts = internalMutation({
   args: { email: v.string() },
   handler: async (ctx, { email }) => {
     const normalised = email.trim().toLowerCase();
     const row = await ctx.db
       .query("loginAttempts")
       .withIndex("by_email", (q) => q.eq("email", normalised))
+      .first();
+    if (row) {
+      await ctx.db.delete(row._id);
+    }
+  },
+});
+
+export const clearMyAttempts = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) return;
+    const user = await ctx.db.get(userId);
+    if (!user?.email) return;
+    const row = await ctx.db
+      .query("loginAttempts")
+      .withIndex("by_email", (q) => q.eq("email", user.email))
       .first();
     if (row) {
       await ctx.db.delete(row._id);

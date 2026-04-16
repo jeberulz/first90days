@@ -41,7 +41,7 @@ async function redisSlidingWindow(key, limit, windowSec) {
   const results = await pipe.exec();
   const count = results[2];
 
-  if (count > limit) {
+  if (count >= limit) {
     return { allowed: false, resetIn: windowSec };
   }
   return { allowed: true, resetIn: 0 };
