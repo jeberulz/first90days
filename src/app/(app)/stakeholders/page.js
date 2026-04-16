@@ -5,6 +5,7 @@ import { api } from "../../../../convex/_generated/api";
 import Link from "next/link";
 import { useState } from "react";
 import { ResponsiveModal, ScrollableTabs } from "@/components/primitives";
+import NoPlanEmptyState from "@/components/app/NoPlanEmptyState";
 
 const SORT_TABS = [
   { key: "priority", label: "Priority" },
@@ -87,6 +88,13 @@ export default function StakeholdersPage() {
         </button>
       </div>
 
+      {stakeholders.length === 0 ? (
+        <NoPlanEmptyState
+          heading="Build your network"
+          description="Map out the key people you need to build relationships with. You can add stakeholders now, or complete onboarding to get AI-suggested contacts based on your role."
+        />
+      ) : (
+      <>
       {/* Sort */}
       <ScrollableTabs
         items={SORT_TABS}
@@ -150,6 +158,8 @@ export default function StakeholdersPage() {
           </Link>
         ))}
       </div>
+      </>
+      )}
 
       <ResponsiveModal
         open={showForm}

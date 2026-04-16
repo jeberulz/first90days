@@ -4,6 +4,8 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { useState } from "react";
 import { ScrollableTabs } from "@/components/primitives";
+import NoPlanEmptyState from "@/components/app/NoPlanEmptyState";
+import { useHasPlan } from "@/hooks/useHasPlan";
 
 const STATUS_TABS = [
   { key: "all", label: "All" },
@@ -31,6 +33,7 @@ export default function TasksPage() {
   const allActivities = useQuery(api.activities.getAll);
   const goals = useQuery(api.goals.list);
   const dayInfo = useQuery(api.users.getDayNumber);
+  const { hasPlan } = useHasPlan();
   const completeActivity = useMutation(api.activities.complete);
   const [filter, setFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -42,6 +45,25 @@ export default function TasksPage() {
         {[1, 2, 3, 4, 5].map((i) => (
           <div key={i} className="h-16 bg-[#1C1917] border border-[#2C2825] rounded-xl animate-pulse" />
         ))}
+      </div>
+    );
+  }
+
+  if (allActivities.length === 0 && !hasPlan) {
+    return (
+      <div className="space-y-6 sm:space-y-8">
+        <div>
+          <h1 className="font-instrument-serif tracking-[-0.5px] sm:tracking-[-0.9px] text-2xl sm:text-3xl md:text-4xl leading-tight">
+            Tasks & Milestones
+          </h1>
+          <p className="mt-2 font-space-grotesk text-sm sm:text-base text-[#A8A29E]">
+            Your activity tracker
+          </p>
+        </div>
+        <NoPlanEmptyState
+          heading="Track your progress"
+          description="Track and manage every activity in your 90-day plan. Complete onboarding to generate your tasks, grouped by week and category."
+        />
       </div>
     );
   }

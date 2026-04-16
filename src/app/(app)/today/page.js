@@ -5,6 +5,7 @@ import { api } from "../../../../convex/_generated/api";
 import { useState } from "react";
 import Link from "next/link";
 import StakeholderNudges from "@/components/stakeholders/StakeholderNudges";
+import NoPlanEmptyState from "@/components/app/NoPlanEmptyState";
 import { useToast } from "@/components/primitives/Toaster";
 
 const categoryColors = {
@@ -38,10 +39,29 @@ export default function TodayPage() {
   const [reschedulingId, setReschedulingId] = useState(null);
   const [rescheduleDate, setRescheduleDate] = useState("");
 
-  if (!dayInfo) {
+  if (dayInfo === undefined) {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="w-8 h-8 border-2 border-[#D97757] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (dayInfo === null) {
+    return (
+      <div className="space-y-6 sm:space-y-8">
+        <div>
+          <h1 className="font-instrument-serif tracking-[-0.5px] sm:tracking-[-0.9px] text-2xl sm:text-3xl md:text-4xl leading-tight">
+            Today
+          </h1>
+          <p className="mt-2 font-space-grotesk text-sm sm:text-base text-[#A8A29E]">
+            Your daily view
+          </p>
+        </div>
+        <NoPlanEmptyState
+          heading="Your day starts with a plan"
+          description="The Today view shows your daily activities, progress, and streak. Complete onboarding to generate your personalised 90-day plan."
+        />
       </div>
     );
   }

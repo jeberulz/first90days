@@ -86,7 +86,7 @@ export default function DashboardPage() {
             ? `your journey begins on ${formatStartDate(dayInfo.startDate)}`
             : dayInfo && dayInfo.hasStarted
               ? `you're on Day ${dayInfo.dayNumber} — ${dayInfo.phaseName} phase`
-              : "let's get started"}
+              : "complete onboarding to generate your personalised plan"}
         </p>
       </div>
 
