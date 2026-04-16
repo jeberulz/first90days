@@ -85,9 +85,12 @@ export default function OnboardingStepPage({ params }) {
   const router = useRouter();
   const saveOnboarding = useMutation(api.onboarding.save);
   const viewer = useQuery(api.users.viewer);
+  const existingStakeholders = useQuery(api.stakeholders.list);
   const seedPlan = useMutation(api.seed.seedJohnsPlan);
   const generatePlan = useAction(api.ai.generatePlan);
   const createStakeholdersBatch = useMutation(api.stakeholders.createBatch);
+  const saveOnboardingProgress = useMutation(api.users.saveOnboardingProgress);
+  const clearOnboardingProgress = useMutation(api.users.clearOnboardingProgress);
   const requestCompanyResearch = useMutation(
     api.companyResearchJobs.requestCompanyResearch
   );
@@ -101,6 +104,14 @@ export default function OnboardingStepPage({ params }) {
       sessionStorage.setItem("onboarding_data", JSON.stringify(data));
     }
   }, [data]);
+
+  // Restore from Convex if sessionStorage is empty (e.g. different device,
+  // cleared cache). Only runs once when viewer data arrives.
+  useEffect(() => {
+    if (viewer?.partialOnboarding && !sessionStorage.getItem("onboarding_data")) {
+      setData((prev) => ({ ...prev, ...viewer.partialOnboarding }));
+    }
+  }, [viewer?.partialOnboarding]);
 
   useEffect(() => {
     setPlanError(null);
@@ -161,14 +172,23 @@ export default function OnboardingStepPage({ params }) {
         (s) => s.name.trim() && s.title.trim()
       );
       if (validStakeholders.length > 0) {
-        await createStakeholdersBatch({
-          stakeholders: validStakeholders.map((s) => ({
-            name: s.name.trim(),
-            role: s.title.trim(),
-            relationshipType: s.relationship || "stakeholder",
-            priority: s.relationship === "manager" ? "Must" : "Should",
-          })),
-        });
+        // Deduplicate against stakeholders already in the database
+        const existingNames = new Set(
+          (existingStakeholders || []).map((s) => s.name.trim().toLowerCase())
+        );
+        const newStakeholders = validStakeholders.filter(
+          (s) => !existingNames.has(s.name.trim().toLowerCase())
+        );
+        if (newStakeholders.length > 0) {
+          await createStakeholdersBatch({
+            stakeholders: newStakeholders.map((s) => ({
+              name: s.name.trim(),
+              role: s.title.trim(),
+              relationshipType: s.relationship || "stakeholder",
+              priority: s.relationship === "manager" ? "Must" : "Should",
+            })),
+          });
+        }
       }
 
       if (viewer?.isPilotUser) {
@@ -184,6 +204,8 @@ export default function OnboardingStepPage({ params }) {
         });
       }
 
+      // Clear partial onboarding data from user record
+      await clearOnboardingProgress();
       sessionStorage.removeItem("onboarding_data");
     } catch (err) {
       console.error("Failed to generate plan:", err);
@@ -193,6 +215,9 @@ export default function OnboardingStepPage({ params }) {
   }
 
   function handleNext() {
+    // Save progress to Convex on every step advance
+    const { stakeholders, scope, ...saveable } = data;
+    saveOnboardingProgress({ step: currentStep, data: saveable }).catch(() => {});
     if (currentStep < TOTAL_STEPS - 1) {
       router.push(`/onboarding/${currentStep + 2}`);
     } else {

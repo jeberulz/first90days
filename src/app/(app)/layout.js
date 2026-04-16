@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import AppSidebar from "@/components/app/AppSidebar";
 import MobileBottomNav from "@/components/app/MobileBottomNav";
 import QuickAddFAB from "@/components/app/QuickAddFAB";
+import OnboardingNudgeBanner from "@/components/app/OnboardingNudgeBanner";
 import PhaseCompletionModal from "@/components/milestones/PhaseCompletionModal";
 import { ToastProvider } from "@/components/primitives/Toaster";
 
@@ -142,6 +143,7 @@ export default function AppLayout({ children }) {
         <AppSidebar />
         <main className="flex-1 min-w-0 ml-0 lg:ml-64 min-h-[100dvh] pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0">
           <div className="w-full min-w-0 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+            <OnboardingNudgeBanner />
             {children}
           </div>
         </main>

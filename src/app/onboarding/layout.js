@@ -13,6 +13,7 @@ export default function OnboardingLayout({ children }) {
   const [saveVisible, setSaveVisible] = useState(false);
   const [showSkipConfirm, setShowSkipConfirm] = useState(false);
   const completeOnboarding = useMutation(api.users.completeOnboarding);
+  const saveOnboardingProgress = useMutation(api.users.saveOnboardingProgress);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -92,6 +93,23 @@ export default function OnboardingLayout({ children }) {
               <button
                 type="button"
                 onClick={async () => {
+                  try {
+                    const raw = typeof sessionStorage !== "undefined"
+                      ? sessionStorage.getItem("onboarding_data")
+                      : null;
+                    if (raw) {
+                      const parsed = JSON.parse(raw);
+                      let step = 0;
+                      if (parsed.roleType && parsed.function_) step = 1;
+                      if (step >= 1 && parsed.companySize && parsed.companyStage && parsed.workModel && parsed.starsSituation) step = 2;
+                      if (step >= 2 && parsed.selectedGoals) step = 3;
+                      if (step >= 3) step = 4;
+                      const { stakeholders, scope, ...saveable } = parsed;
+                      await saveOnboardingProgress({ step, data: saveable });
+                    }
+                  } catch {
+                    // best-effort — don't block skip on save failure
+                  }
                   await completeOnboarding();
                   router.push("/dashboard");
                 }}

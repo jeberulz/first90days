@@ -87,6 +87,7 @@ const verdictIcons = {
 
 export default function ProgressPage() {
   const v = useQuery(api.insights.getVelocity);
+  const viewer = useQuery(api.users.viewer);
 
   if (v === undefined) {
     return (
@@ -112,6 +113,8 @@ export default function ProgressPage() {
         <NoPlanEmptyState
           heading="See how you're tracking"
           description="Track how you're performing against your 90-day plan — pace ratio, weekly burn-up, and category balance. Complete onboarding to start tracking."
+          resumeStep={viewer?.lastOnboardingStep != null ? Math.min(viewer.lastOnboardingStep + 2, 6) : undefined}
+          companyName={viewer?.partialOnboarding?.companyName}
         />
       </div>
     );

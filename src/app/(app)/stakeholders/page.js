@@ -28,6 +28,7 @@ const typeBadge = {
 
 export default function StakeholdersPage() {
   const stakeholders = useQuery(api.stakeholders.list);
+  const viewer = useQuery(api.users.viewer);
   const createStakeholder = useMutation(api.stakeholders.create);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
@@ -92,6 +93,8 @@ export default function StakeholdersPage() {
         <NoPlanEmptyState
           heading="Build your network"
           description="Map out the key people you need to build relationships with. You can add stakeholders now, or complete onboarding to get AI-suggested contacts based on your role."
+          resumeStep={viewer?.lastOnboardingStep != null ? Math.min(viewer.lastOnboardingStep + 2, 6) : undefined}
+          companyName={viewer?.partialOnboarding?.companyName}
         />
       ) : (
       <>
