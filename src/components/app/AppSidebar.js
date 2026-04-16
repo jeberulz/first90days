@@ -6,6 +6,7 @@ import { useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { api } from "../../../convex/_generated/api";
 import { cn } from "@/lib/utils";
+import { displayName, userInitials } from "@/lib/userDisplay";
 
 const navItems = [
   {
@@ -92,26 +93,15 @@ export default function AppSidebar() {
 
   // Display name + initials. Three states:
   //   user === undefined → query loading → "Loading…" + "?"
-  //   user && user.name  → real name + initials
-  //   user && !user.name → derive from email username so the pill never
+  //   user with display name → name + initials
+  //   user without name → derive from email username so the pill never
   //                        looks stuck on "Loading…" for users who haven't
   //                        set a display name yet.
   const emailUser = user?.email ? user.email.split("@")[0] : "";
-  const displayName = user
-    ? user.name || emailUser || "You"
+  const displayNameResolved = user
+    ? displayName(user) || emailUser || "You"
     : "Loading…";
-  const initials = (() => {
-    if (!user) return "?";
-    if (user.name) {
-      return user.name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2);
-    }
-    return (emailUser[0] || "?").toUpperCase();
-  })();
+  const initials = user ? userInitials(user) : "?";
 
   return (
     <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-[#0F0E0D] border-r border-[#2C2825]">
@@ -137,7 +127,7 @@ export default function AppSidebar() {
           </div>
           <div className="min-w-0">
             <p className="font-space-grotesk text-sm font-medium text-[#E7E5E4] truncate">
-              {displayName}
+              {displayNameResolved}
             </p>
             <p className="font-space-grotesk text-xs text-[#A8A29E] truncate">
               {user?.email || ""}

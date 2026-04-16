@@ -11,6 +11,7 @@ import GoalCard from "@/components/onboarding/GoalCard";
 import StakeholderRow from "@/components/onboarding/StakeholderRow";
 import CompletionOverlay from "@/components/onboarding/CompletionOverlay";
 import StepTransition from "@/components/onboarding/StepTransition";
+import { splitFullNameDisplay } from "@/lib/userDisplay";
 
 const TOTAL_STEPS = 6;
 
@@ -108,14 +109,37 @@ export default function OnboardingStepPage({ params }) {
   // sessionStorage. This avoids a race where the default-data write
   // clobbers the "onboarding_data" key before the Convex check runs.
   useEffect(() => {
-    if (viewer === undefined) return;
+    if (viewer === undefined || viewer === null) return;
 
     const hasSessionData =
       typeof window !== "undefined" &&
       sessionStorage.getItem("onboarding_data") != null;
 
-    if (viewer?.partialOnboarding && !hasSessionData) {
-      setData((prev) => ({ ...prev, ...viewer.partialOnboarding }));
+    const vf = viewer.firstName?.trim() ?? "";
+    const vl = viewer.lastName?.trim() ?? "";
+    const split = splitFullNameDisplay(viewer.name ?? "");
+
+    /** Prefer in-progress fields; if they are empty, use account profile / full name. */
+    function withViewerNameFallback(base) {
+      return {
+        ...base,
+        firstName:
+          (base.firstName ?? "").trim() || vf || split.first || "",
+        lastName:
+          (base.lastName ?? "").trim() || vl || split.last || "",
+      };
+    }
+
+    if (!hasSessionData) {
+      if (viewer.partialOnboarding) {
+        const po = viewer.partialOnboarding;
+        setData((prev) => withViewerNameFallback({ ...prev, ...po }));
+      } else if (vf || vl || split.first || split.last) {
+        setData((prev) => withViewerNameFallback(prev));
+      }
+    } else {
+      // Stale sessionStorage often has empty name fields; still hydrate from Convex.
+      setData((prev) => withViewerNameFallback(prev));
     }
 
     setInitialRestoreDone(true);
@@ -150,11 +174,11 @@ export default function OnboardingStepPage({ params }) {
     setGenerating(true);
     setPlanError(null);
     try {
-      if (data.firstName || data.lastName) {
-        const fullName = [data.firstName, data.lastName].filter(Boolean).join(" ");
-        if (fullName) {
-          await updateProfile({ name: fullName });
-        }
+      if (data.firstName?.trim() || data.lastName?.trim()) {
+        await updateProfile({
+          firstName: data.firstName.trim(),
+          lastName: data.lastName.trim(),
+        });
       }
 
       await saveOnboarding({

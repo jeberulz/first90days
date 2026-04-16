@@ -14,6 +14,7 @@ import Field, {
 } from "@/components/settings/Field";
 import ToggleRow from "@/components/settings/ToggleRow";
 import { useToast } from "@/components/primitives/Toaster";
+import { displayName, splitFullNameDisplay, userInitials } from "@/lib/userDisplay";
 
 const TABS = [
   { id: "profile", label: "Profile", icon: "user" },
@@ -106,28 +107,6 @@ function Icon({ name, className = "", size = 18 }) {
   }
 }
 
-function splitName(fullName) {
-  if (!fullName) return { first: "", last: "" };
-  const parts = fullName.trim().split(/\s+/);
-  if (parts.length === 1) return { first: parts[0], last: "" };
-  return { first: parts[0], last: parts.slice(1).join(" ") };
-}
-
-function joinName(first, last) {
-  return [first.trim(), last.trim()].filter(Boolean).join(" ");
-}
-
-function getInitials(name) {
-  if (!name) return "?";
-  return name
-    .split(/\s+/)
-    .map((n) => n[0])
-    .filter(Boolean)
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-}
-
 export default function SettingsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -217,12 +196,18 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (!user) return;
-    const { first, last } = splitName(user.name ?? "");
-    setFirstName(first);
-    setLastName(last);
-    // Only re-sync when the persisted name itself changes.
+    const f = user.firstName?.trim();
+    const l = user.lastName?.trim();
+    if (f || l) {
+      setFirstName(f ?? "");
+      setLastName(l ?? "");
+    } else {
+      const { first, last } = splitFullNameDisplay(user.name ?? "");
+      setFirstName(first);
+      setLastName(last);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.name]);
+  }, [user?.name, user?.firstName, user?.lastName]);
 
   useEffect(() => {
     if (onboarding) {
@@ -263,9 +248,9 @@ export default function SettingsPage() {
     setProfileError("");
     setProfileSaving(true);
     try {
-      const trimmedName = joinName(firstName, lastName);
-      await updateProfile({
-        name: trimmedName,
+           await updateProfile({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
         // Only send roleTitle if there's an onboarding row to update.
         roleTitle: onboarding ? roleTitle : undefined,
       });
@@ -464,7 +449,7 @@ export default function SettingsPage() {
     );
   }
 
-  const initials = getInitials(user.name);
+  const initials = userInitials(user);
 
   function tabId(id) {
     return `${tabsBaseId}-tab-${id}`;
@@ -701,7 +686,7 @@ function ProfileSection({
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={user.imageUrl}
-                      alt={`${user.name ?? "User"} avatar`}
+                      alt={`${displayName(user) || "User"} avatar`}
                       className="w-full h-full object-cover"
                     />
                   ) : (

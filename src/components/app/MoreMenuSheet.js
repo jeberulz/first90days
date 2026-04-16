@@ -5,6 +5,7 @@ import { useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { api } from "../../../convex/_generated/api";
 import { ResponsiveModal } from "@/components/primitives";
+import { displayName, userInitials } from "@/lib/userDisplay";
 
 const ROW_CLASS =
   "flex items-center gap-3 px-3 py-3 rounded-lg font-space-grotesk text-sm text-warm-300 hover:text-warm-line hover:bg-warm-cardDark/60 min-h-11 transition-colors w-full";
@@ -51,19 +52,10 @@ export default function MoreMenuSheet({ open, onClose }) {
   const { signOut } = useAuthActions();
 
   const emailUser = user?.email ? user.email.split("@")[0] : "";
-  const displayName = user ? user.name || emailUser || "You" : "Loading…";
-  const initials = (() => {
-    if (!user) return "?";
-    if (user.name) {
-      return user.name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2);
-    }
-    return (emailUser[0] || "?").toUpperCase();
-  })();
+  const displayNameResolved = user
+    ? displayName(user) || emailUser || "You"
+    : "Loading…";
+  const initials = user ? userInitials(user) : "?";
 
   async function handleSignOut() {
     onClose?.();
@@ -89,7 +81,7 @@ export default function MoreMenuSheet({ open, onClose }) {
         </div>
         <div className="min-w-0 flex-1">
           <p className="font-space-grotesk text-sm font-medium text-warm-line truncate">
-            {displayName}
+            {displayNameResolved}
           </p>
           {user?.email && (
             <p className="font-space-grotesk text-xs text-warm-300 truncate">

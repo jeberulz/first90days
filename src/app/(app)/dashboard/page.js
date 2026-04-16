@@ -8,6 +8,7 @@ import {
   GoalApprovalBadge,
   GoalApprovalActions,
 } from "@/components/plan/GoalApproval";
+import { preferredFirstName } from "@/lib/userDisplay";
 
 const PRE_BOARDING_CHECKLIST = [
   { id: "news", label: "Research company recent news, earnings, product launches" },
@@ -70,6 +71,7 @@ export default function DashboardPage() {
   if (!user) return null;
 
   const preBoarding = plan && dayInfo && !dayInfo.hasStarted;
+  const greetingFirst = preferredFirstName(user);
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -81,7 +83,7 @@ export default function DashboardPage() {
             : "Welcome to your First 90 Days"}
         </h1>
         <p className="mt-2 font-space-grotesk text-sm sm:text-base text-[#A8A29E]">
-          {user.name ? `Hi ${user.name.split(" ")[0]}, ` : ""}
+          {greetingFirst ? `Hi ${greetingFirst}, ` : ""}
           {preBoarding
             ? `your journey begins on ${formatStartDate(dayInfo.startDate)}`
             : dayInfo && dayInfo.hasStarted
