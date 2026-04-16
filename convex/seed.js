@@ -56,21 +56,27 @@ async function _seedPlanData(ctx, userId) {
   if (!onboardingRow) {
     await ctx.db.insert("onboardingData", {
       userId,
-      roleTitle: "Senior UX Researcher",
+      roleTitle: "Staff Product Designer",
       startDate,
       experienceYears: 8,
       isFirstRoleAtLevel: false,
-      roleType: "Individual Contributor",
-      function_: "Research / UX",
+      roleType: "Design",
+      function_: "Product Design / Agent Studio",
       teamSize: 12,
       isNewTeam: true,
-      scope: "Leading search experience research for enterprise product",
+      scope: "Leading product design for Agent Studio, defining design direction and interaction patterns for AI agent interfaces",
       companyName: "Algolia",
       companySize: "500-1000",
       companyStage: "Growth",
       workModel: "Hybrid",
       industry: "Technology / SaaS",
       starsSituation: "Turnaround",
+      reportsTo: "Imogen Chen, VP of Product",
+      selectedGoals: ["relationships", "product_landscape", "quick_win"],
+      successDefinition: "Have a clear design vision for Agent Studio, establish design patterns the team trusts, deliver one high-impact design that ships, and build strong relationships with engineering and PM partners.",
+      existingContext: "Algolia is a search-as-a-service company expanding into AI agents. Agent Studio is a newer product surface. The design function has been engineering-led — previous design decisions were ad-hoc from PMs and engineers. The team recently shipped a major dashboard redesign.",
+      challenges: "The previous designer left 4 months ago and the team has been operating without dedicated design leadership. Some stakeholders are used to making design decisions themselves — I need to earn trust and demonstrate the value of design-led processes quickly. The product roadmap is engineering-driven.",
+      jobDescription: "Staff Product Designer — Agent Studio. You will own the end-to-end design for Algolia's Agent Studio product, from user research through high-fidelity prototypes and design system contributions. Partner with PM and Engineering to define the interaction model for AI agent configuration, testing, and deployment. Establish design patterns, run usability studies, and mentor junior designers. Requires 7+ years of product design experience, strong systems thinking, and experience designing developer tools or AI-powered interfaces.",
     });
   } else {
     await ctx.db.patch(onboardingRow._id, { startDate });
@@ -271,12 +277,12 @@ async function _seedPlanData(ctx, userId) {
       trigger: "onboarding",
       inputSnapshot: {
         companyName: "Algolia",
-        roleTitle: "Senior UX Researcher",
+        roleTitle: "Staff Product Designer",
         industry: "Technology / SaaS",
         companySize: "500-1000",
         companyStage: "Growth",
         starsSituation: "Turnaround",
-        scope: "Leading search experience research for enterprise product",
+        scope: "Leading product design for Agent Studio, defining design direction and interaction patterns for AI agent interfaces",
       },
     });
     await ctx.scheduler.runAfter(

@@ -173,6 +173,11 @@ export const requestCompanyResearch = mutation({
         starsSituation: onboarding.starsSituation,
         scope: onboarding.scope,
         jobDescription: onboarding.jobDescription,
+        experienceYears: onboarding.experienceYears,
+        teamSize: onboarding.teamSize,
+        isNewTeam: onboarding.isNewTeam,
+        workModel: onboarding.workModel,
+        reportsTo: onboarding.reportsTo,
       },
     });
 
