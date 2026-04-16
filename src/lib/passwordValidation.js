@@ -59,10 +59,11 @@ export function validatePasswordOrThrow(password, email) {
 }
 
 export function passwordStrength(password, email) {
-  const reqs = passwordRequirements(password, email);
+  const pwd = password ?? "";
+  const reqs = passwordRequirements(pwd, email);
   const passed = reqs.filter((r) => r.passed).length;
   const total = reqs.length;
-  if (password.length === 0) return { score: 0, level: "empty", passed, total };
+  if (pwd.length === 0) return { score: 0, level: "empty", passed, total };
   if (passed <= 3) return { score: passed / total, level: "weak", passed, total };
   if (passed <= 5) return { score: passed / total, level: "fair", passed, total };
   if (passed < total) return { score: passed / total, level: "good", passed, total };

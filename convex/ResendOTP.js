@@ -28,8 +28,11 @@ export const ResendOTP = Resend({
   },
   async sendVerificationRequest({ identifier: email, provider, token }) {
     if (!provider.apiKey) {
+      if (process.env.NODE_ENV !== "development") {
+        throw new Error("AUTH_RESEND_KEY is not configured.");
+      }
       console.warn(
-        `[ResendOTP] AUTH_RESEND_KEY not set — email to ${email} would contain code ${token}`
+        `[ResendOTP] AUTH_RESEND_KEY not set; skipping verification email in development for ${email}`
       );
       return;
     }

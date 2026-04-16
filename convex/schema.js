@@ -41,6 +41,9 @@ export default defineSchema({
         jobDescription: v.optional(v.string()),
       })
     ),
+    pendingEmail: v.optional(v.string()),
+    pendingEmailCode: v.optional(v.string()),
+    pendingEmailExpiry: v.optional(v.number()),
     billingTier: v.optional(
       v.union(
         v.literal("free"),
@@ -693,4 +696,12 @@ export default defineSchema({
   })
     .index("by_email", ["email"])
     .index("by_created", ["createdAt"]),
+
+  // ── Login attempt tracking (account lockout) ──────────────────────────
+  loginAttempts: defineTable({
+    email: v.string(),
+    attempts: v.number(),
+    firstAttemptAt: v.number(),
+    lockedUntil: v.optional(v.number()),
+  }).index("by_email", ["email"]),
 });

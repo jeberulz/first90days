@@ -1,9 +1,14 @@
 "use client";
 
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useState } from "react";
+import { useMutation } from "convex/react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { api } from "../../../../convex/_generated/api";
+
+const MAX_CLIENT_ATTEMPTS = 5;
+const LOCKOUT_MS = 15 * 60 * 1000;
 
 export default function LoginPage() {
   const { signIn } = useAuthActions();
@@ -12,17 +17,48 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [lockoutMs, setLockoutMs] = useState(0);
+  const failCount = useRef(0);
+
+  const clearMyAttempts = useMutation(api.loginAttempts.clearMyAttempts);
+
+  useEffect(() => {
+    if (lockoutMs <= 0) return;
+    const id = setInterval(() => {
+      setLockoutMs((ms) => {
+        if (ms <= 1000) {
+          clearInterval(id);
+          return 0;
+        }
+        return ms - 1000;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [lockoutMs]);
+
+  const lockedOut = lockoutMs > 0;
+  const lockoutMinutes = Math.ceil(lockoutMs / 60000);
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (lockedOut) return;
     setError(null);
     setLoading(true);
 
     try {
       await signIn("password", { email, password, flow: "signIn" });
+      failCount.current = 0;
+      clearMyAttempts().catch(() => {});
       router.push("/dashboard");
-    } catch (err) {
-      setError("Invalid email or password. Please try again.");
+    } catch {
+      failCount.current += 1;
+      if (failCount.current >= MAX_CLIENT_ATTEMPTS) {
+        setLockoutMs(LOCKOUT_MS);
+        failCount.current = 0;
+        setError(null);
+      } else {
+        setError("Invalid email or password. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -40,7 +76,16 @@ export default function LoginPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        {error && (
+        {lockedOut && (
+          <div
+            className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800 font-space-grotesk"
+            role="alert"
+          >
+            Too many failed attempts. Try again in {lockoutMinutes}{" "}
+            {lockoutMinutes === 1 ? "minute" : "minutes"}.
+          </div>
+        )}
+        {error && !lockedOut && (
           <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700 font-space-grotesk">
             {error}
           </div>
@@ -92,10 +137,10 @@ export default function LoginPage() {
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || lockedOut}
           className="w-full bg-[#D97757] hover:bg-[#C26242] text-white rounded-lg px-6 py-2.5 font-space-grotesk text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
         >
-          {loading ? "Signing in..." : "Sign in"}
+          {loading ? "Signing in..." : lockedOut ? "Locked" : "Sign in"}
         </button>
       </form>
 

@@ -22,7 +22,11 @@ function VerifyEmailInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialEmail = searchParams.get("email") ?? "";
-  const next = searchParams.get("next") ?? "/onboarding";
+  const nextParam = searchParams.get("next");
+  const next =
+    nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//")
+      ? nextParam
+      : "/onboarding";
 
   const [email, setEmail] = useState(initialEmail);
   const [code, setCode] = useState("");
