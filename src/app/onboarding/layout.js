@@ -1,6 +1,7 @@
 "use client";
 
-import { useConvexAuth } from "convex/react";
+import { useConvexAuth, useMutation } from "convex/react";
+import { api } from "../../../convex/_generated/api";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -11,6 +12,7 @@ export default function OnboardingLayout({ children }) {
   const router = useRouter();
   const [saveVisible, setSaveVisible] = useState(false);
   const [showSkipConfirm, setShowSkipConfirm] = useState(false);
+  const completeOnboarding = useMutation(api.users.completeOnboarding);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -89,7 +91,10 @@ export default function OnboardingLayout({ children }) {
               </button>
               <button
                 type="button"
-                onClick={() => router.push("/dashboard")}
+                onClick={async () => {
+                  await completeOnboarding();
+                  router.push("/dashboard");
+                }}
                 className="flex-1 px-4 py-2.5 rounded-lg font-space-grotesk text-sm font-medium text-white bg-accent hover:bg-accent-hover transition-colors"
               >
                 Skip anyway
