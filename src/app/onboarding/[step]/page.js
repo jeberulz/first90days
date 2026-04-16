@@ -92,12 +92,15 @@ export default function OnboardingStepPage({ params }) {
   const createStakeholdersBatch = useMutation(api.stakeholders.createBatch);
   const saveOnboardingProgress = useMutation(api.users.saveOnboardingProgress);
   const clearOnboardingProgress = useMutation(api.users.clearOnboardingProgress);
+  const markGenerating = useMutation(api.planMutations.markGenerating);
+  const markFailed = useMutation(api.planMutations.markFailed);
   const requestCompanyResearch = useMutation(
     api.companyResearchJobs.requestCompanyResearch
   );
 
   const [data, setData] = useState(initialData);
   const [generating, setGenerating] = useState(false);
+  const [generatingComplete, setGeneratingComplete] = useState(false);
   const [planError, setPlanError] = useState(null);
   const [initialRestoreDone, setInitialRestoreDone] = useState(false);
 
@@ -205,6 +208,9 @@ export default function OnboardingStepPage({ params }) {
         await seedPlan();
       } else {
         if (!viewer?._id) throw new Error("Not signed in. Please refresh and try again.");
+        // Create a plan stub with status "generating" so the dashboard
+        // shows a loading state instead of the "no plan" empty state.
+        await markGenerating();
         await generatePlan({ userId: viewer._id });
         // Fire-and-forget: kick off the company research drafts agent.
         // Research failure must never block onboarding, so we swallow errors
@@ -214,11 +220,14 @@ export default function OnboardingStepPage({ params }) {
         });
       }
 
+      setGeneratingComplete(true);
       // Best-effort cleanup after a successful plan build.
       await clearOnboardingProgress().catch(() => {});
       sessionStorage.removeItem("onboarding_data");
     } catch (err) {
       console.error("Failed to generate plan:", err);
+      // Mark the plan stub as failed so dashboard shows an error state
+      if (!viewer?.isPilotUser) markFailed().catch(() => {});
       setPlanError(err instanceof Error ? err.message : "Could not build your plan. Try again.");
       setGenerating(false);
     }
@@ -286,6 +295,7 @@ export default function OnboardingStepPage({ params }) {
         error={planError}
         onRetry={handleSubmit}
         onDashboard={() => router.push("/dashboard")}
+        isComplete={generatingComplete}
       />
     );
   }

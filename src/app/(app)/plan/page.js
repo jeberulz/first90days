@@ -99,7 +99,7 @@ export default function PlanPage() {
     );
   }
 
-  if (fullPlan === null) {
+  if (fullPlan === null || fullPlan.status === "generating" || fullPlan.status === "failed") {
     return (
       <div className="space-y-6 sm:space-y-8">
         <div>
@@ -110,12 +110,21 @@ export default function PlanPage() {
             Your strategic plan
           </p>
         </div>
-        <NoPlanEmptyState
-          heading="Your plan starts here"
-          description="This is where your strategic plan lives — 12 weeks of activities across three phases (Learn, Contribute, Lead). Complete onboarding to generate a plan tailored to your role and company."
-          lastOnboardingStep={viewer?.lastOnboardingStep}
-          companyName={viewer?.partialOnboarding?.companyName}
-        />
+        {fullPlan?.status === "generating" ? (
+          <div className="bg-[#1C1917] border border-[#D97757]/30 rounded-xl p-6 sm:p-8 text-center space-y-3">
+            <div className="w-8 h-8 mx-auto border-2 border-[#D97757] border-t-transparent rounded-full animate-spin" />
+            <p className="font-space-grotesk text-sm text-[#A8A29E]">
+              Your plan is being generated. It will appear here once it&apos;s ready.
+            </p>
+          </div>
+        ) : (
+          <NoPlanEmptyState
+            heading="Your plan starts here"
+            description="This is where your strategic plan lives — 12 weeks of activities across three phases (Learn, Contribute, Lead). Complete onboarding to generate a plan tailored to your role and company."
+            lastOnboardingStep={viewer?.lastOnboardingStep}
+            companyName={viewer?.partialOnboarding?.companyName}
+          />
+        )}
       </div>
     );
   }

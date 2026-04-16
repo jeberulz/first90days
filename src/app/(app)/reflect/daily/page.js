@@ -18,7 +18,7 @@ const energyEmojis = [
 
 export default function DailyReflectionPage() {
   const router = useRouter();
-  const { hasPlan, isLoading: planLoading } = useHasPlan();
+  const { hasPlan, isGenerating, isLoading: planLoading } = useHasPlan();
   const viewer = useQuery(api.users.viewer);
   const today = new Date().toISOString().split("T")[0];
   const existing = useQuery(api.reflections.getDailyByDate, { date: today });
@@ -53,12 +53,21 @@ export default function DailyReflectionPage() {
             Reflect on your day
           </p>
         </div>
-        <NoPlanEmptyState
-          heading="Reflections start with a plan"
-          description="Daily check-ins help you track energy, wins, and blockers against your 90-day plan. Complete onboarding to start reflecting."
-          lastOnboardingStep={viewer?.lastOnboardingStep}
-          companyName={viewer?.partialOnboarding?.companyName}
-        />
+        {isGenerating ? (
+          <div className="bg-[#1C1917] border border-[#D97757]/30 rounded-xl p-6 sm:p-8 text-center space-y-3">
+            <div className="w-8 h-8 mx-auto border-2 border-[#D97757] border-t-transparent rounded-full animate-spin" />
+            <p className="font-space-grotesk text-sm text-[#A8A29E]">
+              Your plan is being generated. Reflections will be available shortly.
+            </p>
+          </div>
+        ) : (
+          <NoPlanEmptyState
+            heading="Reflections start with a plan"
+            description="Daily check-ins help you track energy, wins, and blockers against your 90-day plan. Complete onboarding to start reflecting."
+            lastOnboardingStep={viewer?.lastOnboardingStep}
+            companyName={viewer?.partialOnboarding?.companyName}
+          />
+        )}
       </div>
     );
   }
