@@ -84,6 +84,7 @@ export default function OnboardingStepPage({ params }) {
   const currentStep = parseInt(step, 10) - 1;
   const router = useRouter();
   const saveOnboarding = useMutation(api.onboarding.save);
+  const updateProfile = useMutation(api.users.updateProfile);
   const viewer = useQuery(api.users.viewer);
   const seedPlan = useMutation(api.seed.seedJohnsPlan);
   const generatePlan = useAction(api.ai.generatePlan);
@@ -128,8 +129,8 @@ export default function OnboardingStepPage({ params }) {
     try {
       if (data.firstName || data.lastName) {
         const fullName = [data.firstName, data.lastName].filter(Boolean).join(" ");
-        if (fullName && viewer?._id) {
-          // Name stored on users table via existing name field
+        if (fullName) {
+          await updateProfile({ name: fullName });
         }
       }
 
@@ -423,6 +424,16 @@ export default function OnboardingStepPage({ params }) {
                       placeholder="e.g. Sarah Jenkins, VP of Product"
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label className={labelClass}>Describe your role scope (optional)</label>
+                  <input
+                    value={data.scope}
+                    onChange={(e) => update("scope", e.target.value)}
+                    className={inputClass}
+                    placeholder="e.g. Leading product design for the Agent Studio team"
+                  />
                 </div>
 
                 <label className="flex items-center gap-3 cursor-pointer">

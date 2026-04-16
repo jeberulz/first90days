@@ -181,6 +181,12 @@ export function companyResearchUserPrompt(input) {
   if (teamSize) lines.push(`Team size: ${teamSize}`);
   if (isNewTeam) lines.push(`Note: the team is brand new.`);
   if (scope) lines.push(`Scope: ${scope}`);
+  if (input.selectedGoals && input.selectedGoals.length > 0) {
+    lines.push(`Priority goals: ${input.selectedGoals.join(", ")}`);
+  }
+  if (input.existingContext) lines.push(`Existing context: ${input.existingContext}`);
+  if (input.challenges) lines.push(`Known challenges: ${input.challenges}`);
+  if (input.successDefinition) lines.push(`Success definition: ${input.successDefinition}`);
 
   if (jobDescription && jobDescription.trim()) {
     lines.push("");

@@ -20,7 +20,7 @@ const GOAL_THEME_LABELS = {
  * Keep it short and dense — Claude handles structured bullets better
  * than long prose.
  */
-export function buildUserContext(onboardingData) {
+export function buildUserContext(onboardingData, stakeholders) {
   const selectedGoalsList = (onboardingData.selectedGoals || [])
     .map((id) => GOAL_THEME_LABELS[id] || id)
     .join(", ");
@@ -30,6 +30,7 @@ Role: ${onboardingData.roleTitle}
 Company: ${onboardingData.companyName} (${onboardingData.companySize}, ${onboardingData.companyStage})
 Role Type: ${onboardingData.roleType}
 Function: ${onboardingData.function_}
+Scope: ${onboardingData.scope || "Not specified"}
 Team Size: ${onboardingData.teamSize || "N/A"}
 Reports To: ${onboardingData.reportsTo || "Not specified"}
 New Team: ${onboardingData.isNewTeam ? "Yes" : "No"}
@@ -43,6 +44,8 @@ Priority Goals: ${selectedGoalsList || "Not specified"}
 ${onboardingData.existingContext ? `Existing Knowledge: ${onboardingData.existingContext}` : ""}
 ${onboardingData.challenges ? `Known Challenges: ${onboardingData.challenges}` : ""}
 ${onboardingData.successDefinition ? `Success Definition: ${onboardingData.successDefinition}` : ""}
+${onboardingData.jobDescription ? `Job Description: ${onboardingData.jobDescription.slice(0, 4000)}` : ""}
+${stakeholders && stakeholders.length > 0 ? `\nKey Stakeholders:\n${stakeholders.map((s) => `- ${s.name} (${s.role}, ${s.relationshipType}${s.backgroundContext ? ` — ${s.backgroundContext}` : ""})`).join("\n")}` : ""}
 `.trim();
 }
 
