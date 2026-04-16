@@ -30,7 +30,7 @@ const typeBadge = {
 export default function StakeholdersPage() {
   const stakeholders = useQuery(api.stakeholders.list);
   const viewer = useQuery(api.users.viewer);
-  const { hasPlan } = useHasPlan();
+  const { hasPlan, isGenerating } = useHasPlan();
   const createStakeholder = useMutation(api.stakeholders.create);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
@@ -92,7 +92,14 @@ export default function StakeholdersPage() {
       </div>
 
       {stakeholders.length === 0 ? (
-        hasPlan ? (
+        isGenerating ? (
+          <div className="bg-[#1C1917] border border-[#D97757]/30 rounded-xl p-6 sm:p-8 text-center space-y-3">
+            <div className="w-8 h-8 mx-auto border-2 border-[#D97757] border-t-transparent rounded-full animate-spin" />
+            <p className="font-space-grotesk text-sm text-[#A8A29E]">
+              Your plan is being generated. Stakeholders will appear here shortly.
+            </p>
+          </div>
+        ) : hasPlan ? (
           <div className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-6 sm:p-8 text-center space-y-4">
             <h2 className="font-instrument-serif text-2xl text-[#E7E5E4]">No stakeholders yet</h2>
             <p className="font-space-grotesk text-sm text-[#A8A29E] max-w-md mx-auto">

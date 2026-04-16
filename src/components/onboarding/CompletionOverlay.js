@@ -14,7 +14,7 @@ const MESSAGES = [
 const MESSAGE_INTERVAL_MS = 3500;
 const SLOW_THRESHOLD_S = 15;
 
-export default function CompletionOverlay({ error, onRetry, onDashboard }) {
+export default function CompletionOverlay({ error, onRetry, onDashboard, isComplete }) {
   const [progress, setProgress] = useState(0);
   const [ready, setReady] = useState(false);
   const [messageIdx, setMessageIdx] = useState(0);
@@ -52,6 +52,19 @@ export default function CompletionOverlay({ error, onRetry, onDashboard }) {
       clearInterval(elapsedRef.current);
     };
   }, [error]);
+
+  // When the actual generation finishes, jump progress to 100% and
+  // auto-navigate to dashboard after a brief pause.
+  useEffect(() => {
+    if (!isComplete) return;
+    setProgress(100);
+    clearInterval(progressRef.current);
+    const t = setTimeout(() => {
+      setReady(true);
+      onDashboard();
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [isComplete, onDashboard]);
 
   if (error) {
     return (

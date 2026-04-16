@@ -151,7 +151,9 @@ export const savePlan = mutation({
 
     let planId;
     if (existingPlan) {
-      if (!regenerate) throw new Error("Plan already exists");
+      // Allow overwriting a "generating" or "failed" stub from markGenerating
+      const isStub = ["generating", "failed"].includes(existingPlan.status);
+      if (!regenerate && !isStub) throw new Error("Plan already exists");
       await tearDownPlanContents(ctx, userId, existingPlan._id);
       await ctx.db.patch(existingPlan._id, {
         status: "active",
@@ -250,6 +252,52 @@ export const savePlan = mutation({
 });
 
 /**
+ * Create (or update) a plan stub with status "generating" so the
+ * dashboard can show a loading state while the AI is still working.
+ * Called from the onboarding step page *before* generatePlan starts.
+ */
+export const markGenerating = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    const existing = await ctx.db
+      .query("plans")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+    if (existing) {
+      await ctx.db.patch(existing._id, { status: "generating" });
+    } else {
+      await ctx.db.insert("plans", {
+        userId,
+        status: "generating",
+        overallCompletion: 0,
+      });
+    }
+  },
+});
+
+/**
+ * Mark a "generating" plan stub as failed so the dashboard can show
+ * an error state with a retry CTA. Called from the onboarding step
+ * page when generatePlan throws.
+ */
+export const markFailed = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) return;
+    const existing = await ctx.db
+      .query("plans")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+    if (existing && existing.status === "generating") {
+      await ctx.db.patch(existing._id, { status: "failed" });
+    }
+  },
+});
+
+/**
  * Fallback path: if the AI draft fails (bad JSON, rate limit, missing
  * key), fall through to a static Watkins-aligned template so the user
  * still ends onboarding with a usable plan. Shares the same insertion
@@ -271,7 +319,8 @@ export const savePlanFallback = mutation({
 
     let planId;
     if (existingPlan) {
-      if (!regenerate) throw new Error("Plan already exists");
+      const isStub = ["generating", "failed"].includes(existingPlan.status);
+      if (!regenerate && !isStub) throw new Error("Plan already exists");
       await tearDownPlanContents(ctx, userId, existingPlan._id);
       await ctx.db.patch(existingPlan._id, {
         status: "active",

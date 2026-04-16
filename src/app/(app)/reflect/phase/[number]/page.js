@@ -16,7 +16,7 @@ const phaseInfo = {
 export default function PhaseReviewPage({ params }) {
   const { number } = use(params);
   const phaseNum = parseInt(number, 10);
-  const { hasPlan, isLoading: planLoading } = useHasPlan();
+  const { hasPlan, isGenerating, isLoading: planLoading } = useHasPlan();
   const viewer = useQuery(api.users.viewer);
   const goals = useQuery(api.goals.list);
   const allActivities = useQuery(api.activities.getAll);
@@ -51,12 +51,21 @@ export default function PhaseReviewPage({ params }) {
             {phaseInfo[phaseNum]?.days}
           </p>
         </div>
-        <NoPlanEmptyState
-          heading="Phase reviews need a plan"
-          description="Review your accomplishments, goals, and relationships at the end of each phase. Complete onboarding to generate your 90-day plan."
-          lastOnboardingStep={viewer?.lastOnboardingStep}
-          companyName={viewer?.partialOnboarding?.companyName}
-        />
+        {isGenerating ? (
+          <div className="bg-[#1C1917] border border-[#D97757]/30 rounded-xl p-6 sm:p-8 text-center space-y-3">
+            <div className="w-8 h-8 mx-auto border-2 border-[#D97757] border-t-transparent rounded-full animate-spin" />
+            <p className="font-space-grotesk text-sm text-[#A8A29E]">
+              Your plan is being generated. Phase reviews will be available shortly.
+            </p>
+          </div>
+        ) : (
+          <NoPlanEmptyState
+            heading="Phase reviews need a plan"
+            description="Review your accomplishments, goals, and relationships at the end of each phase. Complete onboarding to generate your 90-day plan."
+            lastOnboardingStep={viewer?.lastOnboardingStep}
+            companyName={viewer?.partialOnboarding?.companyName}
+          />
+        )}
       </div>
     );
   }

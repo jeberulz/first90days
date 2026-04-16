@@ -3,6 +3,7 @@
 import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import NoPlanEmptyState from "@/components/app/NoPlanEmptyState";
+import { useHasPlan } from "@/hooks/useHasPlan";
 
 const categoryLabels = {
   learning: "Learning",
@@ -88,6 +89,7 @@ const verdictIcons = {
 export default function ProgressPage() {
   const v = useQuery(api.insights.getVelocity);
   const viewer = useQuery(api.users.viewer);
+  const { isGenerating } = useHasPlan();
 
   if (v === undefined) {
     return (
@@ -110,12 +112,21 @@ export default function ProgressPage() {
             Your performance tracker
           </p>
         </div>
-        <NoPlanEmptyState
-          heading="See how you're tracking"
-          description="Track how you're performing against your 90-day plan — pace ratio, weekly burn-up, and category balance. Complete onboarding to start tracking."
-          lastOnboardingStep={viewer?.lastOnboardingStep}
-          companyName={viewer?.partialOnboarding?.companyName}
-        />
+        {isGenerating ? (
+          <div className="bg-[#1C1917] border border-[#D97757]/30 rounded-xl p-6 sm:p-8 text-center space-y-3">
+            <div className="w-8 h-8 mx-auto border-2 border-[#D97757] border-t-transparent rounded-full animate-spin" />
+            <p className="font-space-grotesk text-sm text-[#A8A29E]">
+              Your plan is being generated. Progress tracking will start once it&apos;s ready.
+            </p>
+          </div>
+        ) : (
+          <NoPlanEmptyState
+            heading="See how you're tracking"
+            description="Track how you're performing against your 90-day plan — pace ratio, weekly burn-up, and category balance. Complete onboarding to start tracking."
+            lastOnboardingStep={viewer?.lastOnboardingStep}
+            companyName={viewer?.partialOnboarding?.companyName}
+          />
+        )}
       </div>
     );
   }
