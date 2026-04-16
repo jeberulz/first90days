@@ -13,8 +13,8 @@ export function FeatureManagerSync() {
       <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-accent/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
 
       <div className="w-full max-w-[1800px] mx-auto px-4 sm:px-6 md:px-12 py-16 sm:py-24 lg:py-32 relative z-10">
-        <div className="grid lg:grid-cols-12 gap-8 sm:gap-12 lg:gap-24 items-start">
-          <div className="lg:col-span-4 lg:sticky lg:top-32 lg:pt-8">
+        <div className="grid lg:grid-cols-12 gap-8 sm:gap-12 lg:gap-24 items-start min-w-0">
+          <div className="lg:col-span-4 lg:sticky lg:top-32 lg:pt-8 min-w-0">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-accent/20 bg-accent/5 text-[10px] uppercase tracking-wider font-bold text-accent mb-6 sm:mb-8 font-space-grotesk">
               <Icon icon="solar:users-group-two-rounded-linear" width={12} height={12} />
               Manager Alignment
@@ -66,27 +66,27 @@ export function FeatureManagerSync() {
             </div>
           </div>
 
-          <div className="lg:col-span-8 w-full relative z-20">
+          <div className="lg:col-span-8 w-full relative z-20 min-w-0 overflow-hidden">
             <div className="absolute -inset-4 bg-gradient-to-r from-accent/20 to-purple-500/10 rounded-[2rem] blur-3xl opacity-0 group-hover/section:opacity-100 transition-opacity duration-700" />
-            <div className="relative dark:bg-[#1C1917] rounded-2xl border border-[#E7E5E4] dark:border-[#2C2825] shadow-2xl overflow-hidden min-h-[700px] flex flex-col transition-all duration-500 group-hover/section:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.2)] bg-white">
-              <div className="h-14 border-b border-[#E7E5E4] dark:border-[#2C2825] bg-[#FAF9F6] dark:bg-[#292524] px-6 flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-4">
-                  <div className="flex gap-2">
+            <div className="relative dark:bg-[#1C1917] rounded-2xl border border-[#E7E5E4] dark:border-[#2C2825] shadow-2xl overflow-hidden min-h-0 sm:min-h-[600px] md:min-h-[700px] flex flex-col transition-all duration-500 group-hover/section:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.2)] bg-white">
+              <div className="min-h-[3.5rem] border-b border-[#E7E5E4] dark:border-[#2C2825] bg-[#FAF9F6] dark:bg-[#292524] px-3 sm:px-6 flex items-center justify-between shrink-0 flex-wrap gap-2 py-2 sm:py-0 sm:h-14">
+                <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+                  <div className="hidden sm:flex gap-2">
                     <div className="w-3 h-3 rounded-full bg-[#E7E5E4] dark:bg-[#44403C]" />
                     <div className="w-3 h-3 rounded-full bg-[#E7E5E4] dark:bg-[#44403C]" />
                     <div className="w-3 h-3 rounded-full bg-[#E7E5E4] dark:bg-[#44403C]" />
                   </div>
-                  <div className="w-px h-6 bg-[#E7E5E4] dark:bg-[#44403C]" />
-                  <div className="flex items-center gap-2 text-sm font-medium font-space-grotesk text-[#1C1917] dark:text-white">
-                    <span className="opacity-50">Drafts /</span>
-                    <span>Senior Product Manager Plan</span>
-                    <span className="px-2 py-0.5 rounded-full dark:bg-emerald-900/30 text-[10px] dark:text-emerald-400 border dark:border-emerald-900/50 bg-emerald-100 text-emerald-700 border-emerald-200">
+                  <div className="hidden sm:block w-px h-6 bg-[#E7E5E4] dark:bg-[#44403C]" />
+                  <div className="flex items-center gap-2 text-xs sm:text-sm font-medium font-space-grotesk text-[#1C1917] dark:text-white min-w-0">
+                    <span className="opacity-50 hidden sm:inline">Drafts /</span>
+                    <span className="truncate">Senior Product Manager Plan</span>
+                    <span className="px-2 py-0.5 rounded-full dark:bg-emerald-900/30 text-[10px] dark:text-emerald-400 border dark:border-emerald-900/50 bg-emerald-100 text-emerald-700 border-emerald-200 hidden xs:inline-flex shrink-0">
                       Approved
                     </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex -space-x-2">
+                <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                  <div className="hidden sm:flex -space-x-2">
                     <div className="w-8 h-8 rounded-full border-2 dark:border-[#292524] bg-[#F5F2E8] flex items-center justify-center text-xs font-bold text-[#1C1917] border-white">
                       JD
                     </div>
@@ -100,7 +100,7 @@ export function FeatureManagerSync() {
                     className="px-3 py-1.5 rounded-lg bg-[#1C1917] dark:bg-white dark:text-[#1C1917] text-xs font-bold font-space-grotesk shadow-sm hover:opacity-90 transition-opacity flex items-center gap-2 text-white"
                   >
                     <Icon icon="solar:share-linear" width={12} height={12} />
-                    Share
+                    <span className="hidden sm:inline">Share</span>
                   </button>
                 </div>
               </div>
@@ -149,11 +149,11 @@ export function FeatureManagerSync() {
                   </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-8 relative">
-                  <div className="dark:bg-[#1C1917] min-h-[800px] dark:border-[#2C2825] group/doc max-w-3xl border-[#E7E5E4] border mx-auto pt-12 pr-12 pb-12 pl-12 relative shadow-sm bg-white">
-                    <div className="flex items-center justify-between mb-8 pb-8 border-b border-[#E7E5E4] dark:border-[#2C2825]">
+                <div className="flex-1 overflow-y-auto p-3 sm:p-5 md:p-8 relative">
+                  <div className="dark:bg-[#1C1917] min-h-0 sm:min-h-[600px] md:min-h-[800px] dark:border-[#2C2825] group/doc max-w-3xl border-[#E7E5E4] border mx-auto p-4 sm:p-8 md:p-12 relative shadow-sm bg-white">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8 pb-6 sm:pb-8 border-b border-[#E7E5E4] dark:border-[#2C2825]">
                       <div>
-                        <h1 className="text-3xl font-semibold tracking-tight font-instrument-serif text-[#1C1917] dark:text-white mb-2">
+                        <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight font-instrument-serif text-[#1C1917] dark:text-white mb-2">
                           First 90 Days: Strategic Plan
                         </h1>
                         <div className="flex items-center gap-4 text-xs text-[#57534E] dark:text-[#A8A29E] font-space-grotesk">
@@ -165,7 +165,7 @@ export function FeatureManagerSync() {
                           </span>
                         </div>
                       </div>
-                      <div className="text-right">
+                      <div className="text-left sm:text-right">
                         <div className="text-[10px] font-semibold uppercase tracking-wider text-[#A8A29E] mb-1">
                           Status
                         </div>
@@ -206,7 +206,7 @@ export function FeatureManagerSync() {
                       </p>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-6 mb-12">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-8 sm:mb-12">
                       <div className="p-4 rounded-xl bg-[#FAF9F6] dark:bg-[#292524]/50 border border-[#E7E5E4] dark:border-[#2C2825] hover:border-accent/50 transition-colors group/card relative">
                         <div className="absolute top-3 right-3 opacity-0 group-hover/card:opacity-100 transition-opacity">
                           <div className="w-6 h-6 rounded hover:bg-[#E7E5E4] dark:hover:bg-[#44403C] flex items-center justify-center cursor-pointer text-[#A8A29E] transition-colors">

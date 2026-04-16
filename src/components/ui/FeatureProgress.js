@@ -9,8 +9,8 @@ export function FeatureProgress() {
       <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-emerald-500/5 rounded-full blur-3xl -translate-x-1/3 translate-y-1/3 pointer-events-none" />
 
       <div className="w-full max-w-[1800px] mx-auto px-4 sm:px-6 md:px-12 py-16 sm:py-24 lg:py-32 relative z-10">
-        <div className="grid lg:grid-cols-12 gap-8 sm:gap-12 lg:gap-24 items-start">
-          <div className="lg:col-span-4 lg:sticky lg:top-32 lg:pt-8">
+        <div className="grid lg:grid-cols-12 gap-8 sm:gap-12 lg:gap-24 items-start min-w-0">
+          <div className="lg:col-span-4 lg:sticky lg:top-32 lg:pt-8 min-w-0">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-accent/20 bg-accent/5 text-[10px] uppercase tracking-wider font-bold text-accent mb-6 sm:mb-8 font-space-grotesk">
               <Icon icon="solar:graph-up-linear" width={12} height={12} />
               Visual Velocity
@@ -68,17 +68,17 @@ export function FeatureProgress() {
             </div>
           </div>
 
-          <div className="lg:col-span-8 w-full relative z-20">
+          <div className="lg:col-span-8 w-full relative z-20 min-w-0 overflow-hidden">
             <div className="absolute -inset-1 bg-gradient-to-r from-accent/30 to-purple-500/20 rounded-[2rem] blur-2xl opacity-0 group-hover/section:opacity-100 transition-opacity duration-700" />
-            <div className="relative dark:bg-[#1C1917] rounded-2xl border border-[#E7E5E4] dark:border-[#2C2825] shadow-2xl overflow-hidden min-h-[600px] flex flex-col transition-all duration-500 group-hover/section:shadow-[0_50px_100px_-20px_rgba(0,0,0,0.2)] bg-white">
-              <div className="h-16 border-b border-[#E7E5E4] dark:border-[#2C2825] bg-[#FAF9F6] dark:bg-[#292524] px-6 flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-4">
-                  <div className="flex gap-2">
+            <div className="relative dark:bg-[#1C1917] rounded-2xl border border-[#E7E5E4] dark:border-[#2C2825] shadow-2xl overflow-hidden min-h-0 sm:min-h-[500px] md:min-h-[600px] flex flex-col transition-all duration-500 group-hover/section:shadow-[0_50px_100px_-20px_rgba(0,0,0,0.2)] bg-white">
+              <div className="min-h-[4rem] border-b border-[#E7E5E4] dark:border-[#2C2825] bg-[#FAF9F6] dark:bg-[#292524] px-3 sm:px-6 flex items-center justify-between shrink-0 flex-wrap gap-2 py-2 sm:py-0 sm:h-16">
+                <div className="flex items-center gap-2 sm:gap-4">
+                  <div className="hidden sm:flex gap-2">
                     <div className="w-3 h-3 rounded-full bg-[#E7E5E4] dark:bg-[#44403C]" />
                     <div className="w-3 h-3 rounded-full bg-[#E7E5E4] dark:bg-[#44403C]" />
                     <div className="w-3 h-3 rounded-full bg-[#E7E5E4] dark:bg-[#44403C]" />
                   </div>
-                  <div className="h-6 w-px bg-[#E7E5E4] dark:bg-[#44403C]" />
+                  <div className="hidden sm:block h-6 w-px bg-[#E7E5E4] dark:bg-[#44403C]" />
                   <h3 className="font-space-grotesk font-semibold text-sm text-[#1C1917] dark:text-white flex items-center gap-2">
                     Performance Velocity
                     <span className="px-2 py-0.5 rounded-full bg-[#F5F2E8] dark:bg-[#1C1917] border border-[#E7E5E4] dark:border-[#44403C] text-[10px] text-[#57534E] dark:text-[#A8A29E] font-medium">
@@ -108,9 +108,9 @@ export function FeatureProgress() {
                 </div>
               </div>
 
-              <div className="p-6 md:p-8 grid grid-cols-12 gap-6 bg-[#FAF9F6] dark:bg-[#1C1917] flex-1 overflow-y-auto">
-                <div className="col-span-12 grid grid-cols-3 gap-6">
-                  <div className="dark:bg-[#292524] p-5 rounded-xl border border-[#E7E5E4] dark:border-[#44403C] shadow-sm hover:border-accent/30 transition-colors group/stat bg-white">
+              <div className="p-3 sm:p-6 md:p-8 grid grid-cols-12 gap-4 sm:gap-6 bg-[#FAF9F6] dark:bg-[#1C1917] flex-1 overflow-y-auto">
+                <div className="col-span-12 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6">
+                  <div className="dark:bg-[#292524] p-3 sm:p-5 rounded-xl border border-[#E7E5E4] dark:border-[#44403C] shadow-sm hover:border-accent/30 transition-colors group/stat bg-white">
                     <div className="flex justify-between items-start mb-2">
                       <span className="text-[10px] uppercase font-bold text-[#A8A29E] tracking-wider">
                         Completion Rate
@@ -126,7 +126,7 @@ export function FeatureProgress() {
                       <div className="h-full bg-emerald-500 w-[71%] rounded-full group-hover/stat:w-[75%] transition-all duration-1000" />
                     </div>
                   </div>
-                  <div className="dark:bg-[#292524] p-5 rounded-xl border border-[#E7E5E4] dark:border-[#44403C] shadow-sm hover:border-accent/30 transition-colors group/stat bg-white">
+                  <div className="dark:bg-[#292524] p-3 sm:p-5 rounded-xl border border-[#E7E5E4] dark:border-[#44403C] shadow-sm hover:border-accent/30 transition-colors group/stat bg-white">
                     <div className="flex justify-between items-start mb-2">
                       <span className="text-[10px] uppercase font-bold text-[#A8A29E] tracking-wider">
                         Velocity Score
@@ -140,7 +140,7 @@ export function FeatureProgress() {
                       Trending 15% above peer benchmark.
                     </p>
                   </div>
-                  <div className="dark:bg-[#292524] p-5 rounded-xl border border-[#E7E5E4] dark:border-[#44403C] shadow-sm hover:border-accent/30 transition-colors group/stat bg-white">
+                  <div className="dark:bg-[#292524] p-3 sm:p-5 rounded-xl border border-[#E7E5E4] dark:border-[#44403C] shadow-sm hover:border-accent/30 transition-colors group/stat bg-white">
                     <div className="flex justify-between items-start mb-2">
                       <span className="text-[10px] uppercase font-bold text-[#A8A29E] tracking-wider">
                         Feedback Pulse

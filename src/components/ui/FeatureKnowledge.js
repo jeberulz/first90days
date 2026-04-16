@@ -9,8 +9,8 @@ export function FeatureKnowledge() {
       <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-3xl -translate-x-1/3 translate-y-1/3 pointer-events-none" />
 
       <div className="w-full max-w-[1800px] mx-auto px-4 sm:px-6 md:px-12 relative z-10">
-        <div className="grid lg:grid-cols-12 gap-8 sm:gap-12 lg:gap-24 items-center">
-          <div className="lg:col-span-4">
+        <div className="grid lg:grid-cols-12 gap-8 sm:gap-12 lg:gap-24 items-center min-w-0">
+          <div className="lg:col-span-4 min-w-0">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-accent/20 bg-accent/5 text-[10px] uppercase tracking-wider font-bold text-accent mb-6 sm:mb-8 font-space-grotesk animate-fade-up">
               <Icon icon="solar:book-bookmark-linear" width={12} height={12} />
               Knowledge Acceleration
@@ -73,10 +73,10 @@ export function FeatureKnowledge() {
             </Link>
           </div>
 
-          <div className="lg:col-span-8 w-full relative z-20 animate-fade-up" style={{ animationDelay: "0.2s" }}>
+          <div className="lg:col-span-8 w-full relative z-20 animate-fade-up min-w-0 overflow-hidden" style={{ animationDelay: "0.2s" }}>
             <div className="absolute -inset-1 bg-gradient-to-r from-accent/20 to-purple-500/10 rounded-[2rem] blur-2xl opacity-0 group-hover/section:opacity-100 transition-opacity duration-700" />
-            <div className="relative dark:bg-[#1C1917] rounded-2xl border border-[#E7E5E4] dark:border-[#2C2825] shadow-2xl overflow-hidden min-h-[520px] flex flex-col transition-all duration-500 group-hover/section:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.15)] bg-white">
-              <div className="h-14 border-b border-[#E7E5E4] dark:border-[#2C2825] bg-[#FAF9F6] dark:bg-[#292524] px-6 flex items-center justify-between shrink-0">
+            <div className="relative dark:bg-[#1C1917] rounded-2xl border border-[#E7E5E4] dark:border-[#2C2825] shadow-2xl overflow-hidden min-h-0 sm:min-h-[520px] flex flex-col transition-all duration-500 group-hover/section:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.15)] bg-white">
+              <div className="h-14 border-b border-[#E7E5E4] dark:border-[#2C2825] bg-[#FAF9F6] dark:bg-[#292524] px-3 sm:px-6 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-4">
                   <div className="flex gap-2">
                     <div className="w-3 h-3 rounded-full bg-[#E7E5E4] dark:bg-[#44403C]" />

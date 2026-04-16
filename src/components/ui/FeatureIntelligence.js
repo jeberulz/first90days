@@ -15,8 +15,8 @@ export function FeatureIntelligence() {
   return (
     <div className="border-b border-[#E7E5E4] dark:border-[#2C2825]">
       <div className="w-full max-w-[1800px] mx-auto px-4 sm:px-6 md:px-12 py-16 sm:py-24 lg:py-32">
-        <div className="grid lg:grid-cols-12 gap-8 sm:gap-12 lg:gap-24 items-start">
-          <div className="lg:col-span-4 lg:sticky lg:top-32 lg:pt-8">
+        <div className="grid lg:grid-cols-12 gap-8 sm:gap-12 lg:gap-24 items-start min-w-0">
+          <div className="lg:col-span-4 lg:sticky lg:top-32 lg:pt-8 min-w-0">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-accent/20 bg-accent/5 text-[10px] uppercase tracking-wider font-bold text-accent mb-6 sm:mb-8 font-space-grotesk">
               <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
               Analysis Engine v2.0
@@ -63,18 +63,18 @@ export function FeatureIntelligence() {
             </div>
           </div>
 
-          <div className="lg:col-span-8 w-full relative group">
+          <div className="lg:col-span-8 w-full relative group min-w-0 overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-tr from-accent/10 via-transparent to-accent/5 rounded-3xl transform rotate-1 scale-[1.02] opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
-            <div className="relative bg-[#FAF9F6] dark:bg-[#1C1917] rounded-2xl border border-[#E7E5E4] dark:border-[#2C2825] shadow-2xl overflow-hidden transition-all duration-500 group-hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.15)] flex flex-col h-[600px]">
-              <div className="h-14 border-b border-[#E7E5E4] dark:border-[#2C2825] dark:bg-[#292524] px-6 flex items-center justify-between shrink-0 z-20 bg-white">
-                <div className="flex items-center gap-6">
+            <div className="relative bg-[#FAF9F6] dark:bg-[#1C1917] rounded-2xl border border-[#E7E5E4] dark:border-[#2C2825] shadow-2xl overflow-hidden transition-all duration-500 group-hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.15)] flex flex-col h-[450px] sm:h-[500px] md:h-[600px]">
+              <div className="h-14 border-b border-[#E7E5E4] dark:border-[#2C2825] dark:bg-[#292524] px-3 sm:px-6 flex items-center justify-between shrink-0 z-20 bg-white gap-3">
+                <div className="flex items-center gap-3 sm:gap-6 min-w-0 overflow-x-auto no-scrollbar">
                   <div className="flex gap-2">
                     <div className="w-3 h-3 rounded-full bg-[#E7E5E4] dark:bg-[#44403C]" />
                     <div className="w-3 h-3 rounded-full bg-[#E7E5E4] dark:bg-[#44403C]" />
                     <div className="w-3 h-3 rounded-full bg-[#E7E5E4] dark:bg-[#44403C]" />
                   </div>
                   <div className="h-6 w-px bg-[#E7E5E4] dark:bg-[#44403C]" />
-                  <div className="flex gap-1 p-1 bg-[#F5F5F4] dark:bg-[#1C1917] rounded-lg border border-[#E7E5E4] dark:border-[#44403C]">
+                  <div className="flex gap-1 p-1 bg-[#F5F5F4] dark:bg-[#1C1917] rounded-lg border border-[#E7E5E4] dark:border-[#44403C] shrink-0">
                     <button
                       type="button"
                       onClick={() => setTab("1")}
@@ -101,14 +101,14 @@ export function FeatureIntelligence() {
                     </button>
                   </div>
                 </div>
-                <span className="text-[10px] dark:text-emerald-400 font-mono flex items-center gap-1.5 dark:bg-emerald-900/20 px-2 py-1 rounded border dark:border-emerald-900/30 text-emerald-600 bg-emerald-50 border-emerald-100">
+                <span className="text-[10px] dark:text-emerald-400 font-mono hidden xs:flex items-center gap-1.5 dark:bg-emerald-900/20 px-2 py-1 rounded border dark:border-emerald-900/30 text-emerald-600 bg-emerald-50 border-emerald-100 shrink-0">
                   <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
                   Analysis Complete
                 </span>
               </div>
 
               <div className="flex-1 flex overflow-hidden">
-                <div className="w-64 border-r border-[#E7E5E4] dark:border-[#2C2825] bg-[#FAF9F6] dark:bg-[#1C1917] flex flex-col py-6 px-4 hidden sm:flex">
+                <div className="w-64 border-r border-[#E7E5E4] dark:border-[#2C2825] bg-[#FAF9F6] dark:bg-[#1C1917] py-6 px-4 hidden sm:flex sm:flex-col">
                   <div className="text-[10px] uppercase font-bold text-[#A8A29E] tracking-wider mb-4 font-space-grotesk pl-2">
                     Detected Attributes
                   </div>
@@ -153,10 +153,10 @@ export function FeatureIntelligence() {
 
                 <div className="flex-1 dark:bg-[#1C1917] relative overflow-y-auto no-scrollbar bg-white">
                   {tab === "1" && (
-                    <div className="tab-content p-8 animate-fade-up">
-                      <div className="flex justify-between items-end mb-8">
-                        <div>
-                          <h3 className="text-xl font-bold text-[#1C1917] dark:text-white font-instrument-serif mb-2">
+                    <div className="tab-content p-4 sm:p-6 md:p-8 animate-fade-up">
+                      <div className="flex flex-col xs:flex-row justify-between xs:items-end mb-6 sm:mb-8 gap-3">
+                        <div className="min-w-0">
+                          <h3 className="text-lg sm:text-xl font-bold text-[#1C1917] dark:text-white font-instrument-serif mb-2">
                             Analysis Results
                           </h3>
                           <p className="text-xs text-[#57534E] dark:text-[#A8A29E] font-space-grotesk">
@@ -165,13 +165,13 @@ export function FeatureIntelligence() {
                         </div>
                         <button
                           type="button"
-                          className="px-3 py-1.5 rounded-lg border border-[#E7E5E4] dark:border-[#44403C] text-[11px] font-medium text-[#1C1917] dark:text-white hover:bg-[#F5F5F4] dark:hover:bg-[#292524] transition-colors font-space-grotesk"
+                          className="hidden sm:block px-3 py-1.5 rounded-lg border border-[#E7E5E4] dark:border-[#44403C] text-[11px] font-medium text-[#1C1917] dark:text-white hover:bg-[#F5F5F4] dark:hover:bg-[#292524] transition-colors font-space-grotesk shrink-0"
                         >
                           Export Report
                         </button>
                       </div>
                       <div className="space-y-4">
-                        <div className="p-5 rounded-xl border border-accent/30 bg-[#F5F2E8]/50 dark:bg-accent/5 relative">
+                        <div className="p-3 sm:p-5 rounded-xl border border-accent/30 bg-[#F5F2E8]/50 dark:bg-accent/5 relative">
                           <div className="absolute left-0 top-4 bottom-4 w-1 bg-accent rounded-r-full" />
                           <div className="flex justify-between items-start mb-2 pl-2">
                             <span className="text-[10px] font-bold uppercase tracking-wider text-accent font-space-grotesk">
@@ -188,7 +188,7 @@ export function FeatureIntelligence() {
                             bridging this gap to avoid churn.
                           </p>
                         </div>
-                        <div className="p-5 rounded-xl border border-[#E7E5E4] dark:border-[#2C2825] dark:bg-[#1C1917] hover:border-accent/30 transition-colors group bg-white">
+                        <div className="p-3 sm:p-5 rounded-xl border border-[#E7E5E4] dark:border-[#2C2825] dark:bg-[#1C1917] hover:border-accent/30 transition-colors group bg-white">
                           <div className="flex justify-between items-start mb-2">
                             <span className="text-[10px] font-bold uppercase tracking-wider text-[#78716C] dark:text-[#A8A29E] group-hover:text-accent transition-colors font-space-grotesk">
                               Hidden Requirement
@@ -204,7 +204,7 @@ export function FeatureIntelligence() {
                             plan.
                           </p>
                         </div>
-                        <div className="p-5 rounded-xl border border-[#E7E5E4] dark:border-[#2C2825] dark:bg-[#1C1917] hover:border-accent/30 transition-colors group bg-white">
+                        <div className="p-3 sm:p-5 rounded-xl border border-[#E7E5E4] dark:border-[#2C2825] dark:bg-[#1C1917] hover:border-accent/30 transition-colors group bg-white">
                           <div className="flex justify-between items-start mb-2">
                             <span className="text-[10px] font-bold uppercase tracking-wider text-[#78716C] dark:text-[#A8A29E] group-hover:text-accent transition-colors font-space-grotesk">
                               Cultural Signal
@@ -224,7 +224,7 @@ export function FeatureIntelligence() {
                   )}
 
                   {tab === "2" && (
-                    <div className="tab-content p-8 animate-fade-up">
+                    <div className="tab-content p-4 sm:p-6 md:p-8 animate-fade-up">
                       <div className="flex justify-between items-end mb-8">
                         <div>
                           <h3 className="text-xl font-bold text-[#1C1917] dark:text-white font-instrument-serif mb-2">
@@ -309,7 +309,7 @@ export function FeatureIntelligence() {
                   )}
 
                   {tab === "3" && (
-                    <div className="tab-content p-8 animate-fade-up">
+                    <div className="tab-content p-4 sm:p-6 md:p-8 animate-fade-up">
                       <div className="flex justify-between items-end mb-8">
                         <div>
                           <h3 className="text-xl font-bold text-[#1C1917] dark:text-white font-instrument-serif mb-2">
