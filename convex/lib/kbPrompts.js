@@ -7,6 +7,7 @@
  */
 
 import { KB_CATEGORY_LABELS } from "./kbCategories.js";
+import { GOAL_THEME_LABELS } from "./planPrompts.js";
 
 export const KB_CONTEXT_HEADER = "## Context I know about you";
 
@@ -182,7 +183,8 @@ export function companyResearchUserPrompt(input) {
   if (isNewTeam) lines.push(`Note: the team is brand new.`);
   if (scope) lines.push(`Scope: ${scope}`);
   if (input.selectedGoals && input.selectedGoals.length > 0) {
-    lines.push(`Priority goals: ${input.selectedGoals.join(", ")}`);
+    const goalLabels = input.selectedGoals.map((id) => GOAL_THEME_LABELS[id] || id).join(", ");
+    lines.push(`Priority goals: ${goalLabels}`);
   }
   if (input.existingContext) lines.push(`Existing context: ${input.existingContext}`);
   if (input.challenges) lines.push(`Known challenges: ${input.challenges}`);

@@ -429,10 +429,11 @@ export default function OnboardingStepPage({ params }) {
                 <div>
                   <label className={labelClass}>Describe your role scope (optional)</label>
                   <input
-                    value={data.scope}
+                    value={data.scope ?? ""}
                     onChange={(e) => update("scope", e.target.value)}
                     className={inputClass}
                     placeholder="e.g. Leading product design for the Agent Studio team"
+                    maxLength={500}
                   />
                 </div>
 

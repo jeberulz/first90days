@@ -6,7 +6,7 @@
  * prompts can be audited and tweaked without touching the action glue.
  */
 
-const GOAL_THEME_LABELS = {
+export const GOAL_THEME_LABELS = {
   relationships: "Build key relationships",
   product_landscape: "Understand the product & tech landscape",
   quick_win: "Deliver a quick win",
