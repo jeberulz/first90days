@@ -7,6 +7,9 @@ import { FeatureManagerSync } from "@/components/ui/FeatureManagerSync";
 import { FeatureProgress } from "@/components/ui/FeatureProgress";
 import { FeatureKnowledge } from "@/components/ui/FeatureKnowledge";
 import { HowItWorks } from "@/components/ui/HowItWorks";
+import { Methodology } from "@/components/ui/Methodology";
+import { Examples } from "@/components/ui/Examples";
+import { Pricing } from "@/components/ui/Pricing";
 import { Footer } from "@/components/ui/Footer";
 
 export default function Home() {
@@ -28,6 +31,9 @@ export default function Home() {
 
       <FeatureKnowledge />
       <HowItWorks />
+      <Methodology />
+      <Examples />
+      <Pricing />
 
       <section className="py-16 sm:py-24 lg:py-32 relative overflow-hidden bg-[#F5F2E8] dark:bg-[#0F0E0D] transition-colors duration-300">
         <div className="max-w-xl mx-auto px-4 sm:px-6 text-center relative z-10">
