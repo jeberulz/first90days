@@ -56,7 +56,10 @@ function ResetPasswordInner() {
     } catch (err) {
       const message = err?.data ?? err?.message ?? "";
       setError(
-        message && typeof message === "string" && !/unauthenticated/i.test(message)
+        message &&
+        typeof message === "string" &&
+        !/unauthenticated/i.test(message) &&
+        !/server error/i.test(message)
           ? message
           : "That code didn't work. Check for typos or request a new one."
       );
