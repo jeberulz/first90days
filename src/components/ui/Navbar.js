@@ -17,9 +17,9 @@ function toggleTheme() {
 }
 
 const NAV_LINKS = [
-  { href: "#", label: "Methodology" },
-  { href: "#", label: "Examples" },
-  { href: "#", label: "Pricing" },
+  { href: "#methodology", label: "Methodology" },
+  { href: "#examples", label: "Examples" },
+  { href: "#pricing", label: "Pricing" },
 ];
 
 export function Navbar() {
