@@ -3,6 +3,7 @@
 import { v } from "convex/values";
 import { action, internalAction } from "./_generated/server";
 import { api, internal } from "./_generated/api";
+
 import {
   generateText,
   WATKINS_SYSTEM_PROMPT,
@@ -139,6 +140,9 @@ export const generatePlan = action({
         userId,
         regenerate,
       });
+      if (!regenerate) {
+        await ctx.scheduler.runAfter(0, internal.emailActions.sendWelcomeEmail, { userId });
+      }
       return {
         source: "fallback",
         reason: "meta_parse_failed",
@@ -211,6 +215,9 @@ export const generatePlan = action({
         userId,
         regenerate,
       });
+      if (!regenerate) {
+        await ctx.scheduler.runAfter(0, internal.emailActions.sendWelcomeEmail, { userId });
+      }
       return {
         source: "fallback",
         reason: "no_activities",
@@ -227,6 +234,10 @@ export const generatePlan = action({
       weekThemes: weekThemes || undefined,
       activities: allActivities,
     });
+
+    if (!regenerate) {
+      await ctx.scheduler.runAfter(0, internal.emailActions.sendWelcomeEmail, { userId });
+    }
 
     // Audit: record that the plan generation pulled this context.
     if (kbContext.citations.length > 0 || kbContext.memories.length > 0) {

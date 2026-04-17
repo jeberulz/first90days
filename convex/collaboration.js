@@ -15,6 +15,7 @@
 
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { auth } from "./auth";
 import { assertPlanOwner } from "./lib/planAccess";
 
@@ -86,6 +87,10 @@ export const inviteByEmail = mutation({
       message: args.message,
       createdAt: now,
       expiresAt,
+    });
+
+    await ctx.scheduler.runAfter(0, internal.emailActions.sendManagerInviteEmail, {
+      invitationId,
     });
 
     return { token, invitationId, refreshed: false };

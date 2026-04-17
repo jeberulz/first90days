@@ -704,4 +704,17 @@ export default defineSchema({
     firstAttemptAt: v.number(),
     lockedUntil: v.optional(v.number()),
   }).index("by_email", ["email"]),
+
+  // ── Notification deduplication log ─────────────────────────────────────
+  // Prevents sending the same notification twice (e.g. daily reminder
+  // already sent today). dedupKey is the canonical uniqueness key, e.g.
+  // "daily_reminder:{userId}:2024-01-15". Checked atomically before each send.
+  notificationLog: defineTable({
+    userId: v.id("users"),
+    type: v.string(),
+    dedupKey: v.string(),
+    sentAt: v.number(),
+  })
+    .index("by_dedup_key", ["dedupKey"])
+    .index("by_user", ["userId"]),
 });
