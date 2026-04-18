@@ -25,7 +25,8 @@ export default function CompanyReviewClient() {
     api.companyResearchJobs.requestCompanyResearch
   );
 
-  const [selectedId, setSelectedId] = useState(null);
+  // User-initiated selection. null = "let derivation pick".
+  const [userSelectedId, setUserSelectedId] = useState(null);
   const [busyId, setBusyId] = useState(null);
   const [retrying, setRetrying] = useState(false);
 
@@ -36,27 +37,38 @@ export default function CompanyReviewClient() {
   const finishedEmpty =
     job && job.status === "done" && drafts !== undefined && list.length === 0;
 
+  // Derive selectedId during render. Precedence:
+  //   1. user's explicit pick (if still present in the list)
+  //   2. ?draft= URL param (if present in the list)
+  //   3. first draft in the list
+  //   4. null when the list is empty
+  let selectedId = null;
+  if (list.length > 0) {
+    if (userSelectedId && list.some((d) => d._id === userSelectedId)) {
+      selectedId = userSelectedId;
+    } else if (draftParam && list.some((d) => d._id === draftParam)) {
+      selectedId = draftParam;
+    } else {
+      selectedId = list[0]._id;
+    }
+  }
+
+  // URL sync only — clear a stale ?draft= param that no longer matches any
+  // draft. Router.replace is an external side effect (URL bar), not a local
+  // setState, so this effect is allowed under react-hooks/set-state-in-effect.
   useEffect(() => {
-    if (list.length === 0) {
-      setSelectedId(null);
-      return;
-    }
-    if (draftParam && list.some((d) => d._id === draftParam)) {
-      setSelectedId(draftParam);
-      return;
-    }
-    if (draftParam) {
+    if (
+      draftParam &&
+      list.length > 0 &&
+      !list.some((d) => d._id === draftParam)
+    ) {
       router.replace("/knowledge/company-review", { scroll: false });
     }
-    setSelectedId((prev) => {
-      if (prev && list.some((d) => d._id === prev)) return prev;
-      return list[0]._id;
-    });
   }, [draftParam, list, router]);
 
   const selectDraft = useCallback(
     (id) => {
-      setSelectedId(id);
+      setUserSelectedId(id);
       const next = new URLSearchParams(searchParams.toString());
       next.set("draft", id);
       router.replace(`/knowledge/company-review?${next.toString()}`, {
@@ -72,7 +84,7 @@ export default function CompanyReviewClient() {
     setBusyId(id);
     try {
       await approveDraft({ documentId: id });
-      setSelectedId(null);
+      setUserSelectedId(null);
       router.replace("/knowledge/company-review", { scroll: false });
     } catch (err) {
       console.error("approveDraft failed:", err);
@@ -85,7 +97,7 @@ export default function CompanyReviewClient() {
     setBusyId(id);
     try {
       await discardDraft({ documentId: id });
-      setSelectedId(null);
+      setUserSelectedId(null);
       router.replace("/knowledge/company-review", { scroll: false });
     } catch (err) {
       console.error("discardDraft failed:", err);

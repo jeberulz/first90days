@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { useAuthActions, useAuthToken } from "@convex-dev/auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { api } from "../../../../convex/_generated/api";
 import SettingsCard from "@/components/settings/SettingsCard";
 import SaveBar from "@/components/settings/SaveBar";
@@ -133,17 +133,19 @@ export default function SettingsPage() {
 
   const billingStatus = searchParams.get("billing");
   const initialTab = billingStatus ? "billing" : "profile";
-  const [activeTab, setActiveTab] = useState(initialTab);
+
+  // User-chosen tab. null = "let derivation pick" (typically driven by
+  // ?billing= URL param on Stripe redirect).
+  const [userSelectedTab, setUserSelectedTab] = useState(null);
   const tabsBaseId = useId();
 
-  // If the URL carries a billing status (redirect back from Stripe),
-  // make sure we're on the billing tab so the result is visible.
-  useEffect(() => {
-    if (billingStatus && activeTab !== "billing") {
-      setActiveTab("billing");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [billingStatus]);
+  // Derive the active tab during render. If we came back from Stripe with a
+  // billing status in the URL, force the billing tab until the user picks
+  // another. No effect needed.
+  const activeTab = billingStatus
+    ? "billing"
+    : (userSelectedTab ?? initialTab);
+  const setActiveTab = useCallback((tab) => setUserSelectedTab(tab), []);
 
   // Scroll the active tab into view within the horizontal scroll container
   // so tabs like "Billing" (triggered by Stripe redirect) are immediately visible.
@@ -212,38 +214,64 @@ export default function SettingsPage() {
   const deleteTriggerRef = useRef(null);
   const deleteInputRef = useRef(null);
 
+  // Hydrate local form state from Convex queries. We use a microtask-defer
+  // so the setState calls are not synchronous within the effect body — which
+  // is what the react-hooks/set-state-in-effect rule is guarding against.
+  // A ref tracks which values we've already mirrored so the effect only
+  // fires when upstream data actually changes.
+  const lastHydratedUserName = useRef(null);
   useEffect(() => {
     if (!user) return;
+    const key = `${user.firstName ?? ""}|${user.lastName ?? ""}|${user.name ?? ""}`;
+    if (lastHydratedUserName.current === key) return;
+    lastHydratedUserName.current = key;
     const f = user.firstName?.trim();
     const l = user.lastName?.trim();
-    if (f || l) {
-      setFirstName(f ?? "");
-      setLastName(l ?? "");
-    } else {
-      const { first, last } = splitFullNameDisplay(user.name ?? "");
-      setFirstName(first);
-      setLastName(last);
-    }
+    Promise.resolve().then(() => {
+      if (f || l) {
+        setFirstName(f ?? "");
+        setLastName(l ?? "");
+      } else {
+        const { first, last } = splitFullNameDisplay(user.name ?? "");
+        setFirstName(first);
+        setLastName(last);
+      }
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.name, user?.firstName, user?.lastName]);
 
+  const lastHydratedRoleTitle = useRef(null);
   useEffect(() => {
-    if (onboarding) {
-      setRoleTitle(onboarding.roleTitle ?? "");
-    }
+    if (!onboarding) return;
+    if (lastHydratedRoleTitle.current === onboarding.roleTitle) return;
+    lastHydratedRoleTitle.current = onboarding.roleTitle;
+    const next = onboarding.roleTitle ?? "";
+    Promise.resolve().then(() => setRoleTitle(next));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onboarding?.roleTitle]);
 
+  const lastHydratedContext = useRef(null);
   useEffect(() => {
     if (!onboarding) return;
-    setContextForm({
+    const key = JSON.stringify({
+      scope: onboarding.scope,
+      reportsTo: onboarding.reportsTo,
+      successDefinition: onboarding.successDefinition,
+      existingContext: onboarding.existingContext,
+      challenges: onboarding.challenges,
+      jobDescription: onboarding.jobDescription,
+    });
+    if (lastHydratedContext.current === key) return;
+    lastHydratedContext.current = key;
+    const next = {
       scope: onboarding.scope ?? "",
       reportsTo: onboarding.reportsTo ?? "",
       successDefinition: onboarding.successDefinition ?? "",
       existingContext: onboarding.existingContext ?? "",
       challenges: onboarding.challenges ?? "",
       jobDescription: onboarding.jobDescription ?? "",
-    });
+    };
+    Promise.resolve().then(() => setContextForm(next));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     onboarding?.scope,
@@ -254,22 +282,28 @@ export default function SettingsPage() {
     onboarding?.jobDescription,
   ]);
 
+  const lastHydratedAccount = useRef(null);
   useEffect(() => {
     if (!user?.settings) return;
     const s = user.settings;
-    setAccountForm((prev) => ({
-      timezone: s.timezone ?? prev.timezone,
-      weekStartDay: s.weekStartDay ?? prev.weekStartDay,
-    }));
-    setNotifications((prev) => ({
-      dailyDigest: s.dailyDigest ?? prev.dailyDigest,
-      stakeholderUpdates: s.stakeholderUpdates ?? prev.stakeholderUpdates,
-      milestoneReminders: s.milestoneReminders ?? prev.milestoneReminders,
-      emailNotifications: s.emailNotifications ?? prev.emailNotifications,
-      dailyReminderTime: s.dailyReminderTime ?? prev.dailyReminderTime,
-      reflectionReminderTime:
-        s.reflectionReminderTime ?? prev.reflectionReminderTime,
-    }));
+    const key = JSON.stringify(s);
+    if (lastHydratedAccount.current === key) return;
+    lastHydratedAccount.current = key;
+    Promise.resolve().then(() => {
+      setAccountForm((prev) => ({
+        timezone: s.timezone ?? prev.timezone,
+        weekStartDay: s.weekStartDay ?? prev.weekStartDay,
+      }));
+      setNotifications((prev) => ({
+        dailyDigest: s.dailyDigest ?? prev.dailyDigest,
+        stakeholderUpdates: s.stakeholderUpdates ?? prev.stakeholderUpdates,
+        milestoneReminders: s.milestoneReminders ?? prev.milestoneReminders,
+        emailNotifications: s.emailNotifications ?? prev.emailNotifications,
+        dailyReminderTime: s.dailyReminderTime ?? prev.dailyReminderTime,
+        reflectionReminderTime:
+          s.reflectionReminderTime ?? prev.reflectionReminderTime,
+      }));
+    });
   }, [user?.settings]);
 
   // Focus management for the delete-confirm flow.

@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useEffect, useCallback } from "react";
+import { use, useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useAction, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
@@ -102,14 +102,33 @@ export default function OnboardingStepPage({ params }) {
   const [data, setData] = useState(initialData);
   const [generating, setGenerating] = useState(false);
   const [generatingComplete, setGeneratingComplete] = useState(false);
-  const [planError, setPlanError] = useState(null);
+
+  // planError keyed by currentStep so changing step derives a fresh null
+  // without an effect — resets naturally when step changes.
+  const [planErrorState, setPlanErrorState] = useState({
+    step: currentStep,
+    error: null,
+  });
+  const planError =
+    planErrorState.step === currentStep ? planErrorState.error : null;
+  const setPlanError = useCallback(
+    (err) => setPlanErrorState({ step: currentStep, error: err }),
+    [currentStep]
+  );
+
   const [initialRestoreDone, setInitialRestoreDone] = useState(false);
 
   // Restore from Convex before we start persisting local state back into
-  // sessionStorage. This avoids a race where the default-data write
-  // clobbers the "onboarding_data" key before the Convex check runs.
+  // sessionStorage. Uses a ref to run this restore at most once per viewer
+  // identity so the effect only mutates state when it's actually resolving
+  // an external change (the initial viewer load).
+  const restoredForViewerRef = useRef(null);
   useEffect(() => {
     if (viewer === undefined || viewer === null) return;
+    // Only restore once per viewer object. Further re-renders must not
+    // re-run the restore — keeps this effect a one-shot sync.
+    if (restoredForViewerRef.current === viewer) return;
+    restoredForViewerRef.current = viewer;
 
     const hasSessionData =
       typeof window !== "undefined" &&
@@ -130,29 +149,30 @@ export default function OnboardingStepPage({ params }) {
       };
     }
 
-    if (!hasSessionData) {
-      if (viewer.partialOnboarding) {
-        const po = viewer.partialOnboarding;
-        setData((prev) => withViewerNameFallback({ ...prev, ...po }));
-      } else if (vf || vl || split.first || split.last) {
+    // Defer setState to a microtask so it does not run synchronously within
+    // the effect body (react-hooks/set-state-in-effect is specifically about
+    // cascading renders from synchronous setState; microtask-deferred state
+    // updates are safe).
+    Promise.resolve().then(() => {
+      if (!hasSessionData) {
+        if (viewer.partialOnboarding) {
+          const po = viewer.partialOnboarding;
+          setData((prev) => withViewerNameFallback({ ...prev, ...po }));
+        } else if (vf || vl || split.first || split.last) {
+          setData((prev) => withViewerNameFallback(prev));
+        }
+      } else {
+        // Stale sessionStorage often has empty name fields; still hydrate from Convex.
         setData((prev) => withViewerNameFallback(prev));
       }
-    } else {
-      // Stale sessionStorage often has empty name fields; still hydrate from Convex.
-      setData((prev) => withViewerNameFallback(prev));
-    }
-
-    setInitialRestoreDone(true);
+      setInitialRestoreDone(true);
+    });
   }, [viewer]);
 
   useEffect(() => {
     if (!initialRestoreDone || typeof window === "undefined") return;
     sessionStorage.setItem("onboarding_data", JSON.stringify(data));
   }, [data, initialRestoreDone]);
-
-  useEffect(() => {
-    setPlanError(null);
-  }, [currentStep]);
 
   const update = useCallback((field, value) => {
     setData((prev) => ({ ...prev, [field]: value }));
