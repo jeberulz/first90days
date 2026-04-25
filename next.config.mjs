@@ -9,7 +9,7 @@ const CSP = [
   "script-src 'self' 'unsafe-inline' js.stripe.com",
   "style-src 'self' 'unsafe-inline'",
   "connect-src 'self' https://*.convex.cloud wss://*.convex.cloud https://hooks.stripe.com",
-  "img-src 'self' data: blob:",
+  "img-src 'self' data: blob: https://*.convex.cloud",
   "font-src 'self'",
   "object-src 'none'",
   "base-uri 'self'",
