@@ -32,6 +32,7 @@ import type * as kbPipeline from "../kbPipeline.js";
 import type * as knowledge from "../knowledge.js";
 import type * as lib_ai from "../lib/ai.js";
 import type * as lib_billing from "../lib/billing.js";
+import type * as lib_emailLayout from "../lib/emailLayout.js";
 import type * as lib_kbCategories from "../lib/kbCategories.js";
 import type * as lib_kbContext from "../lib/kbContext.js";
 import type * as lib_kbPrompts from "../lib/kbPrompts.js";
@@ -91,6 +92,7 @@ declare const fullApi: ApiFromModules<{
   knowledge: typeof knowledge;
   "lib/ai": typeof lib_ai;
   "lib/billing": typeof lib_billing;
+  "lib/emailLayout": typeof lib_emailLayout;
   "lib/kbCategories": typeof lib_kbCategories;
   "lib/kbContext": typeof lib_kbContext;
   "lib/kbPrompts": typeof lib_kbPrompts;

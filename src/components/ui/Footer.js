@@ -10,7 +10,7 @@ export function Footer() {
             <div className="flex items-center gap-2 mb-3 sm:mb-4">
               <Icon icon="solar:stars-minimalistic-linear" className="text-accent" width={18} height={18} />
               <span className="font-semibold tracking-tight text-sm font-space-grotesk text-white">
-                First90
+                Arcora
               </span>
             </div>
             <p className="text-xs text-[#A8A29E] leading-relaxed font-medium font-space-grotesk max-w-xs">
@@ -71,7 +71,7 @@ export function Footer() {
         </div>
         <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-4 pt-6 sm:pt-8 border-t border-[#292524] dark:border-[#2C2825]">
           <p className="text-xs font-medium font-space-grotesk text-[#78716C]">
-            © 2024 First90 Inc. All rights reserved.
+            © 2026 Arcora. All rights reserved.
           </p>
           <div className="flex gap-5 text-[#A8A29E]">
             <a href="#" className="hover:text-accent transition-colors p-1" aria-label="Twitter">

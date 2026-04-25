@@ -109,10 +109,10 @@ export default function AppSidebar() {
       <div className="h-16 flex items-center px-6 border-b border-[#2C2825]">
         <Link href="/dashboard" className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-md bg-gradient-to-br from-[#D97757] to-[#C26242] flex items-center justify-center">
-            <span className="text-white text-xs font-bold font-space-grotesk">90</span>
+            <span className="text-white text-xs font-bold font-space-grotesk">A</span>
           </div>
           <span className="font-space-grotesk text-base font-medium tracking-[-0.4px] text-[#E7E5E4]">
-            First90
+            Arcora
           </span>
         </Link>
       </div>

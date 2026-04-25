@@ -60,7 +60,7 @@ export default function KnowledgeBasePage() {
             Knowledge Base
           </h1>
           <p className="font-space-grotesk text-xs sm:text-sm text-[#A8A29E] mt-1">
-            Everything First90 knows about your role, team, and company. Used to ground every plan and suggestion.
+            Everything Arcora knows about your role, team, and company. Used to ground every plan and suggestion.
           </p>
         </div>
         <div className="flex items-center gap-2">

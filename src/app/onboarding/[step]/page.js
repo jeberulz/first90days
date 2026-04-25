@@ -397,7 +397,7 @@ export default function OnboardingStepPage({ params }) {
                   Your Profile
                 </p>
                 <h1 className="text-3xl sm:text-4xl font-normal tracking-tight font-instrument-serif text-warm-ink mb-3 onboarding-fade-in-d1">
-                  Welcome to First90
+                  Welcome to Arcora
                 </h1>
                 <p className="text-base text-warm-500 leading-relaxed font-space-grotesk onboarding-fade-in-d2">
                   Let&apos;s set up your workspace. We&apos;ll use this to personalize your 90-day plan, surface the right tasks, and help you build relationships faster.

@@ -1,8 +1,8 @@
-# First90
+# Arcora
 
 **Your first 90 days, engineered for impact.**
 
-First90 helps anyone starting a new role generate a **role-specific 30‑60‑90 day plan** with AI—so you align with your manager early and ramp with clarity instead of guesswork.
+Arcora helps anyone starting a new role generate a **role-specific 30‑60‑90 day plan** with AI—so you align with your manager early and ramp with clarity instead of guesswork.
 
 ---
 
@@ -16,7 +16,7 @@ First90 helps anyone starting a new role generate a **role-specific 30‑60‑90
 
 ## Manager alignment
 
-Onboarding fails most often when expectations drift. First90 is designed around a **shared workspace** for you and your manager:
+Onboarding fails most often when expectations drift. Arcora is designed around a **shared workspace** for you and your manager:
 
 - **Collaborative review** — Invite your manager to comment and refine the 30‑60‑90 plan in one place.
 - **Live sync** — Push updates to the docs and formats your org already uses (e.g. Notion, Google Docs, PDF) so there’s no “secret” plan in a silo.

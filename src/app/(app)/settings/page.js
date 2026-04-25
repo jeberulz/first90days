@@ -783,7 +783,7 @@ function ProfileSection({
     <section className="space-y-4">
       <SectionHeader
         title="Who you are"
-        description="How your name and avatar appear across First90."
+        description="How your name and avatar appear across Arcora."
       />
 
       <SettingsCard>
@@ -1872,7 +1872,7 @@ function NotificationsSection({
     <section className="space-y-4">
       <SectionHeader
         title="What we send you"
-        description="Pick the moments where First90 should reach out."
+        description="Pick the moments where Arcora should reach out."
       />
 
       <SettingsCard>
@@ -1885,7 +1885,7 @@ function NotificationsSection({
           <div className="p-6 space-y-4">
             <ToggleRow
               title="Email notifications"
-              description="Master switch for everything First90 sends to your inbox."
+              description="Master switch for everything Arcora sends to your inbox."
               checked={notifications.emailNotifications}
               onChange={(v) =>
                 setNotifications((s) => ({ ...s, emailNotifications: v }))

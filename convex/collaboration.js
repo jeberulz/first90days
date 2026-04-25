@@ -347,7 +347,7 @@ export const acceptInvitation = mutation({
     // onboarding flow when they next visit /dashboard. Mark them complete
     // so the (app) layout doesn't bounce them out of the shared workspace.
     // They can still be re-onboarded via /onboarding directly if they
-    // later decide to use First90 for their own plan.
+    // later decide to use Arcora for their own plan.
     if (me && !me.onboardingComplete) {
       await ctx.db.patch(userId, { onboardingComplete: true });
     }

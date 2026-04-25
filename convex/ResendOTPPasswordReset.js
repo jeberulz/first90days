@@ -7,9 +7,9 @@ import { renderEmailShell, renderCodeBlock, BRAND } from "./lib/emailLayout";
 // that the user then submits with their new password via
 // `flow: "reset-verification"`.
 
-const FROM_ADDRESS = process.env.AUTH_EMAIL ?? "First90 <hello@switchtoux.com>";
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.first90days.com";
-const PRODUCT_NAME = process.env.PRODUCT_NAME ?? "First90";
+const FROM_ADDRESS = process.env.AUTH_EMAIL ?? "Arcora <hello@switchtoux.com>";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.usearcora.com";
+const PRODUCT_NAME = process.env.PRODUCT_NAME ?? "Arcora";
 const LOGO_URL = process.env.EMAIL_LOGO_URL ?? "";
 
 function generateNumericCode(length = 8) {

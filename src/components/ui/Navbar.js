@@ -32,7 +32,7 @@ export function Navbar() {
           <Link
             href="/"
             className="inline-flex items-center gap-2 min-w-0 min-h-11 -mx-1 px-1 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0F0E0D]"
-            aria-label="First90 home"
+            aria-label="Arcora home"
           >
             <Icon
               icon="solar:stars-minimalistic-linear"
@@ -42,7 +42,7 @@ export function Navbar() {
               aria-hidden
             />
             <span className="font-semibold tracking-tight text-base font-space-grotesk text-[#1C1917] dark:text-white">
-              First90
+              Arcora
             </span>
           </Link>
 
@@ -123,7 +123,7 @@ export function Navbar() {
               aria-hidden
             />
             <span className="font-semibold tracking-tight text-base font-space-grotesk text-[#1C1917] dark:text-white">
-              First90
+              Arcora
             </span>
           </div>
           <button

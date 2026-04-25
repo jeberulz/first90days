@@ -111,7 +111,7 @@ function AddKnowledgeModalForm({ onClose, defaultCategory }) {
             onChange={(e) => setContent(e.target.value)}
             className="w-full bg-warm-surfaceDark border border-warm-borderMuted rounded-lg px-3 py-2.5 font-space-grotesk text-sm text-warm-line placeholder:text-warm-500 resize-y focus:outline-none focus:ring-1 focus:ring-accent min-h-[160px]"
             rows={8}
-            placeholder="Paste a doc, write notes, or describe context First90 should know about."
+            placeholder="Paste a doc, write notes, or describe context Arcora should know about."
             required
           />
           <p className="text-xs text-warm-300">

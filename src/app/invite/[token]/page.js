@@ -80,7 +80,7 @@ export default function InviteAcceptPage({ params }) {
           href="/"
           className="inline-block mt-6 font-space-grotesk text-sm text-[#D97757] hover:underline"
         >
-          ← Back to First90
+          ← Back to Arcora
         </Link>
       </Frame>
     );
@@ -104,7 +104,7 @@ export default function InviteAcceptPage({ params }) {
           href="/login"
           className="inline-block mt-6 font-space-grotesk text-sm text-[#D97757] hover:underline"
         >
-          Sign in to First90 →
+          Sign in to Arcora →
         </Link>
       </Frame>
     );
