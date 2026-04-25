@@ -189,27 +189,47 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          {/* Phase bar — all grayed out */}
+          {/* Phase bar — Pre-boarding fills proportionally to checklist progress;
+              future phases stay empty until the plan starts. */}
           <div className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-4 sm:p-6">
             <h3 className="font-space-grotesk text-sm font-medium text-[#A8A29E] mb-4">
               Onboarding Journey
             </h3>
             <div className="flex items-center gap-2 mb-3">
               {[
-                { name: "Pre-boarding", days: `T-${dayInfo.daysUntilStart}`, active: true },
-                { name: "Learn", days: "Days 1-30", active: false },
-                { name: "Contribute", days: "Days 31-60", active: false },
-                { name: "Lead", days: "Days 61-90", active: false },
+                {
+                  name: "Pre-boarding",
+                  days: `T-${dayInfo.daysUntilStart}`,
+                  fillFraction:
+                    PRE_BOARDING_CHECKLIST.length > 0
+                      ? Object.values(checked).filter(Boolean).length /
+                        PRE_BOARDING_CHECKLIST.length
+                      : 0,
+                  isCurrent: true,
+                },
+                { name: "Learn", days: "Days 1-30", fillFraction: 0, isCurrent: false },
+                { name: "Contribute", days: "Days 31-60", fillFraction: 0, isCurrent: false },
+                { name: "Lead", days: "Days 61-90", fillFraction: 0, isCurrent: false },
               ].map((phase) => (
                 <div key={phase.name} className="flex-1">
-                  <div
-                    className={`h-1 rounded-full ${
-                      phase.active ? "bg-[#D97757]" : "bg-[#292524]"
-                    }`}
-                  />
+                  <div className="h-1 rounded-full bg-[#292524] overflow-hidden">
+                    <div
+                      className="h-full bg-[#D97757] rounded-full transition-[width] duration-300 ease-out"
+                      style={{ width: `${phase.fillFraction * 100}%` }}
+                    />
+                  </div>
                   <div className="mt-2 flex items-center justify-between">
-                    <span className="font-space-grotesk text-xs font-medium text-[#E7E5E4]">
+                    <span
+                      className={`font-space-grotesk text-xs font-medium ${
+                        phase.isCurrent ? "text-[#D97757]" : "text-[#E7E5E4]"
+                      }`}
+                    >
                       {phase.name}
+                      {phase.isCurrent ? (
+                        <span className="ml-1.5 text-[10px] uppercase tracking-wider text-[#D97757]/80">
+                          Now
+                        </span>
+                      ) : null}
                     </span>
                     <span className="font-space-grotesk text-xs text-[#A8A29E]">
                       {phase.days}
