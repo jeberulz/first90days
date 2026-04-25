@@ -93,7 +93,7 @@ export default function RegeneratePlanModal({ onClose }) {
         {busy && (
           <div className="flex items-center gap-3 text-sm text-[#A8A29E] font-space-grotesk">
             <div className="w-4 h-4 border-2 border-[#D97757] border-t-transparent rounded-full animate-spin" />
-            <span>Drafting your new plan… this takes 30-60 seconds.</span>
+            <span>Drafting your new plan… this usually takes about a minute.</span>
           </div>
         )}
 
