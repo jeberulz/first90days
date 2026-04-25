@@ -314,27 +314,51 @@ export default function PlanPage() {
         </div>
       )}
 
-      {/* Phase progress */}
+      {/* Phase progress — proportional fill within each phase based on dayNumber */}
       <div className="flex items-center gap-2">
-        {fullPlan.phases.map((phase) => (
-          <div key={phase._id} className="flex-1">
-            <div
-              className={`h-1 rounded-full ${
-                dayInfo && dayInfo.phase >= phase.number
-                  ? "bg-[#D97757]"
-                  : "bg-[#292524]"
-              }`}
-            />
-            <div className="mt-2 flex items-center justify-between">
-              <span className="font-space-grotesk text-xs font-medium text-[#E7E5E4]">
-                {phaseLabels[phase.number]?.name}
-              </span>
-              <span className="font-space-grotesk text-xs text-[#A8A29E]">
-                {phaseLabels[phase.number]?.days}
-              </span>
+        {fullPlan.phases.map((phase) => {
+          // Each phase covers 30 days. Phase 1 = days 1–30, etc.
+          const dayStart = (phase.number - 1) * 30 + 1;
+          const dayEnd = phase.number * 30;
+          let fillFraction = 0;
+          if (dayInfo) {
+            if (dayInfo.dayNumber >= dayEnd) {
+              fillFraction = 1;
+            } else if (dayInfo.dayNumber >= dayStart) {
+              const span = dayEnd - dayStart + 1;
+              const done = dayInfo.dayNumber - dayStart + 1;
+              fillFraction = Math.max(0, Math.min(1, done / span));
+            }
+          }
+          const isCurrent = dayInfo && dayInfo.phase === phase.number;
+          return (
+            <div key={phase._id} className="flex-1">
+              <div className="h-1 rounded-full bg-[#292524] overflow-hidden">
+                <div
+                  className="h-full bg-[#D97757] rounded-full transition-[width] duration-300 ease-out"
+                  style={{ width: `${fillFraction * 100}%` }}
+                />
+              </div>
+              <div className="mt-2 flex items-center justify-between">
+                <span
+                  className={`font-space-grotesk text-xs font-medium ${
+                    isCurrent ? "text-[#D97757]" : "text-[#E7E5E4]"
+                  }`}
+                >
+                  {phaseLabels[phase.number]?.name}
+                  {isCurrent ? (
+                    <span className="ml-1.5 text-[10px] uppercase tracking-wider text-[#D97757]/80">
+                      Now
+                    </span>
+                  ) : null}
+                </span>
+                <span className="font-space-grotesk text-xs text-[#A8A29E]">
+                  {phaseLabels[phase.number]?.days}
+                </span>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Weeks by phase */}
