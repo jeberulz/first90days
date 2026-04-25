@@ -139,6 +139,8 @@ export default function SignupPage() {
             id="email"
             type="email"
             required
+            autoComplete="email"
+            inputMode="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="w-full bg-white border border-[#E7E5E4] rounded-lg px-3 py-2.5 font-space-grotesk text-sm text-[#1C1917] placeholder:text-[#D1CDC7] focus:outline-none focus:ring-2 focus:ring-[#D97757]/20 focus:border-[#D97757] transition"
@@ -157,6 +159,7 @@ export default function SignupPage() {
             id="password"
             type="password"
             required
+            autoComplete="new-password"
             minLength={PASSWORD_MIN_LENGTH}
             value={password}
             onChange={(e) => setPassword(e.target.value)}

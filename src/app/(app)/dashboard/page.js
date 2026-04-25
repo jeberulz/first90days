@@ -102,7 +102,7 @@ export default function DashboardPage() {
             Building your plan&hellip;
           </h2>
           <p className="font-space-grotesk text-sm text-[#A8A29E] max-w-md mx-auto">
-            We&apos;re generating your personalised 90-day plan. This usually takes 30&ndash;60 seconds.
+            We&apos;re generating your personalised 90-day plan. This usually takes about a minute. Feel free to grab a coffee — the page will update automatically.
             You can wait here &mdash; the page will update automatically.
           </p>
           <div className="w-48 mx-auto h-1.5 bg-[#292524] rounded-full overflow-hidden">
