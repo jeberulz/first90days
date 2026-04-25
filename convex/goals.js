@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { auth } from "./auth";
 import { resolvePlanAccess } from "./lib/planAccess";
 
@@ -173,6 +174,10 @@ export const requestApproval = mutation({
       approvalDecidedByUserId: undefined,
       approvalNote: undefined,
     });
+
+    await ctx.scheduler.runAfter(0, internal.emailActions.sendGoalApprovalRequestEmail, {
+      goalId: args.id,
+    });
   },
 });
 
@@ -206,6 +211,10 @@ export const approveGoal = mutation({
       approvalDecidedByUserId: userId,
       approvalNote: args.note?.trim() || undefined,
     });
+
+    await ctx.scheduler.runAfter(0, internal.emailActions.sendGoalDecisionEmail, {
+      goalId: args.id,
+    });
   },
 });
 
@@ -228,6 +237,10 @@ export const requestChanges = mutation({
       approvalDecidedAt: Date.now(),
       approvalDecidedByUserId: userId,
       approvalNote: trimmed,
+    });
+
+    await ctx.scheduler.runAfter(0, internal.emailActions.sendGoalDecisionEmail, {
+      goalId: args.id,
     });
   },
 });

@@ -12,6 +12,7 @@
 
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { auth } from "./auth";
 import { resolvePlanAccess } from "./lib/planAccess";
 
@@ -83,7 +84,7 @@ export const add = mutation({
 
     await loadAndValidateTarget(ctx, args.planId, args.targetType, args.targetId);
 
-    return await ctx.db.insert("planComments", {
+    const commentId = await ctx.db.insert("planComments", {
       planId: args.planId,
       authorUserId: access.userId,
       authorRole: access.role,
@@ -91,6 +92,10 @@ export const add = mutation({
       targetId: args.targetId,
       body: trimmed,
     });
+
+    await ctx.scheduler.runAfter(0, internal.emailActions.sendPlanCommentEmail, { commentId });
+
+    return commentId;
   },
 });
 
