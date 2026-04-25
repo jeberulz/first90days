@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useConvexAuth } from "convex/react";
@@ -28,37 +28,40 @@ export default function InviteAcceptPage({ params }) {
   const [error, setError] = useState(null);
   const [accepted, setAccepted] = useState(false);
 
+  // Guard so strict-mode / double-fire cannot trigger two accept calls and
+  // the effect body itself does not call setState synchronously.
+  const startedRef = useRef(false);
+
   // Auto-accept once the user is authenticated and we have an invite preview
-  // in pending state. Keeps the UX one click for users who were already
-  // signed in and zero clicks after sign-in/sign-up.
+  // in pending state. The setState calls are all inside async .then/.catch/
+  // .finally callbacks — synchronous to the effect body we only kick off
+  // the external API call, which is exactly what effects are for.
   useEffect(() => {
     if (
-      !accepted &&
-      !accepting &&
-      isAuthenticated &&
-      preview &&
-      preview.status === "pending"
+      startedRef.current ||
+      accepted ||
+      !isAuthenticated ||
+      !preview ||
+      preview.status !== "pending"
     ) {
-      setAccepting(true);
-      acceptInvitation({ token })
-        .then((res) => {
-          setAccepted(true);
-          router.push(`/shared/${res.planId}`);
-        })
-        .catch((err) => {
-          setError(err?.message || "Could not accept invitation");
-        })
-        .finally(() => setAccepting(false));
+      return;
     }
-  }, [
-    isAuthenticated,
-    preview,
-    accepting,
-    accepted,
-    acceptInvitation,
-    token,
-    router,
-  ]);
+    startedRef.current = true;
+    const promise = acceptInvitation({ token });
+    // Flip accepting=true on the next microtask so it is not a synchronous
+    // setState during effect execution.
+    Promise.resolve().then(() => setAccepting(true));
+    promise
+      .then((res) => {
+        setAccepted(true);
+        router.push(`/shared/${res.planId}`);
+      })
+      .catch((err) => {
+        setError(err?.message || "Could not accept invitation");
+        startedRef.current = false;
+      })
+      .finally(() => setAccepting(false));
+  }, [isAuthenticated, preview, accepted, acceptInvitation, token, router]);
 
   if (preview === undefined || isLoading) {
     return <Frame>Loading invitation…</Frame>;

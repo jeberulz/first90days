@@ -1,27 +1,31 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { KB_CATEGORIES } from "@/lib/kbCategories";
 import { ResponsiveModal } from "@/components/primitives";
 
 export default function AddKnowledgeModal({ open, onClose, defaultCategory }) {
+  // Remount the form each time the modal opens so all local state —
+  // including the category pre-selected from `defaultCategory` — resets
+  // naturally. Opening from the "Add Team & People" CTA after the generic
+  // Add button now correctly picks up the latest defaultCategory.
+  if (!open) return null;
+  return (
+    <AddKnowledgeModalForm
+      onClose={onClose}
+      defaultCategory={defaultCategory}
+    />
+  );
+}
+
+function AddKnowledgeModalForm({ onClose, defaultCategory }) {
   const createDocument = useMutation(api.kb.createDocument);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [category, setCategory] = useState(defaultCategory || "goals_notes");
   const [submitting, setSubmitting] = useState(false);
-
-  // Sync the category select with the latest defaultCategory each time the
-  // modal is opened. Without this, opening from the "Add Team & People"
-  // suggestion CTA after previously opening from the generic Add button
-  // would still show the old selection.
-  useEffect(() => {
-    if (open) {
-      setCategory(defaultCategory || "goals_notes");
-    }
-  }, [open, defaultCategory]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -46,7 +50,7 @@ export default function AddKnowledgeModal({ open, onClose, defaultCategory }) {
 
   return (
     <ResponsiveModal
-      open={open}
+      open
       onClose={onClose}
       title="Add to Knowledge Base"
       size="2xl"

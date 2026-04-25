@@ -16,6 +16,14 @@ import { cn } from "@/lib/utils";
  * Calls api.kb.semanticSearch (an action that wraps lib/kbContext.js).
  */
 export default function SearchModal({ open, onClose }) {
+  // Early-return when closed. The inner component remounts every time the
+  // modal opens, so its local state naturally resets without needing an
+  // effect to clear it.
+  if (!open) return null;
+  return <SearchModalContent onClose={onClose} />;
+}
+
+function SearchModalContent({ onClose }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -23,29 +31,24 @@ export default function SearchModal({ open, onClose }) {
   const inputRef = useRef(null);
   const debounceRef = useRef(null);
 
-  // Focus input when opened
+  // Focus input on mount (modal just opened).
   useEffect(() => {
-    if (open && inputRef.current) {
-      inputRef.current.focus();
-    }
-    if (!open) {
-      setQuery("");
-      setResults([]);
-    }
-  }, [open]);
+    inputRef.current?.focus();
+  }, []);
 
-  // Debounced search
+  // Debounced search. Clearing results for an empty query happens inside the
+  // async timeout callback, which is not synchronous state-update-in-effect.
   useEffect(() => {
-    if (!open) return;
-    if (!query.trim()) {
-      setResults([]);
-      return;
-    }
     if (debounceRef.current) clearTimeout(debounceRef.current);
+    const trimmed = query.trim();
     debounceRef.current = setTimeout(async () => {
+      if (!trimmed) {
+        setResults([]);
+        return;
+      }
       setLoading(true);
       try {
-        const res = await search({ query, limit: 10 });
+        const res = await search({ query: trimmed, limit: 10 });
         setResults(res?.matches || []);
       } catch (e) {
         console.error("[searchModal]", e);
@@ -57,9 +60,7 @@ export default function SearchModal({ open, onClose }) {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [query, open, search]);
-
-  if (!open) return null;
+  }, [query, search]);
 
   return (
     <div
