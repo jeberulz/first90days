@@ -26,7 +26,7 @@ export function FeatureKnowledge() {
               className="text-base sm:text-lg text-[#57534E] dark:text-[#D6D3D1] leading-relaxed mb-8 sm:mb-10 font-space-grotesk font-light animate-fade-up"
               style={{ animationDelay: "0.2s" }}
             >
-              Most employees spend their first month just finding the files. First90 automatically
+              Most employees spend their first month just finding the files. Arcora automatically
               aggregates the critical context, templates, and reading lists you need to sound like an
               expert on day one.
             </p>

@@ -40,11 +40,11 @@ export default function SharedLayout({ children }) {
           <Link href="/dashboard" className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-md bg-gradient-to-br from-[#D97757] to-[#C26242] flex items-center justify-center">
               <span className="text-white text-xs font-bold font-space-grotesk">
-                90
+                A
               </span>
             </div>
             <span className="font-space-grotesk text-base font-medium tracking-[-0.4px] text-[#E7E5E4]">
-              First90
+              Arcora
             </span>
             <span className="ml-2 font-space-grotesk text-xs uppercase tracking-[0.6px] text-[#A8A29E]">
               Shared workspace

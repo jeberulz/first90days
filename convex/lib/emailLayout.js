@@ -9,8 +9,8 @@
  *    the app's #D97757 accent.
  *  - One place to update the brand → all emails inherit consistently.
  *  - Product-name-agnostic strings ("Your verification code") so the
- *    in-flight First90 → Arcora rename in another branch can fill in the
- *    wordmark without touching layout.
+ *    wordmark can be swapped via the PRODUCT_NAME env var without
+ *    touching layout.
  *
  * All helpers are pure string builders. No imports, no side effects, so
  * this is safe to load from any Convex Node action or query.
@@ -110,7 +110,7 @@ export function renderNote(content) {
 export function renderEmailShell({
   preheader = "",
   appUrl,
-  productName = "First90",
+  productName = "Arcora",
   logoUrl = "",
   innerHtml,
   showManageNotifications = true,

@@ -52,14 +52,14 @@ export default function KnowledgeStatusCard({ onAddKnowledge }) {
   let subline;
   if (isEmpty) {
     headline = "Your knowledge base is empty.";
-    subline = "Add your first document so First90 can start grounding your plan.";
+    subline = "Add your first document so Arcora can start grounding your plan.";
   } else if (isFull) {
     headline = `${status.documentCount} ${status.documentCount === 1 ? "entry" : "entries"} across all ${TOTAL_CATEGORIES} categories.`;
-    subline = "First90 has rich context for every plan and suggestion.";
+    subline = "Arcora has rich context for every plan and suggestion.";
   } else {
     headline = `${status.documentCount} ${status.documentCount === 1 ? "entry" : "entries"} across ${filledCount} of ${TOTAL_CATEGORIES} categories.`;
     subline = nextEmptyCat
-      ? `Add ${nextEmptyCat.label} context next to round out what First90 knows.`
+      ? `Add ${nextEmptyCat.label} context next to round out what Arcora knows.`
       : `${TOTAL_CATEGORIES - filledCount} categories still empty.`;
   }
 

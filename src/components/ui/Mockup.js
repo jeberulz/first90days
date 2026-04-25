@@ -150,7 +150,7 @@ export function Mockup() {
             <div className="ml-2 h-6 w-48 bg-[#171717] dark:bg-[#0A0A0A] rounded-md flex items-center px-3 border shadow-inner border-white/5">
               <span className="text-[10px] text-neutral-500 font-mono flex items-center gap-1.5">
                 <Icon icon="solar:lock-password-linear" width={8} height={8} className="opacity-50" />
-                first90.app/plan/generate
+                usearcora.com/plan/generate
               </span>
             </div>
           </div>

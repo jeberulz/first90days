@@ -35,7 +35,7 @@ try {
 `;
 
 export const metadata = {
-  title: "First90 - AI Onboarding Planner",
+  title: "Arcora - AI Onboarding Planner",
   description: "Your first 90 days, engineered for impact.",
 };
 

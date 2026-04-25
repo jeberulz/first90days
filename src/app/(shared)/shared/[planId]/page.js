@@ -75,7 +75,7 @@ export default function SharedPlanPage({ params }) {
           Reviewing
         </p>
         <h1 className="mt-1 font-instrument-serif text-3xl text-[#E7E5E4]">
-          {plan.ownerName || plan.ownerEmail || "First90 plan"}
+          {plan.ownerName || plan.ownerEmail || "Arcora plan"}
           {plan.roleTitle ? ` · ${plan.roleTitle}` : ""}
         </h1>
         {(plan.companyName || plan.startDate) && (
