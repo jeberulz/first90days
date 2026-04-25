@@ -341,6 +341,72 @@ export const deleteAccount = mutation({
   },
 });
 
+/**
+ * Admin: hard-delete every trace of a user identified by email so the
+ * email can sign up fresh. Run via `npx convex run --prod
+ * users:purgeAccountForEmail '{"email":"…"}'`. Sweeps the auth tables
+ * synchronously (small fan-out per user) and schedules the batched
+ * `purgeUserData` to clean user-owned rows and the users row itself.
+ *
+ * Skips Stripe cancellation on purpose — this path is for orphaned/test
+ * accounts that never paid. Use `deleteAccount` for real user-initiated
+ * removals.
+ */
+export const purgeAccountForEmail = internalMutation({
+  args: { email: v.string() },
+  handler: async (ctx, { email }) => {
+    const normalised = email.trim().toLowerCase();
+    const user = await ctx.db
+      .query("users")
+      .withIndex("email", (q) => q.eq("email", normalised))
+      .first();
+    if (!user) {
+      throw new Error(`No user with email ${normalised}`);
+    }
+    const userId = user._id;
+
+    const accounts = await ctx.db
+      .query("authAccounts")
+      .withIndex("userIdAndProvider", (q) => q.eq("userId", userId))
+      .collect();
+    for (const account of accounts) {
+      const codes = await ctx.db
+        .query("authVerificationCodes")
+        .withIndex("accountId", (q) => q.eq("accountId", account._id))
+        .collect();
+      for (const code of codes) await ctx.db.delete(code._id);
+      await ctx.db.delete(account._id);
+    }
+
+    const sessions = await ctx.db
+      .query("authSessions")
+      .withIndex("userId", (q) => q.eq("userId", userId))
+      .collect();
+    for (const session of sessions) {
+      const tokens = await ctx.db
+        .query("authRefreshTokens")
+        .withIndex("sessionId", (q) => q.eq("sessionId", session._id))
+        .collect();
+      for (const token of tokens) await ctx.db.delete(token._id);
+      await ctx.db.delete(session._id);
+    }
+
+    const attempts = await ctx.db
+      .query("loginAttempts")
+      .withIndex("by_email", (q) => q.eq("email", normalised))
+      .first();
+    if (attempts) await ctx.db.delete(attempts._id);
+
+    await ctx.scheduler.runAfter(0, internal.users.purgeUserData, { userId });
+
+    return {
+      userId,
+      accountsDeleted: accounts.length,
+      sessionsDeleted: sessions.length,
+    };
+  },
+});
+
 const PURGE_BATCH_SIZE = 100;
 
 /**
