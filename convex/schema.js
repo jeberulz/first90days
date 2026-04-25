@@ -77,7 +77,7 @@ export default defineSchema({
         ),
       })
     ),
-  }).index("by_email", ["email"]),
+  }).index("email", ["email"]),
 
   onboardingData: defineTable({
     userId: v.id("users"),

@@ -1,11 +1,9 @@
 "use client";
 
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useMutation } from "convex/react";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { api } from "../../../../convex/_generated/api";
 import {
   passwordRequirements,
   passwordStrength,
@@ -14,7 +12,6 @@ import {
 
 export default function SignupPage() {
   const { signIn } = useAuthActions();
-  const updateProfile = useMutation(api.users.updateProfile);
   const router = useRouter();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -41,11 +38,12 @@ export default function SignupPage() {
 
     setLoading(true);
     try {
-      const name = [firstName.trim(), lastName.trim()].filter(Boolean).join(" ");
-      await signIn("password", { email, password, name, flow: "signUp" });
-      await updateProfile({
+      await signIn("password", {
+        email,
+        password,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
+        flow: "signUp",
       });
       if (typeof sessionStorage !== "undefined") {
         sessionStorage.removeItem("onboarding_data");
@@ -53,9 +51,16 @@ export default function SignupPage() {
       router.push(`/verify-email?email=${encodeURIComponent(email)}&next=/onboarding`);
     } catch (err) {
       const message = err?.data ?? err?.message ?? "";
+      const messageString = typeof message === "string" ? message : "";
+      if (/already exists/i.test(messageString)) {
+        router.push(
+          `/login?email=${encodeURIComponent(email)}&reason=existing-account`
+        );
+        return;
+      }
       setError(
-        message && typeof message === "string" && !/unauthenticated/i.test(message)
-          ? message
+        messageString && !/unauthenticated/i.test(messageString)
+          ? messageString
           : "Could not create account. Please try again."
       );
     } finally {

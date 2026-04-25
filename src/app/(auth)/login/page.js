@@ -2,18 +2,33 @@
 
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useMutation } from "convex/react";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "../../../../convex/_generated/api";
 
 const MAX_CLIENT_ATTEMPTS = 5;
 const LOCKOUT_MS = 15 * 60 * 1000;
 
 export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="font-space-grotesk text-sm text-[#57534E]">Loading…</div>
+      }
+    >
+      <LoginInner />
+    </Suspense>
+  );
+}
+
+function LoginInner() {
   const { signIn } = useAuthActions();
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const searchParams = useSearchParams();
+  const initialEmail = searchParams.get("email") ?? "";
+  const reason = searchParams.get("reason");
+  const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -76,6 +91,21 @@ export default function LoginPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
+        {reason === "existing-account" && !error && !lockedOut && (
+          <div
+            className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800 font-space-grotesk"
+            role="status"
+          >
+            An account with that email already exists. Sign in below, or use{" "}
+            <Link
+              href="/forgot-password"
+              className="underline font-medium hover:text-amber-900"
+            >
+              forgot password
+            </Link>{" "}
+            if you don&apos;t remember it.
+          </div>
+        )}
         {lockedOut && (
           <div
             className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800 font-space-grotesk"

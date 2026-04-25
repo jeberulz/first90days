@@ -38,7 +38,7 @@ export const exportForEmail = internalQuery({
   handler: async (ctx, { email }) => {
     const user = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", email))
+      .withIndex("email", (q) => q.eq("email", email))
       .first();
     if (!user) {
       throw new Error(`No user with email ${email} on this deployment`);
@@ -79,7 +79,7 @@ export const seedForEmail = internalMutation({
   handler: async (ctx, { email, entries }) => {
     const user = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", email))
+      .withIndex("email", (q) => q.eq("email", email))
       .first();
     if (!user) {
       throw new Error(

@@ -67,10 +67,21 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
         ) {
           throw new ConvexError("Password must be different from your email.");
         }
-        return {
-          email,
-          name: typeof params.name === "string" ? params.name : undefined,
-        };
+
+        const firstName =
+          typeof params.firstName === "string" ? params.firstName.trim() : "";
+        const lastName =
+          typeof params.lastName === "string" ? params.lastName.trim() : "";
+        const explicitName =
+          typeof params.name === "string" ? params.name.trim() : "";
+        const composedName = [firstName, lastName].filter(Boolean).join(" ");
+        const name = composedName || explicitName || "";
+
+        const out = { email };
+        if (firstName) out.firstName = firstName;
+        if (lastName) out.lastName = lastName;
+        if (name) out.name = name;
+        return out;
       },
     }),
   ],

@@ -8,6 +8,8 @@
  * @module
  */
 
+import type * as ResendOTP from "../ResendOTP.js";
+import type * as ResendOTPPasswordReset from "../ResendOTPPasswordReset.js";
 import type * as activities from "../activities.js";
 import type * as ai from "../ai.js";
 import type * as auth from "../auth.js";
@@ -16,6 +18,10 @@ import type * as billingActions from "../billingActions.js";
 import type * as collaboration from "../collaboration.js";
 import type * as companyResearch from "../companyResearch.js";
 import type * as companyResearchJobs from "../companyResearchJobs.js";
+import type * as crons from "../crons.js";
+import type * as emailActions from "../emailActions.js";
+import type * as emailChange from "../emailChange.js";
+import type * as emailChangeActions from "../emailChangeActions.js";
 import type * as goals from "../goals.js";
 import type * as http from "../http.js";
 import type * as insights from "../insights.js";
@@ -36,16 +42,19 @@ import type * as lib_planPrompts from "../lib/planPrompts.js";
 import type * as lib_planTemplate from "../lib/planTemplate.js";
 import type * as lib_stakeholderCadence from "../lib/stakeholderCadence.js";
 import type * as logEntries from "../logEntries.js";
+import type * as loginAttempts from "../loginAttempts.js";
 import type * as migrations_grandfather from "../migrations/grandfather.js";
 import type * as migrations_legacyKnowledgeToDocuments from "../migrations/legacyKnowledgeToDocuments.js";
 import type * as migrations_pilotKbSeed from "../migrations/pilotKbSeed.js";
 import type * as milestones from "../milestones.js";
+import type * as notifications from "../notifications.js";
 import type * as onboarding from "../onboarding.js";
 import type * as planComments from "../planComments.js";
 import type * as planMutations from "../planMutations.js";
 import type * as plans from "../plans.js";
 import type * as reflections from "../reflections.js";
 import type * as seed from "../seed.js";
+import type * as sessions from "../sessions.js";
 import type * as stakeholders from "../stakeholders.js";
 import type * as stripeWebhook from "../stripeWebhook.js";
 import type * as users from "../users.js";
@@ -58,6 +67,8 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  ResendOTP: typeof ResendOTP;
+  ResendOTPPasswordReset: typeof ResendOTPPasswordReset;
   activities: typeof activities;
   ai: typeof ai;
   auth: typeof auth;
@@ -66,6 +77,10 @@ declare const fullApi: ApiFromModules<{
   collaboration: typeof collaboration;
   companyResearch: typeof companyResearch;
   companyResearchJobs: typeof companyResearchJobs;
+  crons: typeof crons;
+  emailActions: typeof emailActions;
+  emailChange: typeof emailChange;
+  emailChangeActions: typeof emailChangeActions;
   goals: typeof goals;
   http: typeof http;
   insights: typeof insights;
@@ -86,16 +101,19 @@ declare const fullApi: ApiFromModules<{
   "lib/planTemplate": typeof lib_planTemplate;
   "lib/stakeholderCadence": typeof lib_stakeholderCadence;
   logEntries: typeof logEntries;
+  loginAttempts: typeof loginAttempts;
   "migrations/grandfather": typeof migrations_grandfather;
   "migrations/legacyKnowledgeToDocuments": typeof migrations_legacyKnowledgeToDocuments;
   "migrations/pilotKbSeed": typeof migrations_pilotKbSeed;
   milestones: typeof milestones;
+  notifications: typeof notifications;
   onboarding: typeof onboarding;
   planComments: typeof planComments;
   planMutations: typeof planMutations;
   plans: typeof plans;
   reflections: typeof reflections;
   seed: typeof seed;
+  sessions: typeof sessions;
   stakeholders: typeof stakeholders;
   stripeWebhook: typeof stripeWebhook;
   users: typeof users;

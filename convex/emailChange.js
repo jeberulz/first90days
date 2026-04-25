@@ -33,7 +33,7 @@ export const initiate = mutation({
 
     const existing = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", email))
+      .withIndex("email", (q) => q.eq("email", email))
       .first();
     if (existing) {
       throw new ConvexError("This email is already associated with another account.");
@@ -84,7 +84,7 @@ export const verify = mutation({
 
     const dupe = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", newEmail))
+      .withIndex("email", (q) => q.eq("email", newEmail))
       .first();
     if (dupe && dupe._id !== userId) {
       throw new ConvexError("This email is already associated with another account.");
