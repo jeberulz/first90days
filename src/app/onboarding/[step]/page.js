@@ -278,10 +278,40 @@ export default function OnboardingStepPage({ params }) {
   }
 
   async function handleNext() {
-    const { stakeholders, scope, ...saveable } = data;
+    // Step 5 (currentStep === 4) lets users add stakeholder rows. If they
+    // typed into a row but never clicked "Add another", the row is still
+    // in `data.stakeholders` (pre-seeded with one empty entry) but won't
+    // be picked up by handleSubmit's `validStakeholders` filter unless we
+    // keep it. Filter to drop fully-empty rows but preserve any with at
+    // least a name OR title typed — they'll show up on Step 6 summary and
+    // get flushed to the stakeholders table on submit.
+    const cleanedStakeholders = (data.stakeholders || []).filter(
+      (s) =>
+        (s.name ?? "").trim() !== "" || (s.title ?? "").trim() !== ""
+    );
+
+    // Persist EVERYTHING on every step — including stakeholders and scope
+    // — so a Convex query re-fire / viewer-restore effect can't blank
+    // them. The schema in convex/users.js was updated to match.
+    const saveable = {
+      ...data,
+      stakeholders: cleanedStakeholders,
+    };
+
     if (currentStep < TOTAL_STEPS - 1) {
       // Fire-and-forget for intermediate steps — don't block navigation
       saveOnboardingProgress({ step: currentStep, data: saveable }).catch(() => {});
+      // Mirror the cleaned stakeholders back into local state so the
+      // Step 6 summary doesn't render the stale empty row.
+      if (cleanedStakeholders.length !== (data.stakeholders || []).length) {
+        setData((prev) => ({
+          ...prev,
+          stakeholders:
+            cleanedStakeholders.length > 0
+              ? cleanedStakeholders
+              : [{ ...EMPTY_STAKEHOLDER }],
+        }));
+      }
       router.push(`/onboarding/${currentStep + 2}`);
     } else {
       // On the final step, await the save so it completes before
@@ -518,8 +548,13 @@ export default function OnboardingStepPage({ params }) {
                 </div>
 
                 <div>
-                  <label className={labelClass}>Describe your role scope (optional)</label>
+                  <label className={labelClass} htmlFor="onboarding-scope">
+                    Describe your role scope (optional)
+                  </label>
                   <input
+                    id="onboarding-scope"
+                    name="onboarding-scope"
+                    autoComplete="off"
                     value={data.scope ?? ""}
                     onChange={(e) => update("scope", e.target.value)}
                     className={inputClass}
@@ -692,9 +727,17 @@ export default function OnboardingStepPage({ params }) {
 
               <div className="space-y-5 mt-6 onboarding-fade-in-d4">
                 <div>
-                  <label className={labelClass}>What does success look like at 90 days?</label>
+                  <label
+                    className={labelClass}
+                    htmlFor="onboarding-success-definition"
+                  >
+                    What does success look like at 90 days?
+                  </label>
                   <p className="text-xs text-warm-300 mb-2 font-space-grotesk">Your personal definition -- not just what the company expects.</p>
                   <textarea
+                    id="onboarding-success-definition"
+                    name="onboarding-success-definition"
+                    autoComplete="off"
                     rows={3}
                     value={data.successDefinition}
                     onChange={(e) => update("successDefinition", e.target.value)}
@@ -753,11 +796,19 @@ export default function OnboardingStepPage({ params }) {
 
               <div className="space-y-5 mt-6">
                 <div>
-                  <label className={labelClass}>Paste your job description (optional)</label>
+                  <label
+                    className={labelClass}
+                    htmlFor="onboarding-job-description"
+                  >
+                    Paste your job description (optional)
+                  </label>
                   <p className="text-xs text-warm-300 mb-2 font-space-grotesk">
                     If you have it, paste the full JD here. We&apos;ll use it to research your company and pre-build context into your knowledge base.
                   </p>
                   <textarea
+                    id="onboarding-job-description"
+                    name="onboarding-job-description"
+                    autoComplete="off"
                     rows={5}
                     value={data.jobDescription}
                     onChange={(e) => update("jobDescription", e.target.value)}
@@ -766,9 +817,17 @@ export default function OnboardingStepPage({ params }) {
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>What do you already know about the team or company? (optional)</label>
+                  <label
+                    className={labelClass}
+                    htmlFor="onboarding-existing-context"
+                  >
+                    What do you already know about the team or company? (optional)
+                  </label>
                   <p className="text-xs text-warm-300 mb-2 font-space-grotesk">Any intel from interviews, conversations, or research.</p>
                   <textarea
+                    id="onboarding-existing-context"
+                    name="onboarding-existing-context"
+                    autoComplete="off"
                     rows={3}
                     value={data.existingContext}
                     onChange={(e) => update("existingContext", e.target.value)}
@@ -777,9 +836,17 @@ export default function OnboardingStepPage({ params }) {
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>Any specific challenges or risks you&apos;re aware of? (optional)</label>
+                  <label
+                    className={labelClass}
+                    htmlFor="onboarding-challenges"
+                  >
+                    Any specific challenges or risks you&apos;re aware of? (optional)
+                  </label>
                   <p className="text-xs text-warm-300 mb-2 font-space-grotesk">Things you want to watch out for or navigate carefully.</p>
                   <textarea
+                    id="onboarding-challenges"
+                    name="onboarding-challenges"
+                    autoComplete="off"
                     rows={3}
                     value={data.challenges}
                     onChange={(e) => update("challenges", e.target.value)}

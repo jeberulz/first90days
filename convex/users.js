@@ -263,6 +263,23 @@ export const saveOnboardingProgress = mutation({
       existingContext: v.optional(v.string()),
       challenges: v.optional(v.string()),
       jobDescription: v.optional(v.string()),
+      // Free-text role scope (Step 2). Persisted across steps so users
+      // don't lose what they typed if a Convex query re-fires and the
+      // viewer-restore effect re-hydrates local state.
+      scope: v.optional(v.string()),
+      // Stakeholders entered on Step 5. They are only flushed to the
+      // dedicated stakeholders table on the final handleSubmit (Step 6),
+      // so we mirror them here every step to survive client-side
+      // state-resyncs.
+      stakeholders: v.optional(
+        v.array(
+          v.object({
+            name: v.string(),
+            title: v.string(),
+            relationship: v.string(),
+          })
+        )
+      ),
     }),
   },
   handler: async (ctx, args) => {
