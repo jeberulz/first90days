@@ -103,7 +103,6 @@ export default function DashboardPage() {
           </h2>
           <p className="font-space-grotesk text-sm text-[#A8A29E] max-w-md mx-auto">
             We&apos;re generating your personalised 90-day plan. This usually takes about a minute. Feel free to grab a coffee — the page will update automatically.
-            You can wait here &mdash; the page will update automatically.
           </p>
           <div className="w-48 mx-auto h-1.5 bg-[#292524] rounded-full overflow-hidden">
             <div className="h-full bg-[#D97757] rounded-full animate-pulse w-3/4" />
