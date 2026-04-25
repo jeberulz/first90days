@@ -1,5 +1,6 @@
 import Resend from "@auth/core/providers/resend";
 import { Resend as ResendAPI } from "resend";
+import { renderEmailShell, renderCodeBlock, BRAND } from "./lib/emailLayout";
 
 // Email verification provider for @convex-dev/auth's Password provider.
 // Emits an 8-digit numeric code (20-minute expiry, set by convex-auth).
@@ -7,7 +8,10 @@ import { Resend as ResendAPI } from "resend";
 // the code is logged so local dev without a Resend account can still
 // complete the flow by copying the code from the server log.
 
-const FROM_ADDRESS = process.env.AUTH_EMAIL ?? "First90 <onboarding@resend.dev>";
+const FROM_ADDRESS = process.env.AUTH_EMAIL ?? "First90 <hello@switchtoux.com>";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.first90days.com";
+const PRODUCT_NAME = process.env.PRODUCT_NAME ?? "First90";
+const LOGO_URL = process.env.EMAIL_LOGO_URL ?? "";
 
 function generateNumericCode(length = 8) {
   const digits = new Uint32Array(length);
@@ -17,6 +21,23 @@ function generateNumericCode(length = 8) {
     out += (digits[i] % 10).toString();
   }
   return out;
+}
+
+function buildVerificationHtml(code) {
+  const inner = `
+<h1 style="margin:0 0 8px;font-family:${BRAND.font};font-size:22px;line-height:1.3;font-weight:700;color:${BRAND.ink};">Confirm your email</h1>
+<p style="margin:0 0 8px;font-family:${BRAND.font};font-size:15px;line-height:1.6;color:${BRAND.inkSoft};">Enter this 8-digit code to finish signing in:</p>
+${renderCodeBlock(code)}
+<p style="margin:0 0 8px;font-family:${BRAND.font};font-size:14px;line-height:1.6;color:${BRAND.inkSoft};">This code expires in 20 minutes.</p>
+<p style="margin:0;font-family:${BRAND.font};font-size:14px;line-height:1.6;color:${BRAND.muted};">If you didn't request this, you can safely ignore this email — no account will be created.</p>`;
+  return renderEmailShell({
+    preheader: `Your ${PRODUCT_NAME} verification code`,
+    appUrl: APP_URL,
+    productName: PRODUCT_NAME,
+    logoUrl: LOGO_URL,
+    innerHtml: inner,
+    showManageNotifications: false,
+  });
 }
 
 export const ResendOTP = Resend({
@@ -40,11 +61,14 @@ export const ResendOTP = Resend({
     const { error } = await resend.emails.send({
       from: FROM_ADDRESS,
       to: [email],
-      subject: "Your First90 verification code",
+      subject: `Your ${PRODUCT_NAME} verification code`,
+      html: buildVerificationHtml(token),
       text: [
-        `Your First90 verification code is: ${token}`,
+        `Your ${PRODUCT_NAME} verification code is: ${token}`,
         "",
-        "This code expires in 20 minutes. If you didn't request it, you can ignore this email.",
+        "Enter this code to finish signing in. It expires in 20 minutes.",
+        "",
+        "If you didn't request this, you can safely ignore this email.",
       ].join("\n"),
     });
     if (error) {

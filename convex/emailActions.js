@@ -4,13 +4,27 @@ import { v } from "convex/values";
 import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { Resend } from "resend";
+import {
+  renderTemplate,
+  renderQuote,
+  renderNote,
+  escapeHtml,
+  BRAND,
+} from "./lib/emailLayout";
 
+// Sender + identity. AUTH_EMAIL is the canonical override for ALL outgoing
+// mail (auth + lifecycle) and is the env var Convex auth's resend providers
+// also read, so keeping a single source of truth across all email modules
+// avoids the drift we had before (auth came from one address, lifecycle
+// from another).
 const FROM_ADDRESS =
   process.env.RESEND_FROM_EMAIL ??
   process.env.AUTH_EMAIL ??
-  "First90 <hello@first90days.com>";
+  "First90 <hello@switchtoux.com>";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.first90days.com";
+const PRODUCT_NAME = process.env.PRODUCT_NAME ?? "First90";
+const LOGO_URL = process.env.EMAIL_LOGO_URL ?? "";
 
 function getResend() {
   const apiKey = process.env.AUTH_RESEND_KEY;
@@ -32,6 +46,26 @@ async function sendEmail(resend, { to, subject, html, text }) {
   if (error) throw new Error(`Resend error: ${error.message}`);
 }
 
+// Reusable building blocks scoped to lifecycle emails. Anything user-supplied
+// (names, role titles, comment bodies, etc.) MUST flow through escapeHtml
+// before being interpolated into the bodyHtml string.
+
+function renderBulletList(items) {
+  if (!items || items.length === 0) return "";
+  const lis = items
+    .map(
+      (raw) =>
+        `<li style="margin:0 0 8px;color:${BRAND.inkSoft};font-family:${BRAND.font};font-size:15px;line-height:1.5;">${escapeHtml(raw)}</li>`
+    )
+    .join("");
+  return `<ul style="margin:14px 0;padding-left:20px;">${lis}</ul>`;
+}
+
+function renderParagraph(html, opts = {}) {
+  const colour = opts.muted ? BRAND.inkSoft : BRAND.ink;
+  return `<p style="margin:0 0 12px;font-family:${BRAND.font};font-size:15px;line-height:1.6;color:${colour};">${html}</p>`;
+}
+
 // ── Welcome + plan ready ────────────────────────────────────────────────────
 
 export const sendWelcomeEmail = internalAction({
@@ -49,30 +83,38 @@ export const sendWelcomeEmail = internalAction({
     if (!ok) return;
 
     const resend = getResend();
-    const previewList =
-      data.week1Previews.length > 0
-        ? `<ul style="margin:12px 0;padding-left:20px;">${data.week1Previews.map((t) => `<li style="margin-bottom:6px;">${t}</li>`).join("")}</ul>`
-        : "";
+    const safeFirst = escapeHtml(data.firstName);
     const roleContext =
       data.roleTitle && data.companyName
-        ? ` as <strong>${data.roleTitle}</strong> at <strong>${data.companyName}</strong>`
+        ? ` as <strong>${escapeHtml(data.roleTitle)}</strong> at <strong>${escapeHtml(data.companyName)}</strong>`
         : data.roleTitle
-          ? ` as <strong>${data.roleTitle}</strong>`
+          ? ` as <strong>${escapeHtml(data.roleTitle)}</strong>`
           : "";
 
-    const html = `
-<div style="font-family:sans-serif;max-width:540px;margin:0 auto;color:#1a1a1a;">
-  <h2 style="margin-bottom:4px;">Your 90-day plan is ready, ${data.firstName}! 🎉</h2>
-  <p style="color:#555;margin-top:0;">Your personalised plan for starting${roleContext} has been built. Here's a sneak peek at week 1:</p>
-  ${previewList}
-  <p>Every morning you'll find your activities waiting on the Today page. Small, focused tasks — one day at a time.</p>
-  <a href="${APP_URL}/today" style="display:inline-block;background:#2563eb;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:600;margin:8px 0;">Go to today's plan →</a>
-  <p style="color:#888;font-size:13px;margin-top:24px;">You're receiving this because you just generated your First90 plan. <a href="${APP_URL}/settings" style="color:#888;">Manage notifications</a></p>
-</div>`;
+    const bodyHtml = `
+${renderParagraph(`Your personalised plan for starting${roleContext} is ready. Here's a sneak peek at week 1:`, { muted: true })}
+${renderBulletList(data.week1Previews)}
+${renderParagraph("Every morning you'll find that day's activities waiting on the Today page. Small, focused tasks — one day at a time.", { muted: true })}`;
+
+    const html = renderTemplate({
+      preheader: "Your personalised 90-day plan is ready — here's a peek at week 1",
+      appUrl: APP_URL,
+      productName: PRODUCT_NAME,
+      logoUrl: LOGO_URL,
+      heading: `Your 90-day plan is ready, ${safeFirst}! 🎉`,
+      bodyHtml,
+      ctaHref: `${APP_URL}/today`,
+      ctaLabel: "Go to today's plan →",
+    });
 
     const text = `Your 90-day plan is ready, ${data.firstName}!\n\nYour personalised plan has been built. Head to ${APP_URL}/today to see today's activities.\n\nManage notifications: ${APP_URL}/settings`;
 
-    await sendEmail(resend, { to: data.email, subject: "Your 90-day plan is ready 🎉", html, text });
+    await sendEmail(resend, {
+      to: data.email,
+      subject: `Your 90-day plan is ready 🎉`,
+      html,
+      text,
+    });
   },
 });
 
@@ -99,25 +141,36 @@ export const sendDailyReminderEmail = internalAction({
     if (!ok) return;
 
     const resend = getResend();
-    const activityList =
-      activities.titles.length > 0
-        ? `<ul style="margin:12px 0;padding-left:20px;">${activities.titles.map((t) => `<li style="margin-bottom:6px;">${t}</li>`).join("")}${activities.count > activities.titles.length ? `<li style="color:#888;">+ ${activities.count - activities.titles.length} more…</li>` : ""}</ul>`
+    const safeFirst = escapeHtml(user.firstName);
+    const more = activities.count - activities.titles.length;
+    const titlesHtml = renderBulletList(activities.titles);
+    const moreLine =
+      more > 0
+        ? `<p style="margin:0 0 12px;font-family:${BRAND.font};font-size:13px;color:${BRAND.muted};">+ ${more} more${more === 1 ? "" : ""} on Today.</p>`
         : "";
+    const countLabel = activities.count === 1 ? "activity" : "activities";
 
-    const html = `
-<div style="font-family:sans-serif;max-width:540px;margin:0 auto;color:#1a1a1a;">
-  <h2 style="margin-bottom:4px;">Good morning, ${user.firstName}!</h2>
-  <p style="color:#555;margin-top:0;">You have <strong>${activities.count} ${activities.count === 1 ? "activity" : "activities"}</strong> lined up for today:</p>
-  ${activityList}
-  <a href="${APP_URL}/today" style="display:inline-block;background:#2563eb;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:600;margin:8px 0;">Start your day →</a>
-  <p style="color:#888;font-size:13px;margin-top:24px;"><a href="${APP_URL}/settings" style="color:#888;">Manage notifications</a></p>
-</div>`;
+    const bodyHtml = `
+${renderParagraph(`You have <strong>${activities.count} ${countLabel}</strong> lined up for today:`, { muted: true })}
+${titlesHtml}
+${moreLine}`;
 
-    const text = `Good morning, ${user.firstName}!\n\nYou have ${activities.count} ${activities.count === 1 ? "activity" : "activities"} lined up for today.\n\nSee them at ${APP_URL}/today\n\nManage notifications: ${APP_URL}/settings`;
+    const html = renderTemplate({
+      preheader: `${activities.count} ${countLabel} ready for today`,
+      appUrl: APP_URL,
+      productName: PRODUCT_NAME,
+      logoUrl: LOGO_URL,
+      heading: `Good morning, ${safeFirst}`,
+      bodyHtml,
+      ctaHref: `${APP_URL}/today`,
+      ctaLabel: "Start your day →",
+    });
+
+    const text = `Good morning, ${user.firstName}!\n\nYou have ${activities.count} ${countLabel} lined up for today.\n\nSee them at ${APP_URL}/today\n\nManage notifications: ${APP_URL}/settings`;
 
     await sendEmail(resend, {
       to: user.email,
-      subject: `${activities.count} ${activities.count === 1 ? "activity" : "activities"} ready for today`,
+      subject: `${activities.count} ${countLabel} ready for today`,
       html,
       text,
     });
@@ -143,13 +196,22 @@ export const sendWeeklyReflectionEmail = internalAction({
     if (!ok) return;
 
     const resend = getResend();
-    const html = `
-<div style="font-family:sans-serif;max-width:540px;margin:0 auto;color:#1a1a1a;">
-  <h2 style="margin-bottom:4px;">Week ${data.weekNumber} is almost done, ${data.firstName}</h2>
-  <p style="color:#555;margin-top:0;">Take 5 minutes to reflect on your week. Weekly reviews are the best way to track what's working and course-correct before next week starts.</p>
-  <a href="${APP_URL}/reflect/weekly" style="display:inline-block;background:#2563eb;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:600;margin:8px 0;">Write your week ${data.weekNumber} reflection →</a>
-  <p style="color:#888;font-size:13px;margin-top:24px;"><a href="${APP_URL}/settings" style="color:#888;">Manage notifications</a></p>
-</div>`;
+    const safeFirst = escapeHtml(data.firstName);
+
+    const bodyHtml = `
+${renderParagraph(`Week ${data.weekNumber} is almost done. Take 5 minutes to reflect on what worked, what didn't, and what to course-correct before next week starts.`, { muted: true })}
+${renderParagraph("Weekly reviews are how the best onboarders stay on track — not by working harder, but by noticing patterns early.", { muted: true })}`;
+
+    const html = renderTemplate({
+      preheader: `Take 5 minutes to reflect on week ${data.weekNumber}`,
+      appUrl: APP_URL,
+      productName: PRODUCT_NAME,
+      logoUrl: LOGO_URL,
+      heading: `Week ${data.weekNumber} reflection time, ${safeFirst}`,
+      bodyHtml,
+      ctaHref: `${APP_URL}/reflect/weekly`,
+      ctaLabel: `Write your week ${data.weekNumber} reflection →`,
+    });
 
     const text = `Week ${data.weekNumber} is almost done, ${data.firstName}.\n\nTake 5 minutes to reflect at ${APP_URL}/reflect/weekly\n\nManage notifications: ${APP_URL}/settings`;
 
@@ -181,13 +243,24 @@ export const sendGoalApprovalRequestEmail = internalAction({
       if (!ok) continue;
 
       const planUrl = `${APP_URL}/shared/${data.planId}`;
-      const html = `
-<div style="font-family:sans-serif;max-width:540px;margin:0 auto;color:#1a1a1a;">
-  <h2 style="margin-bottom:4px;">Goal approval request from ${data.ownerName}</h2>
-  <p style="color:#555;margin-top:0;"><strong>${data.ownerName}</strong> has requested your sign-off on the following goal:</p>
-  <blockquote style="border-left:3px solid #2563eb;margin:12px 0;padding:8px 16px;background:#f0f4ff;border-radius:4px;font-size:15px;">${data.goalTitle}</blockquote>
-  <a href="${planUrl}" style="display:inline-block;background:#2563eb;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:600;margin:8px 0;">Review &amp; sign off →</a>
-</div>`;
+      const safeOwner = escapeHtml(data.ownerName);
+      const safeGoal = escapeHtml(data.goalTitle);
+
+      const bodyHtml = `
+${renderParagraph(`<strong>${safeOwner}</strong> has requested your sign-off on the following goal:`, { muted: true })}
+${renderQuote(safeGoal)}
+${renderParagraph("As their reviewer, you can approve, request changes, or leave a comment when you visit the plan.", { muted: true })}`;
+
+      const html = renderTemplate({
+        preheader: `${data.ownerName} wants your sign-off on a 90-day goal`,
+        appUrl: APP_URL,
+        productName: PRODUCT_NAME,
+        logoUrl: LOGO_URL,
+        heading: `${data.ownerName} needs your approval`,
+        bodyHtml,
+        ctaHref: planUrl,
+        ctaLabel: "Review &amp; sign off →",
+      });
 
       const text = `${data.ownerName} has requested your sign-off on a goal: "${data.goalTitle}"\n\nReview it at ${planUrl}`;
 
@@ -220,21 +293,33 @@ export const sendGoalDecisionEmail = internalAction({
 
     const resend = getResend();
     const isApproved = data.approvalStatus === "approved";
-    const statusLabel = isApproved ? "approved ✅" : "sent back with changes requested";
     const planUrl = `${APP_URL}/today`;
-    const noteHtml = data.approvalNote
-      ? `<blockquote style="border-left:3px solid #e5e7eb;margin:12px 0;padding:8px 16px;background:#f9fafb;border-radius:4px;font-size:14px;color:#444;">${data.approvalNote}</blockquote>`
-      : "";
+    const safeDecider = escapeHtml(data.deciderName);
+    const safeGoal = escapeHtml(data.goalTitle);
+    const safeNote = data.approvalNote ? escapeHtml(data.approvalNote) : "";
+    const noteBlock = safeNote ? renderNote(safeNote) : "";
 
-    const html = `
-<div style="font-family:sans-serif;max-width:540px;margin:0 auto;color:#1a1a1a;">
-  <h2 style="margin-bottom:4px;">Your goal has been ${statusLabel}</h2>
-  <p style="color:#555;margin-top:0;"><strong>${data.deciderName}</strong> has reviewed your goal:</p>
-  <blockquote style="border-left:3px solid #2563eb;margin:12px 0;padding:8px 16px;background:#f0f4ff;border-radius:4px;font-size:15px;">${data.goalTitle}</blockquote>
-  ${noteHtml}
-  <a href="${planUrl}" style="display:inline-block;background:#2563eb;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:600;margin:8px 0;">View your goals →</a>
-  <p style="color:#888;font-size:13px;margin-top:24px;"><a href="${APP_URL}/settings" style="color:#888;">Manage notifications</a></p>
-</div>`;
+    const heading = isApproved
+      ? `Your goal was approved ✅`
+      : `Changes requested on your goal`;
+
+    const bodyHtml = `
+${renderParagraph(`<strong>${safeDecider}</strong> has reviewed your goal:`, { muted: true })}
+${renderQuote(safeGoal)}
+${noteBlock}`;
+
+    const html = renderTemplate({
+      preheader: isApproved
+        ? `${data.deciderName} approved your goal`
+        : `${data.deciderName} requested changes on your goal`,
+      appUrl: APP_URL,
+      productName: PRODUCT_NAME,
+      logoUrl: LOGO_URL,
+      heading,
+      bodyHtml,
+      ctaHref: planUrl,
+      ctaLabel: "View your goals →",
+    });
 
     const text = `${data.deciderName} has ${isApproved ? "approved" : "sent back"} your goal: "${data.goalTitle}"${data.approvalNote ? `\n\nNote: ${data.approvalNote}` : ""}\n\nView your goals: ${planUrl}`;
 
@@ -269,24 +354,40 @@ export const sendManagerInviteEmail = internalAction({
 
     const resend = getResend();
     const inviteUrl = `${APP_URL}/invite/${data.token}`;
+    const safeOwner = escapeHtml(data.ownerName);
+    const safeRole = escapeHtml(data.role);
+    const safeRoleTitle = data.roleTitle ? escapeHtml(data.roleTitle) : "";
+    const safeCompany = data.companyName ? escapeHtml(data.companyName) : "";
+
     const contextLine =
-      data.roleTitle && data.companyName
-        ? `${data.ownerName} is building their 90-day plan as <strong>${data.roleTitle}</strong> at <strong>${data.companyName}</strong> and has invited you to collaborate as their ${data.role}.`
-        : `${data.ownerName} has invited you to collaborate on their 90-day onboarding plan as their ${data.role}.`;
+      safeRoleTitle && safeCompany
+        ? `${safeOwner} is building their 90-day plan as <strong>${safeRoleTitle}</strong> at <strong>${safeCompany}</strong> and has invited you to collaborate as their ${safeRole}.`
+        : `${safeOwner} has invited you to collaborate on their 90-day onboarding plan as their ${safeRole}.`;
 
-    const messageBlock = data.message
-      ? `<blockquote style="border-left:3px solid #e5e7eb;margin:12px 0;padding:8px 16px;background:#f9fafb;border-radius:4px;font-size:14px;color:#444;">${data.message}</blockquote>`
-      : "";
+    const messageBlock = data.message ? renderNote(escapeHtml(data.message)) : "";
 
-    const html = `
-<div style="font-family:sans-serif;max-width:540px;margin:0 auto;color:#1a1a1a;">
-  <h2 style="margin-bottom:4px;">${data.ownerName} invited you to their 90-day plan</h2>
-  <p style="color:#555;margin-top:0;">${contextLine}</p>
-  ${messageBlock}
-  <p>As their ${data.role}, you can view their plan, leave comments, and sign off on goals.</p>
-  <a href="${inviteUrl}" style="display:inline-block;background:#2563eb;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:600;margin:8px 0;">Accept invitation →</a>
-  <p style="color:#888;font-size:13px;margin-top:24px;">This invitation expires in 14 days.</p>
+    const explainerHtml = `<div style="margin:18px 0;padding:14px 16px;background:${BRAND.bg};border:1px solid ${BRAND.cardBorder};border-radius:10px;font-family:${BRAND.font};font-size:13px;line-height:1.5;color:${BRAND.inkSoft};">
+<strong style="color:${BRAND.ink};">What is ${escapeHtml(PRODUCT_NAME)}?</strong> A workspace that helps people starting a new role build a personalised 30/60/90 plan and stay aligned with their manager.
 </div>`;
+
+    const bodyHtml = `
+${renderParagraph(contextLine, { muted: true })}
+${messageBlock}
+${renderParagraph(`As their ${safeRole}, you can review the plan, leave comments, and sign off on goals.`, { muted: true })}
+${explainerHtml}`;
+
+    const html = renderTemplate({
+      preheader: `${data.ownerName} invited you to review their 90-day plan`,
+      appUrl: APP_URL,
+      productName: PRODUCT_NAME,
+      logoUrl: LOGO_URL,
+      heading: `${data.ownerName} invited you to their 90-day plan`,
+      bodyHtml,
+      ctaHref: inviteUrl,
+      ctaLabel: "Accept invitation →",
+      showManageNotifications: false,
+      footerNote: "This invitation expires in 14 days.",
+    });
 
     const text = `${data.ownerName} has invited you to their 90-day onboarding plan as their ${data.role}.\n\nAccept the invitation: ${inviteUrl}\n\nThis invitation expires in 14 days.`;
 
@@ -321,15 +422,23 @@ export const sendPlanCommentEmail = internalAction({
       const targetLabel = data.targetType === "plan" ? "the plan" : `a ${data.targetType}`;
       const preview =
         data.body.length > 120 ? data.body.slice(0, 120).trimEnd() + "…" : data.body;
+      const safeAuthor = escapeHtml(data.authorName);
+      const safePreview = escapeHtml(preview);
 
-      const html = `
-<div style="font-family:sans-serif;max-width:540px;margin:0 auto;color:#1a1a1a;">
-  <h2 style="margin-bottom:4px;">New comment from ${data.authorName}</h2>
-  <p style="color:#555;margin-top:0;"><strong>${data.authorName}</strong> left a comment on ${targetLabel}:</p>
-  <blockquote style="border-left:3px solid #2563eb;margin:12px 0;padding:8px 16px;background:#f0f4ff;border-radius:4px;font-size:15px;">${preview}</blockquote>
-  <a href="${planUrl}" style="display:inline-block;background:#2563eb;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:600;margin:8px 0;">View comment →</a>
-  <p style="color:#888;font-size:13px;margin-top:24px;"><a href="${APP_URL}/settings" style="color:#888;">Manage notifications</a></p>
-</div>`;
+      const bodyHtml = `
+${renderParagraph(`<strong>${safeAuthor}</strong> left a comment on ${escapeHtml(targetLabel)}:`, { muted: true })}
+${renderQuote(safePreview)}`;
+
+      const html = renderTemplate({
+        preheader: `${data.authorName} commented: ${preview}`,
+        appUrl: APP_URL,
+        productName: PRODUCT_NAME,
+        logoUrl: LOGO_URL,
+        heading: `New comment from ${data.authorName}`,
+        bodyHtml,
+        ctaHref: planUrl,
+        ctaLabel: "View comment →",
+      });
 
       const text = `${data.authorName} commented on ${targetLabel}:\n\n"${preview}"\n\nView it at ${planUrl}\n\nManage notifications: ${APP_URL}/settings`;
 
