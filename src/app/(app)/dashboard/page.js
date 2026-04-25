@@ -327,26 +327,49 @@ export default function DashboardPage() {
             </div>
             <div className="flex items-center gap-2 mb-3">
               {[
-                { name: "Learn", days: "Days 1-30", active: dayInfo.phase >= 1 },
-                { name: "Contribute", days: "Days 31-60", active: dayInfo.phase >= 2 },
-                { name: "Lead", days: "Days 61-90", active: dayInfo.phase >= 3 },
-              ].map((phase) => (
-                <div key={phase.name} className="flex-1">
-                  <div
-                    className={`h-1 rounded-full ${
-                      phase.active ? "bg-[#D97757]" : "bg-[#292524]"
-                    }`}
-                  />
-                  <div className="mt-2 flex items-center justify-between">
-                    <span className="font-space-grotesk text-xs font-medium text-[#E7E5E4]">
-                      {phase.name}
-                    </span>
-                    <span className="font-space-grotesk text-xs text-[#A8A29E]">
-                      {phase.days}
-                    </span>
+                { name: "Learn", days: "Days 1-30", number: 1, dayStart: 1, dayEnd: 30 },
+                { name: "Contribute", days: "Days 31-60", number: 2, dayStart: 31, dayEnd: 60 },
+                { name: "Lead", days: "Days 61-90", number: 3, dayStart: 61, dayEnd: 90 },
+              ].map((phase) => {
+                // Fraction (0–1) of how far into THIS phase the user has
+                // travelled. Past phases are 1, future phases are 0.
+                let fillFraction = 0;
+                if (dayInfo.dayNumber >= phase.dayEnd) {
+                  fillFraction = 1;
+                } else if (dayInfo.dayNumber >= phase.dayStart) {
+                  const span = phase.dayEnd - phase.dayStart + 1; // inclusive
+                  const done = dayInfo.dayNumber - phase.dayStart + 1;
+                  fillFraction = Math.max(0, Math.min(1, done / span));
+                }
+                const isCurrent = dayInfo.phase === phase.number;
+                return (
+                  <div key={phase.name} className="flex-1">
+                    <div className="h-1 rounded-full bg-[#292524] overflow-hidden relative">
+                      <div
+                        className="h-full bg-[#D97757] rounded-full transition-[width] duration-300 ease-out"
+                        style={{ width: `${fillFraction * 100}%` }}
+                      />
+                    </div>
+                    <div className="mt-2 flex items-center justify-between">
+                      <span
+                        className={`font-space-grotesk text-xs font-medium ${
+                          isCurrent ? "text-[#D97757]" : "text-[#E7E5E4]"
+                        }`}
+                      >
+                        {phase.name}
+                        {isCurrent ? (
+                          <span className="ml-1.5 text-[10px] uppercase tracking-wider text-[#D97757]/80">
+                            Now
+                          </span>
+                        ) : null}
+                      </span>
+                      <span className="font-space-grotesk text-xs text-[#A8A29E]">
+                        {phase.days}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
