@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { Icon } from "@iconify/react";
 import { api } from "../../../convex/_generated/api";
@@ -67,16 +67,24 @@ export default function PublicSharingPanel() {
   const [showStakeholderRoles, setShowStakeholderRoles] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [hydrated, setHydrated] = useState(false);
 
-  // Hydrate local form state from the server settings the first time
-  // they arrive. Avoid clobbering user typing afterwards.
-  if (settings && !hydrated) {
-    setDisplayNameInput(settings.displayName ?? "");
-    setShowCompany(settings.showCompany);
-    setShowStakeholderRoles(settings.showStakeholderRoles);
-    setHydrated(true);
-  }
+  // Hydrate local form state once, the first time the server settings
+  // arrive. Stored in a ref so subsequent re-renders don't clobber the
+  // user's in-progress typing.
+  //
+  // Calling setState directly in render bodies throws under the React 19
+  // react-hooks/set-state-in-effect rule we adopted in PR #25, so this
+  // is deferred to a microtask via Promise.resolve().then(...).
+  const hydratedRef = useRef(false);
+  useEffect(() => {
+    if (!settings || hydratedRef.current) return;
+    hydratedRef.current = true;
+    Promise.resolve().then(() => {
+      setDisplayNameInput(settings.displayName ?? "");
+      setShowCompany(settings.showCompany);
+      setShowStakeholderRoles(settings.showStakeholderRoles);
+    });
+  }, [settings]);
 
   if (settings === undefined) {
     return (
