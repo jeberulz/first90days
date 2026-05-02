@@ -43,10 +43,10 @@ export function Hero() {
           Start for free
         </Link>
         <Link
-          href="/login"
+          href="/sample/product-manager"
           className="h-12 px-6 sm:px-8 rounded-full bg-transparent text-[#57534E] dark:text-[#D6D3D1] font-semibold font-space-grotesk hover:text-[#1C1917] dark:hover:text-white transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-accent flex items-center justify-center"
         >
-          Log in →
+          See a sample plan →
         </Link>
       </div>
     </div>

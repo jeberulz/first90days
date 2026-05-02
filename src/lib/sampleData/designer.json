@@ -1,0 +1,89 @@
+{
+  "displayName": null,
+  "roleTitle": "Staff Product Designer",
+  "companyLabel": "AI infrastructure",
+  "stakeholderCount": 9,
+  "stakeholderRolesShown": true,
+  "stakeholderRoles": [
+    "Manager (VP Design)",
+    "Skip-level (CPO)",
+    "Product Lead",
+    "Engineering Lead",
+    "Research Partner",
+    "Design System Lead",
+    "Developer Relations",
+    "Marketing / Brand",
+    "Senior Designer (Peer)"
+  ],
+  "phases": [
+    {
+      "number": 1,
+      "name": "Learn",
+      "desc": "Absorb context",
+      "milestone": "Complete a heuristic audit of the product surface and present 3 high-leverage UX gaps."
+    },
+    {
+      "number": 2,
+      "name": "Contribute",
+      "desc": "Deliver value",
+      "milestone": "Lead the redesign of one critical flow end-to-end (research, design, ship)."
+    },
+    {
+      "number": 3,
+      "name": "Lead",
+      "desc": "Own outcomes",
+      "milestone": "Present a 12-month design strategy for your surface and define the principles for AI-native UX patterns."
+    }
+  ],
+  "goals": [
+    {
+      "title": "Run heuristic + accessibility audit of the current product, with 15+ documented gaps",
+      "phaseNumber": 1,
+      "category": "learning"
+    },
+    {
+      "title": "1:1 with all 9 key stakeholders, log notes per person",
+      "phaseNumber": 1,
+      "category": "relationships"
+    },
+    {
+      "title": "Establish weekly design critique with product and engineering leads",
+      "phaseNumber": 1,
+      "category": "relationships"
+    },
+    {
+      "title": "Lead the redesign of one critical user flow end-to-end",
+      "phaseNumber": 2,
+      "category": "shipping"
+    },
+    {
+      "title": "Ship 3 component-level upgrades to the design system",
+      "phaseNumber": 2,
+      "category": "shipping"
+    },
+    {
+      "title": "Run 5 user research sessions with current customers",
+      "phaseNumber": 2,
+      "category": "learning"
+    },
+    {
+      "title": "Present a 12-month design strategy to leadership",
+      "phaseNumber": 3,
+      "category": "influence"
+    },
+    {
+      "title": "Define and publish the principles for AI-native UX in this product",
+      "phaseNumber": 3,
+      "category": "influence"
+    }
+  ],
+  "successDefinition": "By Day 90, design is at the strategy table. PMs and engineers pull me in early. The product feels noticeably more polished. I've published the team's design principles. Customers can name something we shipped.",
+  "firstWeekActivities": [
+    { "title": "Walk the current product end-to-end and screenshot every screen", "category": "learning", "durationMin": 180 },
+    { "title": "1:1 with manager — agree on what 'great' looks like at 30 days", "category": "relationships", "durationMin": 60 },
+    { "title": "Read the most-cited customer research from the last 12 months", "category": "learning", "durationMin": 120 },
+    { "title": "Audit the design system and note inconsistencies", "category": "learning", "durationMin": 90 },
+    { "title": "Schedule recurring critique with PM and engineering", "category": "relationships", "durationMin": 30 }
+  ],
+  "generatedDate": "2026-05-02"
+}

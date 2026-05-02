@@ -1,0 +1,88 @@
+{
+  "displayName": null,
+  "roleTitle": "Senior Product Manager",
+  "companyLabel": "Series B SaaS",
+  "stakeholderCount": 8,
+  "stakeholderRolesShown": true,
+  "stakeholderRoles": [
+    "Manager (Director of Product)",
+    "Skip-level (VP Product)",
+    "Engineering Lead",
+    "Design Lead",
+    "Sales Lead",
+    "Customer Success Lead",
+    "Data / Analytics Lead",
+    "Marketing Lead"
+  ],
+  "phases": [
+    {
+      "number": 1,
+      "name": "Learn",
+      "desc": "Absorb context",
+      "milestone": "Complete a stakeholder map and present back what you've learned to your manager."
+    },
+    {
+      "number": 2,
+      "name": "Contribute",
+      "desc": "Deliver value",
+      "milestone": "Ship one visible improvement to an existing surface and run your first feature kickoff."
+    },
+    {
+      "number": 3,
+      "name": "Lead",
+      "desc": "Own outcomes",
+      "milestone": "Present a 6-month roadmap for your area to leadership and unblock a strategic initiative."
+    }
+  ],
+  "goals": [
+    {
+      "title": "Map and have 1:1s with all 8 key stakeholders by Day 21",
+      "phaseNumber": 1,
+      "category": "relationships"
+    },
+    {
+      "title": "Audit the current product analytics setup and identify 3 measurement gaps",
+      "phaseNumber": 1,
+      "category": "learning"
+    },
+    {
+      "title": "Document a clear understanding of the company's current GTM and ICP",
+      "phaseNumber": 1,
+      "category": "learning"
+    },
+    {
+      "title": "Ship a small, visible quality-of-life improvement chosen with engineering",
+      "phaseNumber": 2,
+      "category": "shipping"
+    },
+    {
+      "title": "Run your first feature kickoff with a written one-pager and clear success criteria",
+      "phaseNumber": 2,
+      "category": "shipping"
+    },
+    {
+      "title": "Establish a weekly product sync rhythm with engineering and design",
+      "phaseNumber": 2,
+      "category": "relationships"
+    },
+    {
+      "title": "Present a 6-month roadmap with prioritisation tradeoffs to leadership",
+      "phaseNumber": 3,
+      "category": "influence"
+    },
+    {
+      "title": "Drive a cross-functional initiative end-to-end (kickoff, launch, retro)",
+      "phaseNumber": 3,
+      "category": "influence"
+    }
+  ],
+  "successDefinition": "By Day 90, I'm trusted as the owner of my product surface. Engineering and design pull me into decisions early. Leadership uses my roadmap to plan headcount. I've shipped at least one thing customers asked for.",
+  "firstWeekActivities": [
+    { "title": "1:1 with manager — set expectations, ramp plan, success criteria", "category": "relationships", "durationMin": 60 },
+    { "title": "Read the latest product strategy doc and write a 1-pager of takeaways", "category": "learning", "durationMin": 90 },
+    { "title": "Shadow a sales call to hear how customers describe the product", "category": "learning", "durationMin": 45 },
+    { "title": "Set up weekly recurring 1:1s with engineering and design leads", "category": "relationships", "durationMin": 30 },
+    { "title": "Audit the top 5 dashboards in your analytics tool", "category": "learning", "durationMin": 90 }
+  ],
+  "generatedDate": "2026-05-02"
+}

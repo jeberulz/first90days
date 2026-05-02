@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Icon } from "@iconify/react";
 
 const ROLE_EXAMPLES = {
@@ -307,6 +308,19 @@ export function Examples() {
                   </div>
                 ))}
               </div>
+
+              {/* CTA into the matching public sample plan page */}
+              <div className="mt-6 pt-6 border-t border-[#E7E5E4] dark:border-[#2C2825] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                <p className="text-xs sm:text-sm text-[#57534E] dark:text-[#A8A29E] font-space-grotesk">
+                  Like what you see? View the full sample plan for this role.
+                </p>
+                <Link
+                  href={SAMPLE_LINK[activeRole] || "/sample/product-manager"}
+                  className="shrink-0 inline-flex items-center justify-center gap-1.5 text-xs font-semibold font-space-grotesk px-4 py-2 rounded-full bg-accent hover:bg-accent-hover text-white transition-colors"
+                >
+                  See full sample →
+                </Link>
+              </div>
             </div>
           </div>
         </div>
@@ -314,3 +328,10 @@ export function Examples() {
     </section>
   );
 }
+
+// Map the in-component role keys to the /sample/[role] slugs.
+const SAMPLE_LINK = {
+  engineer: "/sample/software-engineer",
+  sales: "/sample/sales-ae",
+  pm: "/sample/product-manager",
+};

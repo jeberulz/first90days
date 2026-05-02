@@ -1,0 +1,86 @@
+{
+  "displayName": null,
+  "roleTitle": "Senior Software Engineer",
+  "companyLabel": "Growth-stage startup",
+  "stakeholderCount": 6,
+  "stakeholderRolesShown": true,
+  "stakeholderRoles": [
+    "Manager (Engineering Lead)",
+    "Tech Lead / Architect",
+    "Product Manager",
+    "Designer",
+    "On-call buddy",
+    "Skip-level (VP Engineering)"
+  ],
+  "phases": [
+    {
+      "number": 1,
+      "name": "Learn",
+      "desc": "Absorb context",
+      "milestone": "Ship your first non-trivial PR and complete the system architecture walkthrough."
+    },
+    {
+      "number": 2,
+      "name": "Contribute",
+      "desc": "Deliver value",
+      "milestone": "Own a feature end-to-end (design doc, implementation, review, launch) and complete an on-call rotation."
+    },
+    {
+      "number": 3,
+      "name": "Lead",
+      "desc": "Own outcomes",
+      "milestone": "Drive a technical initiative across at least two teams and mentor a more junior engineer."
+    }
+  ],
+  "goals": [
+    {
+      "title": "Complete environment setup, read every relevant ADR, and ship Day 1 hello-world PR",
+      "phaseNumber": 1,
+      "category": "learning"
+    },
+    {
+      "title": "Land 5 small PRs in the first 3 weeks to learn the review culture",
+      "phaseNumber": 1,
+      "category": "shipping"
+    },
+    {
+      "title": "Walk the system architecture with the tech lead and document gaps",
+      "phaseNumber": 1,
+      "category": "learning"
+    },
+    {
+      "title": "Own a medium feature end-to-end with a written design doc and review checkpoints",
+      "phaseNumber": 2,
+      "category": "shipping"
+    },
+    {
+      "title": "Complete a full on-call rotation and document one new runbook",
+      "phaseNumber": 2,
+      "category": "shipping"
+    },
+    {
+      "title": "Establish a weekly engineering 1:1 cadence with at least 3 cross-team peers",
+      "phaseNumber": 2,
+      "category": "relationships"
+    },
+    {
+      "title": "Drive a technical initiative that touches at least 2 services or teams",
+      "phaseNumber": 3,
+      "category": "influence"
+    },
+    {
+      "title": "Mentor a more junior engineer through a feature delivery",
+      "phaseNumber": 3,
+      "category": "relationships"
+    }
+  ],
+  "successDefinition": "By Day 90 I'm a trusted contributor — included in design discussions early, comfortable on-call, shipping medium features without a buddy, and starting to be the go-to for at least one part of the codebase.",
+  "firstWeekActivities": [
+    { "title": "Get dev environment running end-to-end and pass the local test suite", "category": "learning", "durationMin": 180 },
+    { "title": "Read the team README and the last 6 months of architecture decision records", "category": "learning", "durationMin": 120 },
+    { "title": "Pair with on-call buddy to walk through the alert / incident playbook", "category": "learning", "durationMin": 60 },
+    { "title": "Ship a one-line PR with proper code review etiquette to learn the flow", "category": "shipping", "durationMin": 60 },
+    { "title": "Schedule weekly 1:1s with manager, tech lead, and PM", "category": "relationships", "durationMin": 30 }
+  ],
+  "generatedDate": "2026-05-02"
+}

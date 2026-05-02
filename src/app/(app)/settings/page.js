@@ -20,12 +20,14 @@ import {
   PASSWORD_MIN_LENGTH,
 } from "@/lib/passwordValidation";
 import { displayName, splitFullNameDisplay, userInitials } from "@/lib/userDisplay";
+import PublicSharingPanel from "@/components/settings/PublicSharingPanel";
 
 const TABS = [
   { id: "profile", label: "Profile", icon: "user" },
   { id: "account", label: "Account", icon: "lock" },
   { id: "billing", label: "Billing", icon: "card" },
   { id: "notifications", label: "Notifications", icon: "bell" },
+  { id: "sharing", label: "Sharing", icon: "share" },
 ];
 
 const WEEK_START_DAYS = ["Monday", "Sunday", "Saturday"];
@@ -105,6 +107,16 @@ function Icon({ name, className = "", size = 18 }) {
         <svg {...common}>
           <rect x="2" y="5" width="20" height="14" rx="2" />
           <path d="M2 10h20" />
+        </svg>
+      );
+    case "share":
+      return (
+        <svg {...common}>
+          <circle cx="18" cy="5" r="3" />
+          <circle cx="6" cy="12" r="3" />
+          <circle cx="18" cy="19" r="3" />
+          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
         </svg>
       );
     default:
@@ -749,6 +761,18 @@ export default function SettingsPage() {
                 notifError={notifError}
                 onSave={handleNotifSave}
               />
+            </div>
+          )}
+
+          {activeTab === "sharing" && (
+            <div
+              role="tabpanel"
+              id={panelId("sharing")}
+              aria-labelledby={tabId("sharing")}
+              tabIndex={0}
+              className="focus:outline-none"
+            >
+              <PublicSharingPanel />
             </div>
           )}
         </div>
