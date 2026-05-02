@@ -74,10 +74,19 @@ export default function MoreMenuSheet({ open, onClose }) {
       hideCloseButton
     >
       <div className="flex items-center gap-3 pb-4 mb-4 border-b border-warm-borderDark">
-        <div className="w-11 h-11 rounded-full bg-gradient-to-br from-[#D97757] to-[#C26242] flex items-center justify-center shrink-0">
-          <span className="text-white text-sm font-medium font-space-grotesk">
-            {initials}
-          </span>
+        <div className="w-11 h-11 rounded-full bg-gradient-to-br from-[#D97757] to-[#C26242] flex items-center justify-center shrink-0 overflow-hidden">
+          {user?.imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={user.imageUrl}
+              alt={`${displayNameResolved} avatar`}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <span className="text-white text-sm font-medium font-space-grotesk">
+              {initials}
+            </span>
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <p className="font-space-grotesk text-sm font-medium text-warm-line truncate">

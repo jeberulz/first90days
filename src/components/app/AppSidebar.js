@@ -120,10 +120,19 @@ export default function AppSidebar() {
       {/* User profile */}
       <div className="px-4 py-4 border-b border-[#2C2825]">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#D97757] to-[#C26242] flex items-center justify-center flex-shrink-0">
-            <span className="text-white text-sm font-medium font-space-grotesk">
-              {initials}
-            </span>
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#D97757] to-[#C26242] flex items-center justify-center flex-shrink-0 overflow-hidden">
+            {user?.imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={user.imageUrl}
+                alt={`${displayNameResolved} avatar`}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span className="text-white text-sm font-medium font-space-grotesk">
+                {initials}
+              </span>
+            )}
           </div>
           <div className="min-w-0">
             <p className="font-space-grotesk text-sm font-medium text-[#E7E5E4] truncate">
