@@ -34,9 +34,56 @@ try {
 } catch (e) {}
 `;
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://usearcora.com";
+
 export const metadata = {
-  title: "Arcora - AI Onboarding Planner",
-  description: "Your first 90 days, engineered for impact.",
+  metadataBase: new URL(APP_URL),
+  title: {
+    default: "Arcora — Your first 90 days, engineered for impact.",
+    template: "%s · Arcora",
+  },
+  description:
+    "Generate a comprehensive, role-specific 30/60/90-day plan instantly with AI. Align with your manager and hit the ground running.",
+  applicationName: "Arcora",
+  authors: [{ name: "Rulz & Co" }],
+  creator: "Rulz & Co",
+  publisher: "Rulz & Co",
+  keywords: [
+    "90-day plan",
+    "new job",
+    "onboarding",
+    "30 60 90",
+    "manager alignment",
+    "AI career planner",
+  ],
+  openGraph: {
+    type: "website",
+    siteName: "Arcora",
+    title: "Arcora — Your first 90 days, engineered for impact.",
+    description:
+      "Generate a comprehensive, role-specific 30/60/90-day plan instantly with AI. Align with your manager and hit the ground running.",
+    url: APP_URL,
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: "Arcora — Your first 90 days, engineered for impact.",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Arcora — Your first 90 days, engineered for impact.",
+    description:
+      "Generate a comprehensive, role-specific 30/60/90-day plan instantly with AI.",
+    images: ["/opengraph-image"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-image-preview": "large" },
+  },
 };
 
 export const viewport = {

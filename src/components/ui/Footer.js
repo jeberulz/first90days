@@ -57,12 +57,12 @@ export function Footer() {
             </h4>
             <ul className="space-y-2 text-xs text-[#A8A29E] font-medium">
               <li>
-                <Link href="#" className="hover:text-accent transition-colors font-space-grotesk inline-block py-1">
+                <Link href="/privacy" className="hover:text-accent transition-colors font-space-grotesk inline-block py-1">
                   Privacy
                 </Link>
               </li>
               <li>
-                <Link href="#" className="hover:text-accent transition-colors font-space-grotesk inline-block py-1">
+                <Link href="/terms" className="hover:text-accent transition-colors font-space-grotesk inline-block py-1">
                   Terms
                 </Link>
               </li>
@@ -71,7 +71,7 @@ export function Footer() {
         </div>
         <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-4 pt-6 sm:pt-8 border-t border-[#292524] dark:border-[#2C2825]">
           <p className="text-xs font-medium font-space-grotesk text-[#78716C]">
-            © 2026 Arcora. All rights reserved.
+            © 2026 Rulz &amp; Co. All rights reserved.
           </p>
           <div className="flex gap-5 text-[#A8A29E]">
             <a href="#" className="hover:text-accent transition-colors p-1" aria-label="Twitter">
