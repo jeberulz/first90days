@@ -1,0 +1,87 @@
+{
+  "displayName": null,
+  "roleTitle": "Account Executive",
+  "companyLabel": "B2B SaaS",
+  "stakeholderCount": 7,
+  "stakeholderRolesShown": true,
+  "stakeholderRoles": [
+    "Manager (Sales Lead)",
+    "SDR Partner",
+    "Solutions Engineer",
+    "Customer Success Lead",
+    "Marketing / Demand Gen",
+    "Product Marketing",
+    "Top Customer Champion"
+  ],
+  "phases": [
+    {
+      "number": 1,
+      "name": "Learn",
+      "desc": "Absorb context",
+      "milestone": "Pass the internal product certification and shadow at least 6 customer calls."
+    },
+    {
+      "number": 2,
+      "name": "Contribute",
+      "desc": "Deliver value",
+      "milestone": "Run your first 5 discovery calls solo and close your first paid deal."
+    },
+    {
+      "number": 3,
+      "name": "Lead",
+      "desc": "Own outcomes",
+      "milestone": "Hit your first full quota target and contribute one piece of competitive intelligence the team uses."
+    }
+  ],
+  "goals": [
+    {
+      "title": "Pass internal product certification and ICP / persona quiz",
+      "phaseNumber": 1,
+      "category": "learning"
+    },
+    {
+      "title": "Shadow 6 calls (2 demos, 2 discovery, 2 close) and write a takeaway doc",
+      "phaseNumber": 1,
+      "category": "learning"
+    },
+    {
+      "title": "Build a personalised pitch and demo flow approved by manager",
+      "phaseNumber": 1,
+      "category": "shipping"
+    },
+    {
+      "title": "Run 5 discovery calls solo with manager review afterwards",
+      "phaseNumber": 2,
+      "category": "shipping"
+    },
+    {
+      "title": "Close your first paid deal end-to-end (sourced or assisted)",
+      "phaseNumber": 2,
+      "category": "shipping"
+    },
+    {
+      "title": "Build a working pipeline with at least 3x quota in qualified opps",
+      "phaseNumber": 2,
+      "category": "shipping"
+    },
+    {
+      "title": "Hit your first full quota target",
+      "phaseNumber": 3,
+      "category": "influence"
+    },
+    {
+      "title": "Document one piece of competitive intelligence the rest of the team adopts",
+      "phaseNumber": 3,
+      "category": "influence"
+    }
+  ],
+  "successDefinition": "By Day 90, I'm running my own pipeline, hitting quota, trusted by my SE and CS partners, and the team uses something I've contributed (a positioning angle, a competitive teardown, or a new sequence).",
+  "firstWeekActivities": [
+    { "title": "Complete product training and internal certification quiz", "category": "learning", "durationMin": 240 },
+    { "title": "Shadow 2 demos and 2 discovery calls live", "category": "learning", "durationMin": 240 },
+    { "title": "1:1 with manager — agree on activity targets for first 30 days", "category": "relationships", "durationMin": 60 },
+    { "title": "Set up CRM, sequences, and review existing playbooks", "category": "learning", "durationMin": 120 },
+    { "title": "Listen to 10 recorded calls from past wins and losses", "category": "learning", "durationMin": 180 }
+  ],
+  "generatedDate": "2026-05-02"
+}

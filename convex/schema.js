@@ -111,7 +111,29 @@ export default defineSchema({
     userId: v.id("users"),
     status: v.string(),
     overallCompletion: v.number(),
-  }).index("by_user", ["userId"]),
+    // Public sharing surface (opt-in). When publicSlug is set AND
+    // publicVisibility.enabled is true, the plan is viewable read-only at
+    // /p/{publicSlug}. Slug rotates each time the user toggles off->on so
+    // a stale link can't be revived without the user's consent.
+    publicSlug: v.optional(v.string()),
+    publicSlugCreatedAt: v.optional(v.number()),
+    publicVisibility: v.optional(
+      v.object({
+        enabled: v.boolean(),
+        // Display name shown on the public page. Defaults to
+        // "Anonymous Arcora user" when omitted.
+        displayName: v.optional(v.string()),
+        // Whether to surface the user's company name on the public page.
+        // Default off; renders as "[Confidential]" when off.
+        showCompany: v.optional(v.boolean()),
+        // Whether to render the list of stakeholder ROLES (never names)
+        // on the public page. Default off.
+        showStakeholderRoles: v.optional(v.boolean()),
+      })
+    ),
+  })
+    .index("by_user", ["userId"])
+    .index("by_public_slug", ["publicSlug"]),
 
   phases: defineTable({
     planId: v.id("plans"),
