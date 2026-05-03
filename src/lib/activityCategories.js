@@ -9,6 +9,14 @@ export const ACTIVITY_CATEGORIES = [
   { slug: "influence", label: "Influence", icon: "solar:graph-up-linear" },
 ];
 
+// Neutral fallback meta for unknown / malformed slugs. Surfaces as "Unknown"
+// rather than silently impersonating a real category (e.g. Learning).
+const UNKNOWN_CATEGORY_META = {
+  slug: "unknown",
+  label: "Unknown",
+  icon: "solar:question-circle-linear",
+};
+
 export const ACTIVITY_CATEGORY_BY_SLUG = Object.fromEntries(
   ACTIVITY_CATEGORIES.map((c) => [c.slug, c])
 );
@@ -41,10 +49,17 @@ export const ACTIVITY_CATEGORY_STYLES = {
   },
 };
 
+const UNKNOWN_CATEGORY_STYLE = {
+  dot: "bg-warm-borderMuted",
+  chipBg: "bg-warm-surfaceDark",
+  chipText: "text-warm-300",
+  borderL: "border-l-warm-borderMuted",
+};
+
 export function getCategoryStyle(slug) {
-  return ACTIVITY_CATEGORY_STYLES[slug] || ACTIVITY_CATEGORY_STYLES.learning;
+  return ACTIVITY_CATEGORY_STYLES[slug] || UNKNOWN_CATEGORY_STYLE;
 }
 
 export function getCategoryMeta(slug) {
-  return ACTIVITY_CATEGORY_BY_SLUG[slug] || ACTIVITY_CATEGORY_BY_SLUG.learning;
+  return ACTIVITY_CATEGORY_BY_SLUG[slug] || UNKNOWN_CATEGORY_META;
 }

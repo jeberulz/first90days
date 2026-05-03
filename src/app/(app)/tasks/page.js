@@ -4,12 +4,13 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { useMemo, useState, useTransition } from "react";
 import { Icon } from "@iconify/react";
-import { PageHeader, ScrollableTabs } from "@/components/primitives";
+import { PageHeader, UnderlineTabs } from "@/components/primitives";
 import NoPlanEmptyState from "@/components/app/NoPlanEmptyState";
 import TaskProgressStrip from "@/components/app/TaskProgressStrip";
 import TaskCard from "@/components/app/TaskCard";
 import TaskDetailSheet from "@/components/app/TaskDetailSheet";
 import PreBoardingBanner from "@/components/app/PreBoardingBanner";
+import CategoryFilterChips from "@/components/app/CategoryFilterChips";
 import { useHasPlan } from "@/hooks/useHasPlan";
 import { useToast } from "@/components/primitives/Toaster";
 import { ACTIVITY_CATEGORIES } from "@/lib/activityCategories";
@@ -132,20 +133,6 @@ export default function TasksPage() {
     };
   }, [allActivities]);
 
-  const statusCounts = useMemo(() => {
-    if (!allActivities) return { all: 0, upcoming: 0, completed: 0, skipped: 0 };
-    const baseByCategory =
-      categoryFilter === "all"
-        ? allActivities
-        : allActivities.filter((a) => a.category === categoryFilter);
-    return {
-      all: baseByCategory.length,
-      upcoming: baseByCategory.filter((a) => a.status === "upcoming").length,
-      completed: baseByCategory.filter((a) => a.status === "completed").length,
-      skipped: baseByCategory.filter((a) => a.status === "skipped").length,
-    };
-  }, [allActivities, categoryFilter]);
-
   const categoryCounts = useMemo(() => {
     if (!allActivities) return { all: 0 };
     const base =
@@ -229,19 +216,10 @@ export default function TasksPage() {
     : null;
   const preBoarding = dayInfo && !dayInfo.hasStarted;
 
-  const statusTabs = STATUS_KEYS.map((s) => ({
-    ...s,
-    label: `${s.label} · ${statusCounts[s.key] ?? 0}`,
-  }));
-
-  const categoryTabs = [
-    { key: "all", label: `All · ${categoryCounts.all ?? 0}` },
-    ...ACTIVITY_CATEGORIES.map((c) => ({
-      key: c.slug,
-      label: `${c.label} · ${categoryCounts[c.slug] ?? 0}`,
-      icon: <Icon icon={c.icon} className="w-3.5 h-3.5" />,
-    })),
-  ];
+  // Status tabs: text-only labels. Counts are intentionally omitted —
+  // the Plan progress strip already surfaces Completed/Upcoming/Skipped
+  // numbers, so repeating them here would be noise.
+  const statusTabs = STATUS_KEYS;
 
   function changeFilter(setter, value) {
     startTransition(() => setter(value));
@@ -277,6 +255,9 @@ export default function TasksPage() {
       }
     } catch (err) {
       addToast(err.message || "Couldn't complete activity.", "error");
+      // Re-throw so callers (TaskCard / TaskDetailSheet) can roll back
+      // optimistic UI and keep their drafts open.
+      throw err;
     }
   }
 
@@ -286,6 +267,7 @@ export default function TasksPage() {
       addToast("Activity skipped.", "info");
     } catch (err) {
       addToast(err.message || "Couldn't skip activity.", "error");
+      throw err;
     }
   }
 
@@ -295,6 +277,7 @@ export default function TasksPage() {
       addToast("Activity rescheduled.", "success");
     } catch (err) {
       addToast(err.message || "Couldn't reschedule.", "error");
+      throw err;
     }
   }
 
@@ -324,16 +307,16 @@ export default function TasksPage() {
         />
 
         <div className="space-y-3">
-          <ScrollableTabs
+          <UnderlineTabs
             items={statusTabs}
             activeKey={filter}
             onChange={(k) => changeFilter(setFilter, k)}
             ariaLabel="Filter by status"
           />
-          <ScrollableTabs
-            items={categoryTabs}
+          <CategoryFilterChips
             activeKey={categoryFilter}
             onChange={(k) => changeFilter(setCategoryFilter, k)}
+            counts={categoryCounts}
             ariaLabel="Filter by category"
           />
         </div>
