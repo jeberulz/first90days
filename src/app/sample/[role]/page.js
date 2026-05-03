@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Icon } from "@iconify/react";
 import { SAMPLE_ROLES, getSampleRole } from "@/lib/sampleData";
 import PlanReadOnlyView from "@/components/plan/PlanReadOnlyView";
+import { Logo } from "@/components/ui/Logo";
 
 // Public sample plan page. Renders pre-curated demo content for a role —
 // no live AI call, no signup gate. Designed to be the thing strangers
@@ -53,11 +53,10 @@ export default async function SampleRolePage({ params }) {
         <div className="max-w-3xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <Link
             href="/"
-            className="flex items-center gap-2 font-space-grotesk text-sm font-semibold"
+            className="flex items-center text-[#1C1917]"
             aria-label="Arcora home"
           >
-            <Icon icon="solar:stars-minimalistic-linear" className="text-[#D97757]" width={18} />
-            Arcora
+            <Logo className="h-9 w-auto" />
           </Link>
           <Link
             href="/signup"
