@@ -24,7 +24,7 @@ const FROM_ADDRESS =
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.usearcora.com";
 const PRODUCT_NAME = process.env.PRODUCT_NAME ?? "Arcora";
-const LOGO_URL = process.env.EMAIL_LOGO_URL ?? "";
+const LOGO_URL = process.env.EMAIL_LOGO_URL ?? `${APP_URL}/email-logo.png`;
 
 function getResend() {
   const apiKey = process.env.AUTH_RESEND_KEY;

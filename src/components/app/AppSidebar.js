@@ -7,6 +7,7 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import { api } from "../../../convex/_generated/api";
 import { cn } from "@/lib/utils";
 import { displayName, userInitials } from "@/lib/userDisplay";
+import { Logo } from "@/components/ui/Logo";
 
 const navItems = [
   {
@@ -107,13 +108,12 @@ export default function AppSidebar() {
     <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-[#0F0E0D] border-r border-[#2C2825]">
       {/* Logo */}
       <div className="h-16 flex items-center px-6 border-b border-[#2C2825]">
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-md bg-gradient-to-br from-[#D97757] to-[#C26242] flex items-center justify-center">
-            <span className="text-white text-xs font-bold font-space-grotesk">A</span>
-          </div>
-          <span className="font-space-grotesk text-base font-medium tracking-[-0.4px] text-[#E7E5E4]">
-            Arcora
-          </span>
+        <Link
+          href="/dashboard"
+          className="flex items-center text-[#E7E5E4]"
+          aria-label="Arcora home"
+        >
+          <Logo className="h-9 w-auto" />
         </Link>
       </div>
 
