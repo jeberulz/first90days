@@ -32,6 +32,11 @@ export function Footer() {
                   Integration
                 </Link>
               </li>
+              <li>
+                <Link href="/changelog" className="hover:text-accent transition-colors font-space-grotesk inline-block py-1">
+                  Changelog
+                </Link>
+              </li>
             </ul>
           </div>
           <div>
