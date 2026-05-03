@@ -59,7 +59,7 @@ export default function PhaseCompletionModal({ milestone, onClose }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4 animate-in fade-in duration-200"
       onClick={() => handleDismiss()}
     >
       <div

@@ -4,6 +4,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import { use, useState } from "react";
 import Link from "next/link";
+import { ResponsiveModal } from "@/components/primitives";
 
 export default function StakeholderDetailPage({ params }) {
   const { id } = use(params);
@@ -328,79 +329,83 @@ export default function StakeholderDetailPage({ params }) {
       </div>
 
       {/* Add interaction modal */}
-      {showInteractionForm && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-end lg:items-center justify-center p-4">
-          <form
-            onSubmit={handleAddInteraction}
-            className="bg-[#1C1917] border border-[#2C2825] rounded-xl w-full max-w-md p-6 space-y-4"
-          >
-            <h3 className="font-instrument-serif text-xl text-[#E7E5E4]">
-              Log Interaction
-            </h3>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label className="font-space-grotesk text-xs font-medium text-[#A8A29E]">Date</label>
-                <input
-                  type="date"
-                  value={interaction.date}
-                  onChange={(e) => setInteraction({ ...interaction, date: e.target.value })}
-                  className="w-full bg-[#292524] border border-[#44403C] rounded-lg px-3 py-2 font-space-grotesk text-sm text-[#E7E5E4] focus:outline-none focus:ring-1 focus:ring-[#D97757]"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="font-space-grotesk text-xs font-medium text-[#A8A29E]">Type</label>
-                <select
-                  value={interaction.type}
-                  onChange={(e) => setInteraction({ ...interaction, type: e.target.value })}
-                  className="w-full bg-[#292524] border border-[#44403C] rounded-lg px-3 py-2 font-space-grotesk text-sm text-[#E7E5E4] focus:outline-none focus:ring-1 focus:ring-[#D97757]"
-                >
-                  <option>1:1 Meeting</option>
-                  <option>Group Meeting</option>
-                  <option>Coffee Chat</option>
-                  <option>Email</option>
-                  <option>Slack</option>
-                  <option>Presentation</option>
-                </select>
-              </div>
-            </div>
+      <ResponsiveModal
+        open={showInteractionForm}
+        onClose={() => setShowInteractionForm(false)}
+        title="Log Interaction"
+        size="md"
+        footer={
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setShowInteractionForm(false)}
+              className="px-4 py-2 font-space-grotesk text-sm text-[#A8A29E] hover:bg-[#292524] rounded-lg transition min-h-11"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="log-interaction-form"
+              className="bg-[#D97757] hover:bg-[#C26242] text-white rounded-lg px-4 py-2 font-space-grotesk text-sm font-medium transition min-h-11"
+            >
+              Save
+            </button>
+          </div>
+        }
+      >
+        <form
+          id="log-interaction-form"
+          onSubmit={handleAddInteraction}
+          className="space-y-4"
+        >
+          <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label className="font-space-grotesk text-xs font-medium text-[#A8A29E]">Title (optional)</label>
+              <label className="font-space-grotesk text-xs font-medium text-[#A8A29E]">Date</label>
               <input
-                value={interaction.title}
-                onChange={(e) => setInteraction({ ...interaction, title: e.target.value })}
-                className="w-full bg-[#292524] border border-[#44403C] rounded-lg px-3 py-2 font-space-grotesk text-sm text-[#E7E5E4] placeholder:text-[#57534E] focus:outline-none focus:ring-1 focus:ring-[#D97757]"
-                placeholder="e.g. Quarterly alignment discussion"
+                type="date"
+                value={interaction.date}
+                onChange={(e) => setInteraction({ ...interaction, date: e.target.value })}
+                className="w-full bg-[#292524] border border-[#44403C] rounded-lg px-3 py-2 font-space-grotesk text-sm text-[#E7E5E4] focus:outline-none focus:ring-1 focus:ring-[#D97757]"
               />
             </div>
             <div className="space-y-1.5">
-              <label className="font-space-grotesk text-xs font-medium text-[#A8A29E]">Notes</label>
-              <textarea
-                value={interaction.notes}
-                onChange={(e) => setInteraction({ ...interaction, notes: e.target.value })}
-                className="w-full bg-[#292524] border border-[#44403C] rounded-lg px-3 py-2 font-space-grotesk text-sm text-[#E7E5E4] placeholder:text-[#57534E] resize-none focus:outline-none focus:ring-1 focus:ring-[#D97757]"
-                rows={3}
-                placeholder="Key topics discussed, decisions made..."
-                required
-              />
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setShowInteractionForm(false)}
-                className="px-4 py-2 font-space-grotesk text-sm text-[#A8A29E] hover:bg-[#292524] rounded-lg transition"
+              <label className="font-space-grotesk text-xs font-medium text-[#A8A29E]">Type</label>
+              <select
+                value={interaction.type}
+                onChange={(e) => setInteraction({ ...interaction, type: e.target.value })}
+                className="w-full bg-[#292524] border border-[#44403C] rounded-lg px-3 py-2 font-space-grotesk text-sm text-[#E7E5E4] focus:outline-none focus:ring-1 focus:ring-[#D97757]"
               >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="bg-[#D97757] hover:bg-[#C26242] text-white rounded-lg px-4 py-2 font-space-grotesk text-sm font-medium transition"
-              >
-                Save
-              </button>
+                <option>1:1 Meeting</option>
+                <option>Group Meeting</option>
+                <option>Coffee Chat</option>
+                <option>Email</option>
+                <option>Slack</option>
+                <option>Presentation</option>
+              </select>
             </div>
-          </form>
-        </div>
-      )}
+          </div>
+          <div className="space-y-1.5">
+            <label className="font-space-grotesk text-xs font-medium text-[#A8A29E]">Title (optional)</label>
+            <input
+              value={interaction.title}
+              onChange={(e) => setInteraction({ ...interaction, title: e.target.value })}
+              className="w-full bg-[#292524] border border-[#44403C] rounded-lg px-3 py-2 font-space-grotesk text-sm text-[#E7E5E4] placeholder:text-[#57534E] focus:outline-none focus:ring-1 focus:ring-[#D97757]"
+              placeholder="e.g. Quarterly alignment discussion"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="font-space-grotesk text-xs font-medium text-[#A8A29E]">Notes</label>
+            <textarea
+              value={interaction.notes}
+              onChange={(e) => setInteraction({ ...interaction, notes: e.target.value })}
+              className="w-full bg-[#292524] border border-[#44403C] rounded-lg px-3 py-2 font-space-grotesk text-sm text-[#E7E5E4] placeholder:text-[#57534E] resize-none focus:outline-none focus:ring-1 focus:ring-[#D97757]"
+              rows={3}
+              placeholder="Key topics discussed, decisions made..."
+              required
+            />
+          </div>
+        </form>
+      </ResponsiveModal>
     </div>
   );
 }
