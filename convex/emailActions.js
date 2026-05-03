@@ -22,7 +22,11 @@ const FROM_ADDRESS =
   process.env.AUTH_EMAIL ??
   "Arcora <hello@switchtoux.com>";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.usearcora.com";
+// Default to the root marketing/app domain. We don't have a separate
+// app subdomain wired up; emailing CTAs that pointed to
+// app.usearcora.com 404'd in production whenever the NEXT_PUBLIC_APP_URL
+// env var wasn't set on Convex.
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://usearcora.com";
 const PRODUCT_NAME = process.env.PRODUCT_NAME ?? "Arcora";
 const LOGO_URL = process.env.EMAIL_LOGO_URL ?? "";
 
