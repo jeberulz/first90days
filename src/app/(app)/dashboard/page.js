@@ -218,7 +218,7 @@ export default function DashboardPage() {
                       style={{ width: `${phase.fillFraction * 100}%` }}
                     />
                   </div>
-                  <div className="mt-2 flex items-center justify-between">
+                  <div className="mt-2 flex flex-col gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
                     <span
                       className={`font-space-grotesk text-xs font-medium ${
                         phase.isCurrent ? "text-[#D97757]" : "text-[#E7E5E4]"
@@ -370,7 +370,7 @@ export default function DashboardPage() {
                         style={{ width: `${fillFraction * 100}%` }}
                       />
                     </div>
-                    <div className="mt-2 flex items-center justify-between">
+                    <div className="mt-2 flex flex-col gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
                       <span
                         className={`font-space-grotesk text-xs font-medium ${
                           isCurrent ? "text-[#D97757]" : "text-[#E7E5E4]"
