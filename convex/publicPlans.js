@@ -270,7 +270,11 @@ export const getByPublicSlug = query({
       goals: goals
         .map((g) => ({
           title: g.title,
-          phaseNumber: g.phaseNumber ?? g.phase ?? null,
+          // Schema field is `targetPhase` (1–3). Earlier fallbacks for
+          // `phaseNumber` / `phase` covered older data shapes; keep them
+          // for safety but the real field is `targetPhase`.
+          phaseNumber:
+            g.targetPhase ?? g.phaseNumber ?? g.phase ?? null,
           category: g.category ?? null,
         }))
         .filter((g) => g.phaseNumber !== null),
