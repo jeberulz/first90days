@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Icon } from "@iconify/react";
+import { Logo } from "./Logo";
 
 export function Footer() {
   return (
@@ -7,14 +7,11 @@ export function Footer() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 mb-10 sm:mb-12">
           <div className="col-span-2 md:col-span-1">
-            <div className="flex items-center gap-2 mb-3 sm:mb-4">
-              <Icon icon="solar:stars-minimalistic-linear" className="text-accent" width={18} height={18} />
-              <span className="font-semibold tracking-tight text-sm font-space-grotesk text-white">
-                Arcora
-              </span>
+            <div className="flex items-center mb-3 sm:mb-4 text-white">
+              <Logo className="h-8 w-auto" />
             </div>
             <p className="text-xs text-[#A8A29E] leading-relaxed font-medium font-space-grotesk max-w-xs">
-              AI-powered career planning for the modern professional.
+              AI-powered onboarding plans for your first 90 days.
             </p>
           </div>
           <div>
@@ -23,13 +20,13 @@ export function Footer() {
             </h4>
             <ul className="space-y-2 text-xs text-[#A8A29E] font-medium">
               <li>
-                <Link href="#" className="hover:text-accent transition-colors font-space-grotesk inline-block py-1">
+                <Link href="/#features" className="hover:text-accent transition-colors font-space-grotesk inline-block py-1">
                   Features
                 </Link>
               </li>
               <li>
-                <Link href="#" className="hover:text-accent transition-colors font-space-grotesk inline-block py-1">
-                  Integration
+                <Link href="/#pricing" className="hover:text-accent transition-colors font-space-grotesk inline-block py-1">
+                  Pricing
                 </Link>
               </li>
               <li>
@@ -41,18 +38,21 @@ export function Footer() {
           </div>
           <div>
             <h4 className="text-xs font-bold mb-3 sm:mb-4 uppercase tracking-wide font-space-grotesk text-white">
-              Resources
+              Company
             </h4>
             <ul className="space-y-2 text-xs text-[#A8A29E] font-medium">
               <li>
-                <Link href="#" className="hover:text-accent transition-colors font-space-grotesk inline-block py-1">
+                <Link href="/#methodology" className="hover:text-accent transition-colors font-space-grotesk inline-block py-1">
                   Methodology
                 </Link>
               </li>
               <li>
-                <Link href="#" className="hover:text-accent transition-colors font-space-grotesk inline-block py-1">
-                  Career Guides
-                </Link>
+                <a
+                  href="mailto:hello@switchtoux.com"
+                  className="hover:text-accent transition-colors font-space-grotesk inline-block py-1"
+                >
+                  Contact
+                </a>
               </li>
             </ul>
           </div>
@@ -76,19 +76,14 @@ export function Footer() {
         </div>
         <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-4 pt-6 sm:pt-8 border-t border-[#292524] dark:border-[#2C2825]">
           <p className="text-xs font-medium font-space-grotesk text-[#78716C]">
-            © 2026 Rulz &amp; Co. All rights reserved.
+            © 2026 Arcora. All rights reserved.
           </p>
-          <div className="flex gap-5 text-[#A8A29E]">
-            <a href="#" className="hover:text-accent transition-colors p-1" aria-label="Twitter">
-              <Icon icon="ri:twitter-x-line" width={18} height={18} />
-            </a>
-            <a href="#" className="hover:text-accent transition-colors p-1" aria-label="GitHub">
-              <Icon icon="ri:github-line" width={18} height={18} />
-            </a>
-            <a href="#" className="hover:text-accent transition-colors p-1" aria-label="LinkedIn">
-              <Icon icon="ri:linkedin-line" width={18} height={18} />
-            </a>
-          </div>
+          <a
+            href="mailto:hello@switchtoux.com"
+            className="text-xs font-medium font-space-grotesk text-[#A8A29E] hover:text-accent transition-colors"
+          >
+            hello@switchtoux.com
+          </a>
         </div>
       </div>
     </footer>

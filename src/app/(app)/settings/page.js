@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery, useMutation, useConvexAuth } from "convex/react";
+import { useQuery, useMutation, useConvexAuth, useConvex } from "convex/react";
 import { useAuthActions, useAuthToken } from "@convex-dev/auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
@@ -140,8 +140,42 @@ export default function SettingsPage() {
   const setAvatar = useMutation(api.users.setAvatar);
   const removeAvatar = useMutation(api.users.removeAvatar);
   const deleteAccount = useMutation(api.users.deleteAccount);
+  const startLocalTrial = useMutation(api.billing.startLocalTrial);
+  const convexClient = useConvex();
   const { signIn, signOut } = useAuthActions();
   const addToast = useToast();
+
+  const [exportLoading, setExportLoading] = useState(false);
+  const [exportError, setExportError] = useState("");
+
+  async function handleDownloadData() {
+    setExportError("");
+    setExportLoading(true);
+    try {
+      const data = await convexClient.query(api.users.exportMyData, {});
+      const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const stamp = new Date().toISOString().split("T")[0];
+      a.href = url;
+      a.download = `arcora-export-${stamp}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      addToast?.({
+        kind: "success",
+        message: "Your data has been downloaded.",
+      });
+    } catch (err) {
+      const message = err?.data ?? err?.message ?? "Could not export data.";
+      setExportError(typeof message === "string" ? message : "Could not export data.");
+    } finally {
+      setExportLoading(false);
+    }
+  }
 
   const billingStatus = searchParams.get("billing");
   const initialTab = billingStatus ? "billing" : "profile";
@@ -167,8 +201,21 @@ export default function SettingsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
-  const [billingLoading, setBillingLoading] = useState(null); // 'monthly' | 'annual' | 'portal' | null
+  const [billingLoading, setBillingLoading] = useState(null); // 'monthly' | 'annual' | 'portal' | 'trial' | null
   const [billingError, setBillingError] = useState("");
+
+  async function handleStartTrial() {
+    setBillingError("");
+    setBillingLoading("trial");
+    try {
+      await startLocalTrial({});
+      addToast("Your 7-day Pro trial just started.", "success");
+    } catch (err) {
+      setBillingError(err?.message ?? "Could not start trial");
+    } finally {
+      setBillingLoading(null);
+    }
+  }
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -683,6 +730,12 @@ export default function SettingsPage() {
                 />
               )}
 
+              <DataExportSection
+                onDownload={handleDownloadData}
+                loading={exportLoading}
+                error={exportError}
+              />
+
               <DangerZone
                 confirmDelete={confirmDelete}
                 setConfirmDelete={setConfirmDelete}
@@ -741,6 +794,7 @@ export default function SettingsPage() {
                 billingError={billingError}
                 onUpgrade={handleUpgrade}
                 onManage={handleManageSubscription}
+                onStartTrial={handleStartTrial}
               />
             </div>
           )}
@@ -1595,6 +1649,7 @@ function BillingSection({
   billingError,
   onUpgrade,
   onManage,
+  onStartTrial,
 }) {
   const loading = entitlements === undefined;
   const tier = entitlements?.tier ?? "free";
@@ -1604,6 +1659,9 @@ function BillingSection({
   const currentPeriodEnd = entitlements?.currentPeriodEnd ?? null;
   const dailyEnrichCap = entitlements?.dailyEnrichCap ?? 5;
   const usedToday = entitlements?.usedToday ?? 0;
+  const localTrialActive = entitlements?.localTrialActive ?? false;
+  const localTrialEndsAt = entitlements?.localTrialEndsAt ?? null;
+  const localTrialUsed = entitlements?.localTrialUsed ?? false;
 
   const isLegacy = tier === "pro_legacy";
   const isPro = tier !== "free";
@@ -1650,6 +1708,9 @@ function BillingSection({
                 trialDaysLeft={trialDaysLeft}
                 cancelAtPeriodEnd={cancelAtPeriodEnd}
                 currentPeriodEnd={currentPeriodEnd}
+                localTrialActive={localTrialActive}
+                localTrialEndsAt={localTrialEndsAt}
+                localTrialUsed={localTrialUsed}
               />
 
               <UsageBar
@@ -1674,6 +1735,10 @@ function BillingSection({
                 billingLoading={billingLoading}
                 onUpgrade={onUpgrade}
                 onManage={onManage}
+                onStartTrial={onStartTrial}
+                localTrialActive={localTrialActive}
+                localTrialUsed={localTrialUsed}
+                trialDaysLeft={trialDaysLeft}
               />
             </>
           )}
@@ -1691,6 +1756,9 @@ function PlanSummary({
   trialDaysLeft,
   cancelAtPeriodEnd,
   currentPeriodEnd,
+  localTrialActive,
+  localTrialEndsAt,
+  localTrialUsed,
 }) {
   if (isLegacy) {
     return (
@@ -1706,6 +1774,26 @@ function PlanSummary({
         <p className="font-space-grotesk text-sm text-[#A8A29E]">
           Thanks for being here from the start. You have Pro-level access
           permanently, no subscription needed.
+        </p>
+      </div>
+    );
+  }
+
+  if (localTrialActive) {
+    const endDate = formatDate(localTrialEndsAt);
+    return (
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-2">
+          <span className="font-instrument-serif text-xl text-white">
+            Pro trial
+          </span>
+          <span className="font-space-grotesk text-xs uppercase tracking-wide text-[#D97757] border border-[#D97757]/40 rounded px-1.5 py-0.5">
+            {trialDaysLeft === 1 ? "1 day left" : `${trialDaysLeft} days left`}
+          </span>
+        </div>
+        <p className="font-space-grotesk text-sm text-[#A8A29E]">
+          You&apos;re trialing Pro free until {endDate ?? "the trial ends"}. No
+          card on file — add one below to keep Pro after the trial.
         </p>
       </div>
     );
@@ -1779,12 +1867,28 @@ function PlanSummary({
   }
 
   // Free
+  if (localTrialUsed) {
+    return (
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-2">
+          <span className="font-instrument-serif text-xl text-white">Free</span>
+          <span className="font-space-grotesk text-xs uppercase tracking-wide text-[#A8A29E] border border-[#44403C] rounded px-1.5 py-0.5">
+            trial ended
+          </span>
+        </div>
+        <p className="font-space-grotesk text-sm text-[#A8A29E]">
+          Your free trial has ended. Subscribe to keep Pro features and your
+          higher daily AI extraction limits.
+        </p>
+      </div>
+    );
+  }
   return (
     <div className="space-y-1.5">
       <span className="font-instrument-serif text-xl text-white">Free</span>
       <p className="font-space-grotesk text-sm text-[#A8A29E]">
-        Upgrade to Pro for higher daily AI extraction limits and a 14-day free
-        trial.
+        Try Pro free for 7 days — no credit card required. Higher daily AI
+        extraction limits and unlimited plan regeneration.
       </p>
     </div>
   );
@@ -1835,12 +1939,17 @@ function BillingActions({
   billingLoading,
   onUpgrade,
   onManage,
+  onStartTrial,
+  localTrialActive,
+  localTrialUsed,
+  trialDaysLeft,
 }) {
   if (isLegacy) {
     return null; // Nothing to manage
   }
 
-  if (isPro) {
+  if (isPro && !localTrialActive) {
+    // Paid Pro (or Pro from a Stripe-managed trial) — manage via portal.
     return (
       <div className="pt-2">
         <button
@@ -1855,30 +1964,69 @@ function BillingActions({
     );
   }
 
-  // Free — show both upgrade options
+  // Either local-trial-active OR free (with or without prior trial use).
+  // Both states show the same upgrade buttons; trial users see a "keep Pro"
+  // header, post-trial users see a "subscribe" header. Free-fresh users get
+  // a Start-trial CTA above the upgrade buttons.
+  const showStartTrial = !isPro && !localTrialUsed && !localTrialActive;
+  const headerCopy = localTrialActive
+    ? trialDaysLeft <= 1
+      ? "Your trial ends today. Subscribe to keep Pro:"
+      : `Your trial ends in ${trialDaysLeft} days. Subscribe to keep Pro:`
+    : localTrialUsed
+      ? "Subscribe to Pro:"
+      : "Already had your free trial? Subscribe to Pro:";
+
   return (
     <div className="pt-2 space-y-3">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <button
-          type="button"
-          onClick={() => onUpgrade("monthly")}
-          disabled={billingLoading !== null}
-          className={`font-space-grotesk text-sm font-medium px-4 py-3 rounded-lg border border-[#44403C] bg-[#1C1917] text-white hover:bg-[#2C2825] transition-colors disabled:opacity-50 ${FOCUS_RING}`}
-        >
-          {billingLoading === "monthly" ? "Loading…" : "Start Pro monthly"}
-        </button>
-        <button
-          type="button"
-          onClick={() => onUpgrade("annual")}
-          disabled={billingLoading !== null}
-          className={`font-space-grotesk text-sm font-medium px-4 py-3 rounded-lg bg-[#D97757] text-white hover:bg-[#C26644] transition-colors disabled:opacity-50 ${FOCUS_RING}`}
-        >
-          {billingLoading === "annual" ? "Loading…" : "Start Pro annual"}
-        </button>
+      {showStartTrial && (
+        <div className="rounded-lg border border-[#D97757]/30 bg-[#D97757]/5 p-4 space-y-3">
+          <div className="space-y-1">
+            <p className="font-space-grotesk text-sm font-medium text-white">
+              Try Pro free for 7 days
+            </p>
+            <p className="font-space-grotesk text-xs text-[#A8A29E]">
+              No credit card required. Get 100 daily AI extractions, unlimited
+              plan regeneration, and priority processing.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onStartTrial}
+            disabled={billingLoading !== null}
+            className={`font-space-grotesk text-sm font-medium px-4 py-2.5 rounded-lg bg-[#D97757] text-white hover:bg-[#C26644] transition-colors disabled:opacity-50 ${FOCUS_RING}`}
+          >
+            {billingLoading === "trial" ? "Starting…" : "Start 7-day free trial"}
+          </button>
+        </div>
+      )}
+
+      <div className="space-y-2">
+        <p className="font-space-grotesk text-xs text-[#A8A29E]">
+          {headerCopy}
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => onUpgrade("monthly")}
+            disabled={billingLoading !== null}
+            className={`font-space-grotesk text-sm font-medium px-4 py-3 rounded-lg border border-[#44403C] bg-[#1C1917] text-white hover:bg-[#2C2825] transition-colors disabled:opacity-50 ${FOCUS_RING}`}
+          >
+            {billingLoading === "monthly" ? "Loading…" : "Pro monthly · $29/mo"}
+          </button>
+          <button
+            type="button"
+            onClick={() => onUpgrade("annual")}
+            disabled={billingLoading !== null}
+            className={`font-space-grotesk text-sm font-medium px-4 py-3 rounded-lg bg-[#D97757] text-white hover:bg-[#C26644] transition-colors disabled:opacity-50 ${FOCUS_RING}`}
+          >
+            {billingLoading === "annual" ? "Loading…" : "Pro annual · $23/mo"}
+          </button>
+        </div>
+        <p className="font-space-grotesk text-[11px] text-[#78716C]">
+          Cancel any time from Manage subscription.
+        </p>
       </div>
-      <p className="font-space-grotesk text-xs text-[#A8A29E]">
-        14-day free trial. Cancel any time from Manage subscription.
-      </p>
     </div>
   );
 }
@@ -1994,6 +2142,47 @@ function NotificationsSection({
 
 function Divider() {
   return <div className="w-full h-px bg-[#2C2825]" aria-hidden="true" />;
+}
+
+function DataExportSection({ onDownload, loading, error }) {
+  return (
+    <section className="space-y-4 mt-12">
+      <div className="flex items-center gap-2 text-[#A8A29E]">
+        <Icon name="user" size={16} />
+        <h2 className="font-space-grotesk text-base font-medium tracking-tight text-white">
+          Your data
+        </h2>
+      </div>
+      <div className="border-t border-[#292524] pt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <p className="font-space-grotesk text-sm font-medium text-white">
+            Download a copy of your data
+          </p>
+          <p className="font-space-grotesk text-xs text-[#A8A29E] mt-1 max-w-md">
+            Exports a JSON file containing your profile, plans, tasks,
+            reflections, stakeholders, knowledge base, and settings. UK GDPR
+            Article 20.
+          </p>
+          {error ? (
+            <p
+              className="font-space-grotesk text-xs text-red-400 mt-2"
+              role="alert"
+            >
+              {error}
+            </p>
+          ) : null}
+        </div>
+        <button
+          type="button"
+          onClick={onDownload}
+          disabled={loading}
+          className={`shrink-0 font-space-grotesk text-sm font-medium px-4 py-2.5 rounded-lg bg-[#1C1917] text-[#E7E5E4] border border-[#292524] hover:border-[#44403C] transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${FOCUS_RING}`}
+        >
+          {loading ? "Preparing…" : "Download my data"}
+        </button>
+      </div>
+    </section>
+  );
 }
 
 function DangerZone({

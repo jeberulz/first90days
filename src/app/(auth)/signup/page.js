@@ -1,9 +1,9 @@
 "use client";
 
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   passwordRequirements,
   passwordStrength,
@@ -11,13 +11,25 @@ import {
 } from "@/lib/passwordValidation";
 
 export default function SignupPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignupForm />
+    </Suspense>
+  );
+}
+
+function SignupForm() {
   const { signIn } = useAuthActions();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const intent = searchParams?.get("intent") ?? null;
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showRequirements, setShowRequirements] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -28,6 +40,11 @@ export default function SignupPage() {
   async function handleSubmit(e) {
     e.preventDefault();
     setError(null);
+
+    if (!agreedToTerms) {
+      setError("Please accept the Terms and Privacy Policy to continue.");
+      return;
+    }
 
     if (!allPassed) {
       const firstFailed = reqs.find((r) => !r.passed);
@@ -43,10 +60,19 @@ export default function SignupPage() {
         password,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
+        acceptedTerms: "true",
+        marketingConsent: marketingOptIn ? "true" : "false",
         flow: "signUp",
       });
       if (typeof sessionStorage !== "undefined") {
         sessionStorage.removeItem("onboarding_data");
+        if (intent === "trial") {
+          // Read on the dashboard after onboarding to auto-start the local trial.
+          // The mutation is idempotent, so this is safe even if it fires twice.
+          try {
+            sessionStorage.setItem("pending_intent", "trial");
+          } catch {}
+        }
       }
       router.push(`/verify-email?email=${encodeURIComponent(email)}&next=/onboarding`);
     } catch (err) {
@@ -191,9 +217,63 @@ export default function SignupPage() {
           )}
         </div>
 
+        <div className="space-y-3 pt-1">
+          <label className="flex items-start gap-3 cursor-pointer group">
+            <input
+              type="checkbox"
+              checked={agreedToTerms}
+              onChange={(e) => setAgreedToTerms(e.target.checked)}
+              required
+              className="mt-0.5 h-4 w-4 rounded border-[#E7E5E4] text-[#D97757] focus:ring-2 focus:ring-[#D97757]/20 focus:ring-offset-0 cursor-pointer"
+              aria-describedby="terms-description"
+            />
+            <span
+              id="terms-description"
+              className="font-space-grotesk text-xs text-[#57534E] leading-relaxed select-none"
+            >
+              I agree to the{" "}
+              <Link
+                href="/terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#D97757] hover:text-[#C26242] underline underline-offset-2 font-medium"
+              >
+                Terms of Service
+              </Link>{" "}
+              and{" "}
+              <Link
+                href="/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#D97757] hover:text-[#C26242] underline underline-offset-2 font-medium"
+              >
+                Privacy Policy
+              </Link>
+              .
+            </span>
+          </label>
+
+          <label className="flex items-start gap-3 cursor-pointer group">
+            <input
+              type="checkbox"
+              checked={marketingOptIn}
+              onChange={(e) => setMarketingOptIn(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-[#E7E5E4] text-[#D97757] focus:ring-2 focus:ring-[#D97757]/20 focus:ring-offset-0 cursor-pointer"
+              aria-describedby="marketing-description"
+            />
+            <span
+              id="marketing-description"
+              className="font-space-grotesk text-xs text-[#57534E] leading-relaxed select-none"
+            >
+              Send me occasional product updates and onboarding tips. You can
+              unsubscribe at any time.
+            </span>
+          </label>
+        </div>
+
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || !agreedToTerms}
           className="w-full bg-[#D97757] hover:bg-[#C26242] text-white rounded-lg px-6 py-2.5 font-space-grotesk text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
         >
           {loading ? "Creating account..." : "Create account"}

@@ -56,6 +56,9 @@ export const metadata = {
     "manager alignment",
     "AI career planner",
   ],
+  alternates: {
+    canonical: "/",
+  },
   openGraph: {
     type: "website",
     siteName: "Arcora",
@@ -63,6 +66,7 @@ export const metadata = {
     description:
       "Generate a comprehensive, role-specific 30/60/90-day plan instantly with AI. Align with your manager and hit the ground running.",
     url: APP_URL,
+    locale: "en_GB",
     images: [
       {
         url: "/opengraph-image",
@@ -82,7 +86,12 @@ export const metadata = {
   robots: {
     index: true,
     follow: true,
-    googleBot: { index: true, follow: true, "max-image-preview": "large" },
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
   },
 };
 

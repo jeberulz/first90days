@@ -1,7 +1,10 @@
 import { convexTest } from "convex-test";
 import { expect, describe, it } from "vitest";
 import schema from "./schema.js";
-import { internal } from "./_generated/api";
+import { api, internal } from "./_generated/api";
+import { LOCAL_TRIAL_MS } from "./lib/billing.js";
+
+const DAY = 24 * 60 * 60 * 1000;
 
 const SUB_ID = "sub_test_123";
 const CUSTOMER_ID = "cus_test_123";
@@ -416,6 +419,195 @@ describe("getEntitlementsInternal", () => {
       userId,
     });
     expect(ent.usedToday).toBe(3);
+  });
+});
+
+describe("startLocalTrial", () => {
+  it("starts a 7-day trial for a fresh user and sets trialUsedAt", async () => {
+    const t = convexTest(schema);
+    const userId = await t.run(async (ctx) =>
+      ctx.db.insert("users", { email: "trial-fresh@example.com" })
+    );
+
+    const before = Date.now();
+    const result = await t.withIdentity({ subject: userId }).mutation(
+      api.billing.startLocalTrial,
+      {}
+    );
+
+    expect(result.started).toBe(true);
+    expect(result.trialEndsAt).toBeGreaterThan(before + LOCAL_TRIAL_MS - 1000);
+    expect(result.trialEndsAt).toBeLessThan(Date.now() + LOCAL_TRIAL_MS + 1000);
+
+    const user = await t.run(async (ctx) => ctx.db.get(userId));
+    expect(typeof user.trialUsedAt).toBe("number");
+  });
+
+  it("derives PRO entitlement immediately after starting trial", async () => {
+    const t = convexTest(schema);
+    const userId = await t.run(async (ctx) =>
+      ctx.db.insert("users", { email: "trial-ent@example.com" })
+    );
+
+    await t.withIdentity({ subject: userId }).mutation(
+      api.billing.startLocalTrial,
+      {}
+    );
+
+    const ent = await t.query(internal.billing.getEntitlementsInternal, {
+      userId,
+    });
+    expect(ent.tier).toBe("pro");
+    expect(ent.isPro).toBe(true);
+    expect(ent.localTrialActive).toBe(true);
+    expect(ent.localTrialEndsAt).toBeGreaterThan(Date.now());
+    expect(ent.trialDaysLeft).toBe(7);
+    expect(ent.dailyEnrichCap).toBe(100);
+  });
+
+  it("is idempotent: second call no-ops with already_active reason", async () => {
+    const t = convexTest(schema);
+    const userId = await t.run(async (ctx) =>
+      ctx.db.insert("users", { email: "trial-idem@example.com" })
+    );
+
+    const first = await t.withIdentity({ subject: userId }).mutation(
+      api.billing.startLocalTrial,
+      {}
+    );
+    const second = await t.withIdentity({ subject: userId }).mutation(
+      api.billing.startLocalTrial,
+      {}
+    );
+
+    expect(first.started).toBe(true);
+    expect(second.started).toBe(false);
+    expect(second.reason).toBe("already_active");
+    expect(second.trialEndsAt).toBe(first.trialEndsAt);
+  });
+
+  it("refuses when trial has already been used and elapsed", async () => {
+    const t = convexTest(schema);
+    const userId = await t.run(async (ctx) =>
+      ctx.db.insert("users", {
+        email: "trial-spent@example.com",
+        trialUsedAt: Date.now() - 30 * DAY,
+      })
+    );
+
+    const result = await t.withIdentity({ subject: userId }).mutation(
+      api.billing.startLocalTrial,
+      {}
+    );
+
+    expect(result.started).toBe(false);
+    expect(result.reason).toBe("already_used");
+
+    // The user record was not modified — trialUsedAt is unchanged.
+    const user = await t.run(async (ctx) => ctx.db.get(userId));
+    expect(user.trialUsedAt).toBeLessThan(Date.now() - 29 * DAY);
+  });
+
+  it("refuses when a Stripe subscription already exists", async () => {
+    const t = convexTest(schema);
+    const userId = await t.run(async (ctx) =>
+      ctx.db.insert("users", { email: "trial-subbed@example.com" })
+    );
+    // Create a subscription row directly (skip the Stripe path).
+    await t.run(async (ctx) =>
+      ctx.db.insert("billingSubscriptions", {
+        userId,
+        stripeCustomerId: "cus_existing",
+        stripeSubscriptionId: "sub_existing",
+        priceId: "price_test",
+        status: "active",
+        currentPeriodEnd: Date.now() + 30 * DAY,
+        cancelAtPeriodEnd: false,
+        stripeUpdatedAt: Date.now(),
+        updatedAt: Date.now(),
+      })
+    );
+
+    const result = await t.withIdentity({ subject: userId }).mutation(
+      api.billing.startLocalTrial,
+      {}
+    );
+
+    expect(result.started).toBe(false);
+    expect(result.reason).toBe("subscription_exists");
+
+    const user = await t.run(async (ctx) => ctx.db.get(userId));
+    expect(user.trialUsedAt).toBeUndefined();
+  });
+
+  it("returns pro_legacy reason for grandfathered users without modifying record", async () => {
+    const t = convexTest(schema);
+    const userId = await t.run(async (ctx) =>
+      ctx.db.insert("users", {
+        email: "legacy-trial@example.com",
+        billingTier: "pro_legacy",
+      })
+    );
+
+    const result = await t.withIdentity({ subject: userId }).mutation(
+      api.billing.startLocalTrial,
+      {}
+    );
+
+    expect(result.started).toBe(false);
+    expect(result.reason).toBe("pro_legacy");
+    const user = await t.run(async (ctx) => ctx.db.get(userId));
+    expect(user.trialUsedAt).toBeUndefined();
+  });
+});
+
+describe("computeEntitlements local trial", () => {
+  it("expired local trial: localTrialUsed=true, localTrialActive=false, tier=free", async () => {
+    const t = convexTest(schema);
+    const userId = await t.run(async (ctx) =>
+      ctx.db.insert("users", {
+        email: "expired@example.com",
+        trialUsedAt: Date.now() - 30 * DAY,
+      })
+    );
+
+    const ent = await t.query(internal.billing.getEntitlementsInternal, {
+      userId,
+    });
+    expect(ent.tier).toBe("free");
+    expect(ent.localTrialActive).toBe(false);
+    expect(ent.localTrialUsed).toBe(true);
+    expect(ent.trialDaysLeft).toBe(0);
+  });
+
+  it("once a sub exists, local-trial fields are no longer populated", async () => {
+    const t = convexTest(schema);
+    const userId = await t.run(async (ctx) =>
+      ctx.db.insert("users", {
+        email: "post-trial@example.com",
+        trialUsedAt: Date.now() - 30 * DAY,
+      })
+    );
+    await t.run(async (ctx) =>
+      ctx.db.insert("billingSubscriptions", {
+        userId,
+        stripeCustomerId: "cus_x",
+        stripeSubscriptionId: "sub_x",
+        priceId: "price_x",
+        status: "active",
+        currentPeriodEnd: Date.now() + 30 * DAY,
+        cancelAtPeriodEnd: false,
+        stripeUpdatedAt: Date.now(),
+        updatedAt: Date.now(),
+      })
+    );
+
+    const ent = await t.query(internal.billing.getEntitlementsInternal, {
+      userId,
+    });
+    expect(ent.tier).toBe("pro");
+    expect(ent.localTrialActive).toBe(false);
+    expect(ent.localTrialEndsAt).toBeNull();
   });
 });
 

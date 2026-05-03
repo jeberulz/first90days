@@ -54,6 +54,10 @@ export default defineSchema({
     stripeCustomerId: v.optional(v.string()),
     trialUsedAt: v.optional(v.number()),
     grandfatheredAt: v.optional(v.number()),
+    acceptedTermsAt: v.optional(v.number()),
+    acceptedTermsVersion: v.optional(v.string()),
+    marketingConsent: v.optional(v.boolean()),
+    marketingConsentAt: v.optional(v.number()),
     settings: v.optional(
       v.object({
         timezone: v.optional(v.string()),
@@ -78,6 +82,18 @@ export default defineSchema({
       })
     ),
   }).index("email", ["email"]),
+
+  // Per-user daily AI cost ledger. Used by lib/rateLimit.js to enforce
+  // a hard ceiling on how much the platform will spend on AI inference
+  // for a single user in a single UTC day. Cleared lazily — old rows are
+  // never read, but a future cron can prune anything older than 90 days.
+  aiUsage: defineTable({
+    userId: v.id("users"),
+    dayKey: v.string(),
+    costCents: v.number(),
+    requestCount: v.number(),
+    lastRequestAt: v.number(),
+  }).index("by_user_day", ["userId", "dayKey"]),
 
   onboardingData: defineTable({
     userId: v.id("users"),

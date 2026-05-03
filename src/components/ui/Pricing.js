@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useConvexAuth, useMutation } from "convex/react";
 import { Icon } from "@iconify/react";
+import { api } from "../../../convex/_generated/api";
 
-// TODO: confirm final pricing before launch
 const PRO_MONTHLY_PRICE = "$29";
 const PRO_ANNUAL_PRICE = "$23";
 
@@ -25,7 +27,7 @@ const PRO_FEATURES = [
   { included: true, label: "Priority AI processing" },
   { included: true, label: "Advanced progress analytics" },
   { included: true, label: "Export to PDF & Notion" },
-  { included: true, label: "14-day free trial included" },
+  { included: true, label: "7-day free trial included" },
 ];
 
 function FeatureRow({ included, label }) {
@@ -60,9 +62,33 @@ function FeatureRow({ included, label }) {
 
 export function Pricing() {
   const [annual, setAnnual] = useState(false);
+  const [trialError, setTrialError] = useState("");
+  const [trialLoading, setTrialLoading] = useState(false);
+  const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useConvexAuth();
+  const startLocalTrial = useMutation(api.billing.startLocalTrial);
 
   const proPrice = annual ? PRO_ANNUAL_PRICE : PRO_MONTHLY_PRICE;
   const proBillingLabel = annual ? "per month, billed annually" : "per month";
+  const interval = annual ? "annual" : "monthly";
+
+  async function handleStartTrial() {
+    setTrialError("");
+    if (authLoading) return;
+    if (!isAuthenticated) {
+      router.push(`/signup?intent=trial&interval=${interval}`);
+      return;
+    }
+    setTrialLoading(true);
+    try {
+      await startLocalTrial({});
+      router.push("/dashboard");
+    } catch (err) {
+      setTrialError(err?.message ?? "Could not start trial. Please try again.");
+    } finally {
+      setTrialLoading(false);
+    }
+  }
 
   return (
     <section
@@ -184,7 +210,7 @@ export function Pricing() {
                 </span>
               </div>
               <p className="text-xs text-[#57534E] dark:text-[#A8A29E] font-space-grotesk">
-                14-day free trial · no credit card required
+                7-day free trial · no credit card required
               </p>
             </div>
 
@@ -194,17 +220,27 @@ export function Pricing() {
               ))}
             </ul>
 
-            <Link
-              href="/signup"
-              className="w-full text-center h-11 px-6 rounded-full text-sm font-semibold font-space-grotesk bg-accent hover:bg-accent-hover text-white transition-colors shadow-lg shadow-accent/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0F0E0D] flex items-center justify-center"
+            <button
+              type="button"
+              onClick={handleStartTrial}
+              disabled={trialLoading || authLoading}
+              className="w-full text-center h-11 px-6 rounded-full text-sm font-semibold font-space-grotesk bg-accent hover:bg-accent-hover text-white transition-colors shadow-lg shadow-accent/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0F0E0D] flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Start 14-Day Free Trial
-            </Link>
+              {trialLoading ? "Starting…" : "Start 7-Day Free Trial"}
+            </button>
+            {trialError && (
+              <p
+                role="alert"
+                className="mt-2 text-xs text-red-500 font-space-grotesk text-center"
+              >
+                {trialError}
+              </p>
+            )}
           </div>
         </div>
 
         <p className="text-center text-[11px] text-[#78716C] dark:text-[#A8A29E] font-space-grotesk">
-          No credit card required for the free plan. Pro trial requires a card. Cancel anytime.
+          No credit card required. Cancel anytime.
         </p>
       </div>
     </section>

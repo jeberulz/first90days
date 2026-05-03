@@ -115,7 +115,7 @@ export default function TermsPage() {
       <UL>
         <li>You are responsible for keeping your password secure.</li>
         <li>You are responsible for activity under your account.</li>
-        <li>Tell us promptly at <a href="mailto:legal@usearcora.com" className="text-accent underline">legal@usearcora.com</a> if you believe your account has been compromised.</li>
+        <li>Tell us promptly at <a href="mailto:hello@switchtoux.com" className="text-accent underline">hello@switchtoux.com</a> if you believe your account has been compromised.</li>
         <li>One person per account. Don&apos;t share login credentials.</li>
       </UL>
 
@@ -274,10 +274,10 @@ export default function TermsPage() {
       <P>
         Questions about these Terms? Email{" "}
         <a
-          href="mailto:legal@usearcora.com"
+          href="mailto:hello@switchtoux.com"
           className="text-accent underline"
         >
-          legal@usearcora.com
+          hello@switchtoux.com
         </a>
         .
       </P>

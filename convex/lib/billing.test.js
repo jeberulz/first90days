@@ -4,10 +4,13 @@ import {
   capForTier,
   isProTier,
   computeQuotaState,
+  localTrialState,
   BILLING_TIERS,
   FREE_DAILY_ENRICHMENT_CAP,
   PRO_DAILY_ENRICHMENT_CAP,
   GRACE_PERIOD_MS,
+  TRIAL_DAYS,
+  LOCAL_TRIAL_MS,
 } from "./billing.js";
 
 const NOW = 1_700_000_000_000;
@@ -111,6 +114,85 @@ describe("deriveTier", () => {
 
   it("user with no tier field and no sub → free", () => {
     expect(deriveTier(userNoTier, null, NOW)).toBe(BILLING_TIERS.FREE);
+  });
+
+  it("local trial active (no sub, trialUsedAt within 7d) → pro", () => {
+    const user = { ...userFree, trialUsedAt: NOW - DAY };
+    expect(deriveTier(user, null, NOW)).toBe(BILLING_TIERS.PRO);
+  });
+
+  it("local trial expired (no sub, trialUsedAt > 7d ago) → free", () => {
+    const user = { ...userFree, trialUsedAt: NOW - 8 * DAY };
+    expect(deriveTier(user, null, NOW)).toBe(BILLING_TIERS.FREE);
+  });
+
+  it("local trial coexists with active sub → pro (sub wins)", () => {
+    const user = { ...userFree, trialUsedAt: NOW - 30 * DAY };
+    expect(deriveTier(user, sub({ status: "active" }), NOW)).toBe(
+      BILLING_TIERS.PRO
+    );
+  });
+
+  it("local trial coexists with canceled+lapsed sub → free", () => {
+    // Trial was used long ago and the sub already lapsed.
+    const user = { ...userFree, trialUsedAt: NOW - 30 * DAY };
+    expect(
+      deriveTier(
+        user,
+        sub({ status: "canceled", currentPeriodEnd: NOW - DAY }),
+        NOW
+      )
+    ).toBe(BILLING_TIERS.FREE);
+  });
+
+  it("pro_legacy still wins when local trial is also active", () => {
+    const user = { ...userLegacy, trialUsedAt: NOW - DAY };
+    expect(deriveTier(user, null, NOW)).toBe(BILLING_TIERS.PRO_LEGACY);
+  });
+});
+
+describe("localTrialState", () => {
+  it("returns inactive when trialUsedAt is missing", () => {
+    expect(localTrialState({}, NOW)).toEqual({
+      active: false,
+      endsAt: null,
+      daysLeft: 0,
+    });
+  });
+
+  it("returns active with daysLeft when within window", () => {
+    const result = localTrialState(
+      { trialUsedAt: NOW - 2 * DAY },
+      NOW
+    );
+    expect(result.active).toBe(true);
+    expect(result.endsAt).toBe(NOW - 2 * DAY + LOCAL_TRIAL_MS);
+    expect(result.daysLeft).toBe(TRIAL_DAYS - 2);
+  });
+
+  it("returns inactive when trial has fully elapsed", () => {
+    const result = localTrialState(
+      { trialUsedAt: NOW - (TRIAL_DAYS + 1) * DAY },
+      NOW
+    );
+    expect(result.active).toBe(false);
+    expect(result.daysLeft).toBe(0);
+    expect(result.endsAt).toBeLessThan(NOW);
+  });
+
+  it("rounds daysLeft up at the boundary", () => {
+    // 30 minutes after trial start → still 7 days "left" by ceil rounding
+    const result = localTrialState(
+      { trialUsedAt: NOW - 30 * 60 * 1000 },
+      NOW
+    );
+    expect(result.daysLeft).toBe(TRIAL_DAYS);
+  });
+});
+
+describe("TRIAL_DAYS constant", () => {
+  it("is 7", () => {
+    expect(TRIAL_DAYS).toBe(7);
   });
 });
 

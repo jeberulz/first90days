@@ -2,14 +2,17 @@ import { v } from "convex/values";
 import {
   internalMutation,
   internalQuery,
+  mutation,
   query,
 } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { auth } from "./auth";
 import {
   BILLING_TIERS,
+  LOCAL_TRIAL_MS,
   deriveTier,
   capForTier,
+  localTrialState,
 } from "./lib/billing.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -31,11 +34,22 @@ export async function computeEntitlements(ctx, userId) {
 
   const now = Date.now();
   const tier = deriveTier(user, sub, now);
-  const trialEndsAt = sub?.trialEnd ?? null;
-  const trialDaysLeft =
-    trialEndsAt && trialEndsAt > now
-      ? Math.ceil((trialEndsAt - now) / DAY_MS)
+
+  // Stripe-driven trial (only meaningful while a sub exists).
+  const stripeTrialEndsAt = sub?.trialEnd ?? null;
+  const stripeTrialDaysLeft =
+    stripeTrialEndsAt && stripeTrialEndsAt > now
+      ? Math.ceil((stripeTrialEndsAt - now) / DAY_MS)
       : 0;
+
+  // Local (no-card) trial — only relevant when there is no Stripe sub yet.
+  const local = sub ? null : localTrialState(user, now);
+
+  // For UI continuity, surface the active source as `trialEndsAt` /
+  // `trialDaysLeft`. Pre-sub: local trial. Post-sub: Stripe trial. Both
+  // become 0 / null once the trial is over.
+  const trialEndsAt = local?.active ? local.endsAt : stripeTrialEndsAt;
+  const trialDaysLeft = local?.active ? local.daysLeft : stripeTrialDaysLeft;
 
   return {
     tier,
@@ -43,6 +57,11 @@ export async function computeEntitlements(ctx, userId) {
     status: sub?.status ?? null,
     trialEndsAt,
     trialDaysLeft,
+    // Distinct fields so the UI can tell the two trial sources apart.
+    localTrialActive: local?.active ?? false,
+    localTrialEndsAt: local?.endsAt ?? null,
+    localTrialUsed:
+      typeof user.trialUsedAt === "number" && local && !local.active,
     cancelAtPeriodEnd: sub?.cancelAtPeriodEnd ?? false,
     currentPeriodEnd: sub?.currentPeriodEnd ?? null,
     dailyEnrichCap: capForTier(tier),
@@ -50,6 +69,54 @@ export async function computeEntitlements(ctx, userId) {
     paymentFailedAt: sub?.paymentFailedAt ?? null,
   };
 }
+
+/**
+ * Start a local (no-card) trial for the authenticated user.
+ * Idempotent: if the user has already used a trial OR has an existing Stripe
+ * subscription, returns the existing state without modifying anything.
+ * Returns the trial end timestamp so the UI can confirm.
+ */
+export const startLocalTrial = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("unauthorized");
+
+    const user = await ctx.db.get(userId);
+    if (!user) throw new Error("user not found");
+
+    if (user.billingTier === BILLING_TIERS.PRO_LEGACY) {
+      // Grandfathered users don't need a trial.
+      return { started: false, reason: "pro_legacy", trialEndsAt: null };
+    }
+
+    if (typeof user.trialUsedAt === "number") {
+      const endsAt = user.trialUsedAt + LOCAL_TRIAL_MS;
+      const active = endsAt > Date.now();
+      return {
+        started: false,
+        reason: active ? "already_active" : "already_used",
+        trialEndsAt: endsAt,
+      };
+    }
+
+    const sub = await ctx.db
+      .query("billingSubscriptions")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .unique();
+    if (sub) {
+      return {
+        started: false,
+        reason: "subscription_exists",
+        trialEndsAt: null,
+      };
+    }
+
+    const now = Date.now();
+    await ctx.db.patch(userId, { trialUsedAt: now });
+    return { started: true, trialEndsAt: now + LOCAL_TRIAL_MS };
+  },
+});
 
 /**
  * Idempotent Stripe event processor. Called from the webhook httpAction after

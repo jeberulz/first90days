@@ -599,6 +599,11 @@ export const semanticSearch = action({
     const userId = await auth.getUserId(ctx);
     if (!userId) return { matches: [] };
 
+    await ctx.runMutation(internal.rateLimit.reserve, {
+      userId,
+      op: "semanticSearch",
+    });
+
     // Lazy import to keep V8 runtime queries cheap
     const { semanticSearch: doSearch } = await import("./lib/kbContext.js");
     return await doSearch(ctx, {

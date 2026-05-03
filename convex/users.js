@@ -339,6 +339,78 @@ const USER_OWNED_TABLES = [
 ];
 
 /**
+ * UK GDPR Art 20 right to data portability. Returns a JSON-serializable
+ * snapshot of the user's data. Auth secrets and other users' data are
+ * never included. The client triggers the download — no streaming or file
+ * storage involved.
+ */
+export const exportMyData = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const user = await ctx.db.get(userId);
+    if (!user) throw new Error("User not found");
+
+    const collectByUser = async (table) =>
+      ctx.db.query(table).withIndex("by_user", (q) => q.eq("userId", userId)).collect();
+
+    const [
+      onboardingData,
+      plans,
+      phases,
+      weeks,
+      activities,
+      goals,
+      stakeholders,
+      interactions,
+      dailyReflections,
+      weeklyReviews,
+      logEntries,
+      knowledgeEntries,
+    ] = await Promise.all([
+      collectByUser("onboardingData"),
+      collectByUser("plans"),
+      collectByUser("phases"),
+      collectByUser("weeks"),
+      collectByUser("activities"),
+      collectByUser("goals"),
+      collectByUser("stakeholders"),
+      collectByUser("interactions"),
+      collectByUser("dailyReflections"),
+      collectByUser("weeklyReviews"),
+      collectByUser("logEntries"),
+      collectByUser("knowledgeEntries"),
+    ]);
+
+    const { _id, _creationTime, ...userPublic } = user;
+
+    return {
+      exportedAt: new Date().toISOString(),
+      schemaVersion: 1,
+      user: {
+        id: _id,
+        createdAt: new Date(_creationTime).toISOString(),
+        ...userPublic,
+      },
+      onboardingData,
+      plans,
+      phases,
+      weeks,
+      activities,
+      goals,
+      stakeholders,
+      interactions,
+      dailyReflections,
+      weeklyReviews,
+      logEntries,
+      knowledgeEntries,
+    };
+  },
+});
+
+/**
  * Public delete: schedules the Stripe-cancel action, which (on success)
  * schedules the batched purge. The mutation returns immediately and the
  * client should sign out. If the Stripe cancel fails with an unexpected

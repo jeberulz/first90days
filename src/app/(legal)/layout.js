@@ -45,10 +45,10 @@ export default function LegalLayout({ children }) {
               Privacy
             </Link>
             <a
-              href="mailto:legal@usearcora.com"
+              href="mailto:hello@switchtoux.com"
               className="hover:text-accent transition-colors"
             >
-              legal@usearcora.com
+              hello@switchtoux.com
             </a>
           </div>
         </div>

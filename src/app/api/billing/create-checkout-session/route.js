@@ -3,8 +3,6 @@ import { fetchQuery, fetchAction } from "convex/nextjs";
 import { api } from "../../../../../convex/_generated/api";
 import { getStripe } from "@/lib/stripe";
 
-const TRIAL_DAYS = 14;
-
 export async function POST(req) {
   const token = req.headers
     .get("authorization")
@@ -77,14 +75,13 @@ export async function POST(req) {
     );
   }
 
-  const trialDays = viewer.trialUsedAt ? 0 : TRIAL_DAYS;
-
+  // Trial is local (no-card, 7 days) and tracked on the user record. By the
+  // time the user reaches Stripe Checkout they are converting to paid — no
+  // Stripe-hosted trial is configured here. trialUsedAt is still set by the
+  // checkout.session.completed webhook so the local trial cannot be reused.
   const subscriptionData = {
     metadata: { convexUserId: String(viewer._id) },
   };
-  if (trialDays > 0) {
-    subscriptionData.trial_period_days = trialDays;
-  }
 
   const appUrl =
     process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -97,6 +94,8 @@ export async function POST(req) {
       line_items: [{ price: priceId, quantity: 1 }],
       subscription_data: subscriptionData,
       allow_promotion_codes: true,
+      billing_address_collection: "auto",
+      customer_update: { address: "auto", name: "auto" },
       success_url: `${appUrl}/settings?billing=success`,
       cancel_url: `${appUrl}/settings?billing=cancel`,
       client_reference_id: String(viewer._id),

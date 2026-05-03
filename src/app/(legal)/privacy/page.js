@@ -164,10 +164,10 @@ export default function PrivacyPage() {
         The data controller is <strong>Rulz &amp; Co</strong>, based in
         Manchester, United Kingdom. You can reach the controller at{" "}
         <a
-          href="mailto:legal@usearcora.com"
+          href="mailto:hello@switchtoux.com"
           className="text-accent underline"
         >
-          legal@usearcora.com
+          hello@switchtoux.com
         </a>
         .
       </P>
@@ -335,10 +335,10 @@ export default function PrivacyPage() {
       <P>
         To exercise any of these rights, email{" "}
         <a
-          href="mailto:legal@usearcora.com"
+          href="mailto:hello@switchtoux.com"
           className="text-accent underline"
         >
-          legal@usearcora.com
+          hello@switchtoux.com
         </a>
         . We&apos;ll respond within 30 days.
       </P>
@@ -385,10 +385,10 @@ export default function PrivacyPage() {
       <P>
         Questions about this policy or your data?{" "}
         <a
-          href="mailto:legal@usearcora.com"
+          href="mailto:hello@switchtoux.com"
           className="text-accent underline"
         >
-          legal@usearcora.com
+          hello@switchtoux.com
         </a>
       </P>
 

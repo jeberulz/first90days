@@ -65,6 +65,14 @@ export const generatePlan = action({
     }
     const userId = authUserId;
 
+    // Reserve daily AI budget up front. Throws ConvexError to the client
+    // if the user is over their daily ceiling — caught by the UI as a
+    // friendly limit message rather than a stack trace.
+    await ctx.runMutation(internal.rateLimit.reserve, {
+      userId,
+      op: "generatePlan",
+    });
+
     const regenerate = args.regenerate === true;
 
     const onboardingData = await ctx.runQuery(api.onboarding.getByUserId, {
@@ -281,6 +289,11 @@ export const suggestActivities = action({
     );
     if (!userId) throw new Error("Not authenticated");
 
+    await ctx.runMutation(internal.rateLimit.reserve, {
+      userId,
+      op: "suggestActivities",
+    });
+
     const kbContext = await fetchContextForPlanning(ctx, {
       userId,
       query: args.context,
@@ -330,6 +343,11 @@ export const generateWeeklyInsight = action({
       {}
     );
     if (!userId) throw new Error("Not authenticated");
+
+    await ctx.runMutation(internal.rateLimit.reserve, {
+      userId,
+      op: "generateWeeklyInsight",
+    });
 
     const kbContext = await fetchContextForPlanning(ctx, {
       userId,

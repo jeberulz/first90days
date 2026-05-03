@@ -2,13 +2,14 @@
 
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   GoalApprovalBadge,
   GoalApprovalActions,
 } from "@/components/plan/GoalApproval";
 import { preferredFirstName } from "@/lib/userDisplay";
+import { useToast } from "@/components/primitives/Toaster";
 
 const PRE_BOARDING_CHECKLIST = [
   { id: "news", label: "Research company recent news, earnings, product launches" },
@@ -64,17 +65,90 @@ export default function DashboardPage() {
   const seedPlan = useMutation(api.seed.seedJohnsPlan);
   const resetAndReseed = useMutation(api.seed.resetAndReseed);
   const reconcilePilotPlanSchedule = useMutation(api.seed.reconcilePilotPlanSchedule);
+  const startLocalTrial = useMutation(api.billing.startLocalTrial);
   const [resetting, setResetting] = useState(false);
   const [pilotSyncing, setPilotSyncing] = useState(false);
+  const [trialBannerDismissed, setTrialBannerDismissed] = useState(false);
   const { checked, toggle } = useChecklistState();
+  const addToast = useToast();
+
+  // Honor a `pending_intent=trial` sessionStorage flag set during signup.
+  // Idempotent: the mutation no-ops if a trial has already been used or a
+  // subscription exists. Runs once when we first see a usable user record.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!user) return;
+    if (user.tier !== "free") return;
+    if (typeof user.trialUsedAt === "number") return;
+    let intent = null;
+    try {
+      intent = sessionStorage.getItem("pending_intent");
+    } catch {
+      return;
+    }
+    if (intent !== "trial") return;
+    try {
+      sessionStorage.removeItem("pending_intent");
+    } catch {}
+    startLocalTrial({})
+      .then((res) => {
+        if (res?.started) {
+          addToast?.("Your 7-day Pro trial just started.", "success");
+        }
+      })
+      .catch(() => {
+        // Non-fatal — user can retry from the Settings → Billing tab.
+      });
+  }, [user, startLocalTrial, addToast]);
 
   if (!user) return null;
 
   const preBoarding = plan && dayInfo && !dayInfo.hasStarted;
   const greetingFirst = preferredFirstName(user);
+  const showTrialBanner =
+    !trialBannerDismissed &&
+    user.tier === "pro" &&
+    user.trialDaysLeft > 0 &&
+    user.trialDaysLeft <= 3;
 
   return (
     <div className="space-y-6 sm:space-y-8">
+      {/* Trial-ending banner */}
+      {showTrialBanner && (
+        <div
+          role="status"
+          className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 rounded-xl border border-[#D97757]/40 bg-[#D97757]/10 px-4 py-3"
+        >
+          <div className="flex-1 min-w-0">
+            <p className="font-space-grotesk text-sm text-white">
+              {user.trialDaysLeft === 1
+                ? "Your free trial ends today."
+                : `Your free trial ends in ${user.trialDaysLeft} days.`}
+              {" "}
+              <span className="text-[#FBD0BC]">
+                Subscribe to keep Pro features.
+              </span>
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Link
+              href="/settings?tab=billing&billing=upgrade"
+              className="font-space-grotesk text-sm font-medium px-3.5 py-2 rounded-lg bg-[#D97757] text-white hover:bg-[#C26644] transition-colors"
+            >
+              Upgrade
+            </Link>
+            <button
+              type="button"
+              onClick={() => setTrialBannerDismissed(true)}
+              aria-label="Dismiss"
+              className="font-space-grotesk text-xs text-[#A8A29E] hover:text-white px-2 py-2 rounded-lg transition-colors"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div>
         <h1 className="font-instrument-serif tracking-[-0.5px] sm:tracking-[-0.9px] text-2xl sm:text-3xl md:text-4xl leading-tight">

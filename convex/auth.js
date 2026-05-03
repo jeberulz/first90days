@@ -8,6 +8,11 @@ import { ResendOTPPasswordReset } from "./ResendOTPPasswordReset";
 // src/lib/passwordValidation.js for real-time UI feedback. Keep the two
 // lists in sync — the server decides, the client only reflects.
 const PASSWORD_MIN_LENGTH = 10;
+
+// Bump when the published Terms or Privacy Policy materially change. The
+// stored version on the user row lets us detect users who agreed under an
+// older revision and re-prompt for re-consent if needed.
+export const TERMS_VERSION = "2026-05-02";
 const COMMON_PASSWORDS = new Set([
   "password",
   "password1",
@@ -77,10 +82,33 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
         const composedName = [firstName, lastName].filter(Boolean).join(" ");
         const name = composedName || explicitName || "";
 
+        // UK GDPR Art 13/14 + consumer law: signup must record explicit
+        // agreement to ToS + Privacy. Block if missing — the client form
+        // also gates this, but the server is the source of truth.
+        const flow = typeof params.flow === "string" ? params.flow : "";
+        if (flow === "signUp") {
+          if (params.acceptedTerms !== true && params.acceptedTerms !== "true") {
+            throw new ConvexError(
+              "You must accept the Terms and Privacy Policy to create an account."
+            );
+          }
+        }
+
         const out = { email };
         if (firstName) out.firstName = firstName;
         if (lastName) out.lastName = lastName;
         if (name) out.name = name;
+        if (flow === "signUp") {
+          out.acceptedTermsAt = Date.now();
+          out.acceptedTermsVersion = TERMS_VERSION;
+          // UK PECR: marketing consent must be explicit + opt-in. Default
+          // false; only stamp if the checkbox was actively ticked.
+          const marketing =
+            params.marketingConsent === true ||
+            params.marketingConsent === "true";
+          out.marketingConsent = marketing;
+          if (marketing) out.marketingConsentAt = Date.now();
+        }
         return out;
       },
     }),
