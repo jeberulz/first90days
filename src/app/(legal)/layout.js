@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Icon } from "@iconify/react";
+import { Logo } from "@/components/ui/Logo";
 
 // Standalone layout for the public Terms / Privacy pages so they don't
 // inherit the dashboard chrome and can render readably on cold visits
@@ -15,11 +15,10 @@ export default function LegalLayout({ children }) {
         <div className="max-w-3xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <Link
             href="/"
-            className="flex items-center gap-2 font-space-grotesk text-sm font-semibold"
+            className="flex items-center text-[#1C1917] dark:text-[#E7E5E4]"
             aria-label="Arcora home"
           >
-            <Icon icon="solar:stars-minimalistic-linear" className="text-accent" width={18} />
-            Arcora
+            <Logo className="h-9 w-auto" />
           </Link>
           <Link
             href="/"
