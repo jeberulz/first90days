@@ -5,8 +5,21 @@ import Link from "next/link";
 import { Icon } from "@iconify/react";
 
 function formatStartDate(ymd) {
+  if (typeof ymd !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(ymd)) {
+    return ymd || "soon";
+  }
   const [y, m, d] = ymd.split("-").map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString("en-US", {
+  const date = new Date(y, m - 1, d);
+  // Reject impossible dates like 2026-02-30 that JS otherwise rolls forward.
+  if (
+    Number.isNaN(date.getTime()) ||
+    date.getFullYear() !== y ||
+    date.getMonth() !== m - 1 ||
+    date.getDate() !== d
+  ) {
+    return ymd;
+  }
+  return date.toLocaleDateString("en-US", {
     weekday: "long",
     month: "long",
     day: "numeric",

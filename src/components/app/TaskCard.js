@@ -124,17 +124,26 @@ export default function TaskCard({
     };
   }, []);
 
-  function handleComplete() {
+  async function handleComplete() {
     if (isDone || justCompleted) return;
-    // Fire the mutation synchronously so we never race against a follow-up
-    // action (e.g. user opens the sheet and skips before a deferred timer
-    // fires). The animation is purely local visual state.
+    // Optimistic visual flip. The mutation fires immediately so we never
+    // race against a follow-up action (e.g. skip from the detail sheet
+    // before a deferred timer fires).
     setJustCompleted(true);
-    onComplete?.(activity);
     pulseTimerRef.current = setTimeout(() => {
       pulseTimerRef.current = null;
       setJustCompleted(false);
     }, 1000);
+    try {
+      await onComplete?.(activity);
+    } catch {
+      // Roll back the optimistic state so the user can retry.
+      if (pulseTimerRef.current) {
+        clearTimeout(pulseTimerRef.current);
+        pulseTimerRef.current = null;
+      }
+      setJustCompleted(false);
+    }
   }
 
   function handleKeyDown(e) {

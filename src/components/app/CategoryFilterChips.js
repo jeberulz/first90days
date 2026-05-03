@@ -7,13 +7,14 @@ import {
   ACTIVITY_CATEGORY_STYLES,
 } from "@/lib/activityCategories";
 
-function Chip({ active, activeClass, onClick, ariaSelected, children }) {
+function Chip({ active, activeClass, onClick, children }) {
   return (
+    // Toggle-button semantics (not role="tab") because each chip is
+    // independently focusable and there is no roving focus / arrow-key
+    // navigation. aria-pressed conveys the toggle state to AT.
     <button
-      role="tab"
       type="button"
-      aria-selected={ariaSelected}
-      tabIndex={active ? 0 : -1}
+      aria-pressed={active}
       onClick={onClick}
       className={cn(
         "snap-start shrink-0 inline-flex items-center gap-1.5 whitespace-nowrap",
@@ -45,14 +46,13 @@ export default function CategoryFilterChips({
 }) {
   return (
     <div
-      role="tablist"
+      role="group"
       aria-label={ariaLabel}
       className={cn("relative -mx-4 sm:mx-0", className)}
     >
       <div className="no-scrollbar flex gap-1.5 overflow-x-auto scroll-smooth snap-x px-4 sm:px-0 md:flex-wrap md:overflow-visible">
         <Chip
           active={activeKey === "all"}
-          ariaSelected={activeKey === "all"}
           activeClass="bg-warm-cardDark text-warm-line border-warm-borderMuted"
           onClick={() => onChange?.("all")}
         >
@@ -69,7 +69,6 @@ export default function CategoryFilterChips({
             <Chip
               key={cat.slug}
               active={active}
-              ariaSelected={active}
               activeClass={cn(
                 style.chipBg,
                 style.chipText,

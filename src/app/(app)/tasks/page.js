@@ -255,6 +255,9 @@ export default function TasksPage() {
       }
     } catch (err) {
       addToast(err.message || "Couldn't complete activity.", "error");
+      // Re-throw so callers (TaskCard / TaskDetailSheet) can roll back
+      // optimistic UI and keep their drafts open.
+      throw err;
     }
   }
 
@@ -264,6 +267,7 @@ export default function TasksPage() {
       addToast("Activity skipped.", "info");
     } catch (err) {
       addToast(err.message || "Couldn't skip activity.", "error");
+      throw err;
     }
   }
 
@@ -273,6 +277,7 @@ export default function TasksPage() {
       addToast("Activity rescheduled.", "success");
     } catch (err) {
       addToast(err.message || "Couldn't reschedule.", "error");
+      throw err;
     }
   }
 

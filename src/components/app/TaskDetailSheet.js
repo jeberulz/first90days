@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Icon } from "@iconify/react";
 import { ResponsiveModal } from "@/components/primitives";
 import { CategoryChip } from "@/components/app/TaskCard";
@@ -41,30 +41,67 @@ export default function TaskDetailSheet({
   const [newDate, setNewDate] = useState("");
   const [completionNote, setCompletionNote] = useState("");
   const [showNote, setShowNote] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Reset draft state whenever the selected task changes (or the sheet
+  // closes), so task B never opens with task A's note text or reschedule
+  // mode still active.
+  useEffect(() => {
+    setShowReschedule(false);
+    setNewDate("");
+    setCompletionNote("");
+    setShowNote(false);
+    setSubmitting(false);
+  }, [activity?._id, open]);
 
   if (!activity) return null;
 
   const isDone = activity.status === "completed";
   const isSkipped = activity.status === "skipped";
 
-  function handleComplete() {
-    onComplete?.(activity, completionNote.trim() || undefined);
-    setCompletionNote("");
-    setShowNote(false);
-    onClose?.();
+  async function handleComplete() {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      await onComplete?.(activity, completionNote.trim() || undefined);
+      // Only clear and close on success — preserve the note on failure
+      // so the user can retry without re-typing.
+      setCompletionNote("");
+      setShowNote(false);
+      onClose?.();
+    } catch {
+      // Parent already toasted the error; keep the sheet + draft open.
+    } finally {
+      setSubmitting(false);
+    }
   }
 
-  function handleSkip() {
-    onSkip?.(activity);
-    onClose?.();
+  async function handleSkip() {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      await onSkip?.(activity);
+      onClose?.();
+    } catch {
+      // Parent toasted; leave sheet open.
+    } finally {
+      setSubmitting(false);
+    }
   }
 
-  function handleReschedule() {
-    if (!newDate) return;
-    onReschedule?.(activity, newDate);
-    setNewDate("");
-    setShowReschedule(false);
-    onClose?.();
+  async function handleReschedule() {
+    if (!newDate || submitting) return;
+    setSubmitting(true);
+    try {
+      await onReschedule?.(activity, newDate);
+      setNewDate("");
+      setShowReschedule(false);
+      onClose?.();
+    } catch {
+      // Parent toasted; preserve the chosen date so the user can retry.
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -141,7 +178,7 @@ export default function TaskDetailSheet({
                 label="Confirm"
                 onClick={handleReschedule}
                 variant="primary"
-                disabled={!newDate}
+                disabled={!newDate || submitting}
               />
               <ActionButton
                 icon="solar:close-circle-linear"
@@ -150,6 +187,7 @@ export default function TaskDetailSheet({
                   setShowReschedule(false);
                   setNewDate("");
                 }}
+                disabled={submitting}
               />
             </div>
           </div>
@@ -163,23 +201,27 @@ export default function TaskDetailSheet({
                 label={showNote ? "Save & complete" : "Complete"}
                 onClick={handleComplete}
                 variant="primary"
+                disabled={submitting}
               />
               {!showNote && (
                 <ActionButton
                   icon="solar:notes-linear"
                   label="Add note"
                   onClick={() => setShowNote(true)}
+                  disabled={submitting}
                 />
               )}
               <ActionButton
                 icon="solar:calendar-linear"
                 label="Reschedule"
                 onClick={() => setShowReschedule(true)}
+                disabled={submitting}
               />
               <ActionButton
                 icon="solar:close-circle-linear"
                 label="Skip"
                 onClick={handleSkip}
+                disabled={submitting}
               />
             </>
           )}
