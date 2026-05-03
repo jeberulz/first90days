@@ -5,6 +5,7 @@ import { useConvexAuth } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { Logo } from "@/components/ui/Logo";
 
 /**
  * Layout for the read-only "shared with me" workspace. Requires auth (so we
@@ -37,16 +38,13 @@ export default function SharedLayout({ children }) {
     <div className="min-h-screen bg-[#0F0E0D] text-[#E7E5E4] dark">
       <header className="border-b border-[#2C2825] bg-[#0F0E0D]/80 backdrop-blur sticky top-0 z-30">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-md bg-gradient-to-br from-[#D97757] to-[#C26242] flex items-center justify-center">
-              <span className="text-white text-xs font-bold font-space-grotesk">
-                A
-              </span>
-            </div>
-            <span className="font-space-grotesk text-base font-medium tracking-[-0.4px] text-[#E7E5E4]">
-              Arcora
-            </span>
-            <span className="ml-2 font-space-grotesk text-xs uppercase tracking-[0.6px] text-[#A8A29E]">
+          <Link
+            href="/dashboard"
+            className="flex items-center gap-3 text-[#E7E5E4]"
+            aria-label="Arcora home"
+          >
+            <Logo className="h-9 w-auto" />
+            <span className="font-space-grotesk text-xs uppercase tracking-[0.6px] text-[#A8A29E]">
               Shared workspace
             </span>
           </Link>

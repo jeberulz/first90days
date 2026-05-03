@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Icon } from "@iconify/react";
 import { MobileDrawer } from "@/components/primitives";
+import { Logo } from "./Logo";
 
 function toggleTheme() {
   const root = document.documentElement;
@@ -31,19 +32,10 @@ export function Navbar() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 min-w-0 min-h-11 -mx-1 px-1 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0F0E0D]"
+            className="inline-flex items-center min-w-0 min-h-11 -mx-1 px-1 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0F0E0D] text-[#1C1917] dark:text-white"
             aria-label="Arcora home"
           >
-            <Icon
-              icon="solar:stars-minimalistic-linear"
-              className="text-accent shrink-0"
-              width={24}
-              height={24}
-              aria-hidden
-            />
-            <span className="font-semibold tracking-tight text-base font-space-grotesk text-[#1C1917] dark:text-white">
-              Arcora
-            </span>
+            <Logo className="h-9 w-auto shrink-0" />
           </Link>
 
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-[#44403C] dark:text-[#D6D3D1]">
@@ -114,17 +106,8 @@ export function Navbar() {
 
       <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)}>
         <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-2">
-            <Icon
-              icon="solar:stars-minimalistic-linear"
-              className="text-accent"
-              width={24}
-              height={24}
-              aria-hidden
-            />
-            <span className="font-semibold tracking-tight text-base font-space-grotesk text-[#1C1917] dark:text-white">
-              Arcora
-            </span>
+          <div className="flex items-center text-[#1C1917] dark:text-white">
+            <Logo className="h-9 w-auto" />
           </div>
           <button
             type="button"

@@ -5,7 +5,7 @@ import { api } from "../../../convex/_generated/api";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Icon } from "@iconify/react";
+import { Logo } from "@/components/ui/Logo";
 
 export default function OnboardingLayout({ children }) {
   const { isAuthenticated, isLoading } = useConvexAuth();
@@ -52,9 +52,12 @@ export default function OnboardingLayout({ children }) {
     <div className="min-h-screen bg-paper text-warm-ink">
       <header className="fixed top-0 inset-x-0 z-50 bg-paper/90 backdrop-blur-md border-b border-warm-line">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <Icon icon="solar:stars-minimalistic-linear" className="text-accent" width={20} />
-            <span className="font-space-grotesk text-sm font-medium tracking-tight">Arcora</span>
+          <Link
+            href="/"
+            className="flex items-center text-warm-ink"
+            aria-label="Arcora home"
+          >
+            <Logo className="h-8 w-auto" />
           </Link>
           <div className="flex items-center gap-3">
             <span
