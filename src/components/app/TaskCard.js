@@ -1,7 +1,7 @@
 "use client";
 
 import { Icon } from "@iconify/react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import {
   getCategoryMeta,
@@ -113,22 +113,49 @@ export default function TaskCard({
   const isDone = activity.status === "completed";
   const isSkipped = activity.status === "skipped";
   const [justCompleted, setJustCompleted] = useState(false);
+  const pulseTimerRef = useRef(null);
+
+  // Clear the celebratory-pulse timer if the card unmounts before it fires.
+  useEffect(() => {
+    return () => {
+      if (pulseTimerRef.current) {
+        clearTimeout(pulseTimerRef.current);
+      }
+    };
+  }, []);
 
   function handleComplete() {
     if (isDone || justCompleted) return;
+    // Fire the mutation synchronously so we never race against a follow-up
+    // action (e.g. user opens the sheet and skips before a deferred timer
+    // fires). The animation is purely local visual state.
     setJustCompleted(true);
-    setTimeout(() => {
-      onComplete?.(activity);
-    }, 600);
+    onComplete?.(activity);
+    pulseTimerRef.current = setTimeout(() => {
+      pulseTimerRef.current = null;
+      setJustCompleted(false);
+    }, 1000);
+  }
+
+  function handleKeyDown(e) {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onOpen?.(activity);
+    }
   }
 
   return (
-    <button
-      type="button"
+    // Not a <button> because the card contains nested buttons (checkbox,
+    // skip, reschedule). Nested interactive elements are invalid HTML and
+    // break keyboard / screen-reader behavior in some browsers.
+    <div
+      role="button"
+      tabIndex={0}
       onClick={() => onOpen?.(activity)}
+      onKeyDown={handleKeyDown}
       style={{ animationDelay: `${Math.min(index, 12) * 30}ms` }}
       className={cn(
-        "group w-full text-left bg-warm-cardDark border border-warm-borderDark rounded-xl",
+        "group w-full text-left bg-warm-cardDark border border-warm-borderDark rounded-xl cursor-pointer",
         "p-4 border-l-4 transition-all duration-200",
         "hover:border-warm-borderMuted hover:bg-warm-surfaceDark/40",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
@@ -192,6 +219,6 @@ export default function TaskCard({
           )}
         </div>
       </div>
-    </button>
+    </div>
   );
 }
