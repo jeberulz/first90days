@@ -45,6 +45,7 @@ import type * as lib_rateLimit from "../lib/rateLimit.js";
 import type * as lib_stakeholderCadence from "../lib/stakeholderCadence.js";
 import type * as logEntries from "../logEntries.js";
 import type * as loginAttempts from "../loginAttempts.js";
+import type * as migrations_clearRescheduledStatus from "../migrations/clearRescheduledStatus.js";
 import type * as migrations_grandfather from "../migrations/grandfather.js";
 import type * as migrations_legacyKnowledgeToDocuments from "../migrations/legacyKnowledgeToDocuments.js";
 import type * as migrations_pilotKbSeed from "../migrations/pilotKbSeed.js";
@@ -108,6 +109,7 @@ declare const fullApi: ApiFromModules<{
   "lib/stakeholderCadence": typeof lib_stakeholderCadence;
   logEntries: typeof logEntries;
   loginAttempts: typeof loginAttempts;
+  "migrations/clearRescheduledStatus": typeof migrations_clearRescheduledStatus;
   "migrations/grandfather": typeof migrations_grandfather;
   "migrations/legacyKnowledgeToDocuments": typeof migrations_legacyKnowledgeToDocuments;
   "migrations/pilotKbSeed": typeof migrations_pilotKbSeed;
