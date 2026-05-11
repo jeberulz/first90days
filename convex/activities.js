@@ -136,7 +136,6 @@ export const reschedule = mutation({
     }
 
     await ctx.db.patch(args.id, {
-      status: "rescheduled",
       scheduledDate: args.newDate,
     });
   },
