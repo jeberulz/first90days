@@ -2,32 +2,109 @@
 
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
-import { useState } from "react";
-import { ScrollableTabs } from "@/components/primitives";
+import { useMemo, useState, useTransition } from "react";
+import { Icon } from "@iconify/react";
+import { PageHeader, UnderlineTabs } from "@/components/primitives";
 import NoPlanEmptyState from "@/components/app/NoPlanEmptyState";
+import TaskProgressStrip from "@/components/app/TaskProgressStrip";
+import TaskCard from "@/components/app/TaskCard";
+import TaskDetailSheet from "@/components/app/TaskDetailSheet";
+import PreBoardingBanner from "@/components/app/PreBoardingBanner";
+import CategoryFilterChips from "@/components/app/CategoryFilterChips";
 import { useHasPlan } from "@/hooks/useHasPlan";
+import { useToast } from "@/components/primitives/Toaster";
+import { ACTIVITY_CATEGORIES } from "@/lib/activityCategories";
+import { cn } from "@/lib/utils";
 
-const STATUS_TABS = [
+const STATUS_KEYS = [
   { key: "all", label: "All" },
   { key: "upcoming", label: "Upcoming" },
   { key: "completed", label: "Completed" },
   { key: "skipped", label: "Skipped" },
 ];
 
-const CATEGORY_TABS = [
-  { key: "all", label: "All" },
-  { key: "learning", label: "Learning" },
-  { key: "shipping", label: "Shipping" },
-  { key: "relationships", label: "Relationships" },
-  { key: "influence", label: "Influence" },
-];
-
-const categoryColors = {
-  learning: { border: "border-l-blue-500", text: "text-blue-400" },
-  shipping: { border: "border-l-green-500", text: "text-green-400" },
-  relationships: { border: "border-l-amber-500", text: "text-amber-400" },
-  influence: { border: "border-l-purple-500", text: "text-purple-400" },
+const GOAL_STATUS = {
+  not_started: {
+    label: "Not started",
+    className: "bg-warm-surfaceDark text-warm-300",
+  },
+  in_progress: {
+    label: "In progress",
+    className: "bg-accent/15 text-accent",
+  },
+  completed: {
+    label: "Done",
+    className: "bg-green-500/15 text-green-300",
+  },
 };
+
+function TasksSkeleton() {
+  return (
+    <div className="space-y-6 sm:space-y-8 animate-pulse">
+      <div>
+        <div className="h-3 w-16 bg-warm-cardDark rounded" />
+        <div className="mt-3 h-10 bg-warm-cardDark rounded-lg w-2/3 sm:w-1/2" />
+      </div>
+      <div className="h-32 bg-warm-cardDark border border-warm-borderDark rounded-2xl" />
+      <div className="flex gap-2">
+        <div className="h-9 w-16 rounded-full bg-warm-cardDark" />
+        <div className="h-9 w-24 rounded-full bg-warm-cardDark" />
+        <div className="h-9 w-24 rounded-full bg-warm-cardDark" />
+      </div>
+      <div className="space-y-2">
+        {[0, 1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className="bg-warm-cardDark border border-warm-borderDark border-l-4 border-l-warm-borderMuted rounded-xl p-4"
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-5 h-5 rounded border-2 border-warm-borderMuted shrink-0 mt-0.5" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 bg-warm-surfaceDark rounded w-3/4" />
+                <div className="flex gap-2">
+                  <div className="h-5 w-20 rounded-full bg-warm-surfaceDark" />
+                  <div className="h-3 w-8 bg-warm-surfaceDark rounded" />
+                  <div className="h-3 w-12 bg-warm-surfaceDark rounded" />
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function GoalCard({ goal }) {
+  const status = GOAL_STATUS[goal.status] || GOAL_STATUS.not_started;
+  return (
+    <div className="bg-warm-cardDark border border-warm-borderDark rounded-xl p-4 flex items-start gap-3">
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="t-meta text-warm-300">
+            Phase {goal.targetPhase}
+          </span>
+          <span
+            className={cn(
+              "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium",
+              status.className
+            )}
+          >
+            {status.label}
+          </span>
+        </div>
+        <p className="font-space-grotesk text-sm text-warm-line leading-snug">
+          {goal.title}
+        </p>
+        {goal.targetMetric && (
+          <p className="mt-1 font-space-grotesk text-xs text-warm-300">
+            {goal.targetMetric}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function TasksPage() {
   const allActivities = useQuery(api.activities.getAll);
@@ -36,35 +113,68 @@ export default function TasksPage() {
   const viewer = useQuery(api.users.viewer);
   const { hasPlan, isGenerating } = useHasPlan();
   const completeActivity = useMutation(api.activities.complete);
+  const skipActivity = useMutation(api.activities.skip);
+  const rescheduleActivity = useMutation(api.activities.reschedule);
+  const addToast = useToast();
+
   const [filter, setFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [selectedId, setSelectedId] = useState(null);
+  const [isPending, startTransition] = useTransition();
+
+  const stats = useMemo(() => {
+    if (!allActivities)
+      return { total: 0, completed: 0, upcoming: 0, skipped: 0 };
+    return {
+      total: allActivities.length,
+      completed: allActivities.filter((a) => a.status === "completed").length,
+      upcoming: allActivities.filter((a) => a.status === "upcoming").length,
+      skipped: allActivities.filter((a) => a.status === "skipped").length,
+    };
+  }, [allActivities]);
+
+  const categoryCounts = useMemo(() => {
+    if (!allActivities) return { all: 0 };
+    const base =
+      filter === "all"
+        ? allActivities
+        : allActivities.filter((a) => a.status === filter);
+    const counts = { all: base.length };
+    for (const cat of ACTIVITY_CATEGORIES) {
+      counts[cat.slug] = base.filter((a) => a.category === cat.slug).length;
+    }
+    return counts;
+  }, [allActivities, filter]);
+
+  const todayCounts = useMemo(() => {
+    if (!allActivities || !dayInfo?.dayNumber)
+      return { todayDone: 0, todayTotal: 0 };
+    const todays = allActivities.filter(
+      (a) => a.scheduledDay === dayInfo.dayNumber
+    );
+    return {
+      todayDone: todays.filter((a) => a.status === "completed").length,
+      todayTotal: todays.length,
+    };
+  }, [allActivities, dayInfo]);
 
   if (!allActivities) {
-    return (
-      <div className="space-y-4">
-        <div className="h-10 bg-[#1C1917] rounded-lg animate-pulse w-1/2" />
-        {[1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="h-16 bg-[#1C1917] border border-[#2C2825] rounded-xl animate-pulse" />
-        ))}
-      </div>
-    );
+    return <TasksSkeleton />;
   }
 
   if (allActivities.length === 0 && (isGenerating || !hasPlan)) {
     return (
       <div className="space-y-6 sm:space-y-8">
-        <div>
-          <h1 className="font-instrument-serif tracking-[-0.5px] sm:tracking-[-0.9px] text-2xl sm:text-3xl md:text-4xl leading-tight">
-            Tasks & Milestones
-          </h1>
-          <p className="mt-2 font-space-grotesk text-sm sm:text-base text-[#A8A29E]">
-            Your activity tracker
-          </p>
-        </div>
+        <PageHeader
+          eyebrow="Plan"
+          title="Tasks & Milestones"
+          description="Your activity tracker."
+          variant="display"
+        />
         {isGenerating ? (
-          <div className="bg-[#1C1917] border border-[#D97757]/30 rounded-xl p-6 sm:p-8 text-center space-y-3">
-            <div className="w-8 h-8 mx-auto border-2 border-[#D97757] border-t-transparent rounded-full animate-spin" />
-            <p className="font-space-grotesk text-sm text-[#A8A29E]">
+          <div className="bg-warm-cardDark border border-accent/30 rounded-xl p-6 sm:p-8 text-center space-y-3">
+            <div className="w-8 h-8 mx-auto border-2 border-accent border-t-transparent rounded-full animate-spin" />
+            <p className="font-space-grotesk text-sm text-warm-300">
               Your plan is being generated. Tasks will appear here shortly.
             </p>
           </div>
@@ -80,197 +190,219 @@ export default function TasksPage() {
     );
   }
 
+  // Filter the list according to current selections.
   let filtered = allActivities;
-  if (filter !== "all") {
-    filtered = filtered.filter((a) => a.status === filter);
-  }
-  if (categoryFilter !== "all") {
+  if (filter !== "all") filtered = filtered.filter((a) => a.status === filter);
+  if (categoryFilter !== "all")
     filtered = filtered.filter((a) => a.category === categoryFilter);
+
+  // Group by week and sort.
+  const grouped = filtered.reduce((acc, a) => {
+    const wk = a.weekNumber ?? 0;
+    (acc[wk] ??= []).push(a);
+    return acc;
+  }, {});
+  const weekKeys = Object.keys(grouped)
+    .map(Number)
+    .sort((a, b) => a - b);
+  for (const wk of weekKeys) {
+    grouped[wk].sort(
+      (a, b) => (a.scheduledDay || 0) - (b.scheduledDay || 0)
+    );
   }
 
-  const stats = {
-    total: allActivities.length,
-    completed: allActivities.filter((a) => a.status === "completed").length,
-    upcoming: allActivities.filter((a) => a.status === "upcoming").length,
-    skipped: allActivities.filter((a) => a.status === "skipped").length,
-  };
-
+  const selected = selectedId
+    ? allActivities.find((a) => a._id === selectedId)
+    : null;
   const preBoarding = dayInfo && !dayInfo.hasStarted;
 
-  function formatStartDate(ymd) {
-    const [y, m, d] = ymd.split("-").map(Number);
-    return new Date(y, m - 1, d).toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "long",
-      day: "numeric",
-      year: "numeric",
+  // Status tabs: text-only labels. Counts are intentionally omitted —
+  // the Plan progress strip already surfaces Completed/Upcoming/Skipped
+  // numbers, so repeating them here would be noise.
+  const statusTabs = STATUS_KEYS;
+
+  function changeFilter(setter, value) {
+    startTransition(() => setter(value));
+  }
+
+  function resetFilters() {
+    startTransition(() => {
+      setFilter("all");
+      setCategoryFilter("all");
     });
   }
 
+  async function handleComplete(activity, completionNotes) {
+    try {
+      await completeActivity({
+        id: activity._id,
+        completionNotes,
+      });
+      // Week completion check: was this the last incomplete in its week?
+      const weekItems = allActivities.filter(
+        (a) => a.weekNumber === activity.weekNumber
+      );
+      const remaining = weekItems.filter(
+        (a) =>
+          a._id !== activity._id &&
+          a.status !== "completed" &&
+          a.status !== "skipped"
+      );
+      if (remaining.length === 0 && weekItems.length > 1) {
+        addToast(`Week ${activity.weekNumber} done.`, "success");
+      } else {
+        addToast("Activity completed.", "success");
+      }
+    } catch (err) {
+      addToast(err.message || "Couldn't complete activity.", "error");
+      // Re-throw so callers (TaskCard / TaskDetailSheet) can roll back
+      // optimistic UI and keep their drafts open.
+      throw err;
+    }
+  }
+
+  async function handleSkip(activity) {
+    try {
+      await skipActivity({ id: activity._id });
+      addToast("Activity skipped.", "info");
+    } catch (err) {
+      addToast(err.message || "Couldn't skip activity.", "error");
+      throw err;
+    }
+  }
+
+  async function handleReschedule(activity, newDate) {
+    try {
+      await rescheduleActivity({ id: activity._id, newDate });
+      addToast("Activity rescheduled.", "success");
+    } catch (err) {
+      addToast(err.message || "Couldn't reschedule.", "error");
+      throw err;
+    }
+  }
+
   return (
-    <div className="space-y-6 sm:space-y-8">
-      <div>
-        <h1 className="font-instrument-serif tracking-[-0.5px] sm:tracking-[-0.9px] text-2xl sm:text-3xl md:text-4xl leading-tight">
-          Tasks & Milestones
-        </h1>
-        <p className="mt-2 font-space-grotesk text-sm sm:text-base text-[#A8A29E]">
-          {stats.completed} of {stats.total} completed
-        </p>
-      </div>
+    <div className="pb-24 sm:pb-28 lg:pb-0">
+      <div className="space-y-6 sm:space-y-8">
+        <PageHeader
+          eyebrow="Plan"
+          title="Tasks & Milestones"
+          description={
+            preBoarding
+              ? "Your activity tracker."
+              : `${stats.completed} of ${stats.total} completed.`
+          }
+          variant="display"
+        />
 
-      {preBoarding && (
-        <div className="bg-[#D97757]/10 border border-[#D97757]/30 rounded-xl px-5 py-4 flex items-start gap-3">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#D97757" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 mt-0.5">
-            <circle cx="10" cy="10" r="9" />
-            <path d="M10 6v4M10 14h.01" />
-          </svg>
-          <p className="font-space-grotesk text-sm text-[#E7E5E4]">
-            Your plan starts <span className="font-medium text-[#D97757]">{formatStartDate(dayInfo.startDate)}</span>.
-            Activities will appear on Today&apos;s View once you begin.
-          </p>
+        {preBoarding && <PreBoardingBanner startDate={dayInfo.startDate} />}
+
+        <TaskProgressStrip
+          completed={stats.completed}
+          upcoming={stats.upcoming}
+          skipped={stats.skipped}
+          total={stats.total}
+          todayDone={todayCounts.todayDone}
+          todayTotal={todayCounts.todayTotal}
+        />
+
+        <div className="space-y-3">
+          <UnderlineTabs
+            items={statusTabs}
+            activeKey={filter}
+            onChange={(k) => changeFilter(setFilter, k)}
+            ariaLabel="Filter by status"
+          />
+          <CategoryFilterChips
+            activeKey={categoryFilter}
+            onChange={(k) => changeFilter(setCategoryFilter, k)}
+            counts={categoryCounts}
+            ariaLabel="Filter by category"
+          />
         </div>
-      )}
 
-      {/* Stats row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: "Total", value: stats.total, color: "text-[#E7E5E4]" },
-          { label: "Completed", value: stats.completed, color: "text-green-400" },
-          { label: "Upcoming", value: stats.upcoming, color: "text-[#D97757]" },
-          { label: "Skipped", value: stats.skipped, color: "text-[#A8A29E]" },
-        ].map((stat) => (
-          <div key={stat.label} className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-4">
-            <p className="font-space-grotesk text-xs text-[#A8A29E]">{stat.label}</p>
-            <p className={`font-instrument-serif text-2xl ${stat.color}`}>{stat.value}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Filters */}
-      <div className="space-y-3">
-        <ScrollableTabs
-          items={STATUS_TABS}
-          activeKey={filter}
-          onChange={setFilter}
-          ariaLabel="Filter by status"
-        />
-        <ScrollableTabs
-          items={CATEGORY_TABS}
-          activeKey={categoryFilter}
-          onChange={setCategoryFilter}
-          ariaLabel="Filter by category"
-        />
-      </div>
-
-      {/* Activity list */}
-      <div className="space-y-2">
-        {filtered.length === 0 && (
-          <div className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-8 text-center">
-            <p className="font-space-grotesk text-sm text-[#A8A29E]">
-              No activities match your filters.
-            </p>
-          </div>
-        )}
-        {filtered
-          .sort((a, b) => (a.scheduledDay || 0) - (b.scheduledDay || 0))
-          .map((activity) => {
-            const colors = categoryColors[activity.category] || categoryColors.learning;
-            const isDone = activity.status === "completed";
-
-            return (
-              <div
-                key={activity._id}
-                className={`bg-[#1C1917] border border-[#2C2825] rounded-xl p-4 border-l-4 ${colors.border} ${
-                  isDone ? "opacity-50" : ""
-                }`}
+        <div
+          key={`${filter}-${categoryFilter}`}
+          className={cn(
+            "space-y-6 transition-opacity duration-150",
+            isPending && "opacity-60"
+          )}
+        >
+          {filtered.length === 0 ? (
+            <div className="bg-warm-cardDark border border-warm-borderDark rounded-2xl p-10 text-center">
+              <Icon
+                icon="solar:filter-linear"
+                className="w-10 h-10 text-warm-borderMuted mx-auto"
+                aria-hidden
+              />
+              <p className="mt-4 font-instrument-serif text-xl text-warm-line">
+                Nothing matches
+              </p>
+              <p className="mt-1 font-space-grotesk text-sm text-warm-300">
+                Try clearing one of the filters.
+              </p>
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent text-white hover:bg-accent-hover transition-colors min-h-11 font-space-grotesk text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               >
-                <div className="flex items-start sm:items-center gap-3">
-                  {!isDone && activity.status === "upcoming" && (
-                    <button
-                      onClick={() => completeActivity({ id: activity._id })}
-                      aria-label="Complete activity"
-                      className="mt-0.5 sm:mt-0 w-5 h-5 rounded border-2 border-[#44403C] hover:border-[#D97757] transition-colors flex-shrink-0"
+                Reset filters
+              </button>
+            </div>
+          ) : (
+            weekKeys.map((wk) => {
+              const items = grouped[wk];
+              const done = items.filter(
+                (a) => a.status === "completed"
+              ).length;
+              return (
+                <section key={wk} className="space-y-2">
+                  <header className="sticky top-0 z-10 -mx-4 sm:mx-0 px-4 sm:px-0 py-2 bg-paper-dark/80 backdrop-blur-sm flex items-center justify-between">
+                    <h3 className="t-meta text-warm-300">Week {wk}</h3>
+                    <span className="font-space-grotesk text-xs text-warm-300">
+                      {done}/{items.length}
+                    </span>
+                  </header>
+                  {items.map((activity, i) => (
+                    <TaskCard
+                      key={activity._id}
+                      activity={activity}
+                      index={i}
+                      onComplete={handleComplete}
+                      onSkip={handleSkip}
+                      onReschedule={(a) => setSelectedId(a._id)}
+                      onOpen={(a) => setSelectedId(a._id)}
                     />
-                  )}
-                  {isDone && (
-                    <div className="mt-0.5 sm:mt-0 w-5 h-5 rounded bg-[#D97757] flex items-center justify-center flex-shrink-0">
-                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
-                        <path d="M2 6l3 3 5-5" />
-                      </svg>
-                    </div>
-                  )}
-                  {activity.status === "skipped" && (
-                    <div className="mt-0.5 sm:mt-0 w-5 h-5 rounded bg-[#292524] flex items-center justify-center flex-shrink-0">
-                      <span className="text-[#A8A29E] text-xs">—</span>
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className={`font-space-grotesk text-sm ${isDone ? "text-[#A8A29E] line-through" : "text-[#E7E5E4]"}`}>
-                      {activity.title}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 sm:hidden">
-                      <span className={`font-space-grotesk text-xs ${colors.text}`}>
-                        {activity.category}
-                      </span>
-                      <span className="font-space-grotesk text-xs text-[#A8A29E]">
-                        W{activity.weekNumber}
-                      </span>
-                      <span className="font-space-grotesk text-xs text-[#A8A29E]">
-                        {activity.estimatedTime}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
-                    <span className={`font-space-grotesk text-xs ${colors.text}`}>
-                      {activity.category}
-                    </span>
-                    <span className="font-space-grotesk text-xs text-[#A8A29E]">
-                      W{activity.weekNumber}
-                    </span>
-                    <span className="font-space-grotesk text-xs text-[#A8A29E]">
-                      {activity.estimatedTime}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+                  ))}
+                </section>
+              );
+            })
+          )}
+        </div>
+
+        {goals && goals.length > 0 && (
+          <section className="space-y-3 pt-2">
+            <div>
+              <p className="t-meta text-warm-300">Phase outcomes</p>
+              <h2 className="t-h3 text-warm-line mt-1">Milestones &amp; Goals</h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {goals.map((goal) => (
+                <GoalCard key={goal._id} goal={goal} />
+              ))}
+            </div>
+          </section>
+        )}
       </div>
 
-      {/* Goals section */}
-      {goals && goals.length > 0 && (
-        <div>
-          <h2 className="font-space-grotesk text-sm font-medium uppercase tracking-[0.6px] text-[#A8A29E] mb-4">
-            Milestones & Goals
-          </h2>
-          <div className="space-y-2">
-            {goals.map((goal) => (
-              <div
-                key={goal._id}
-                className="bg-[#1C1917] border border-[#2C2825] rounded-xl p-4 flex items-center gap-3"
-              >
-                <div
-                  className={`w-3 h-3 rounded-full flex-shrink-0 ${
-                    goal.status === "completed"
-                      ? "bg-green-500"
-                      : goal.status === "in_progress"
-                        ? "bg-[#D97757]"
-                        : "bg-[#292524] border border-[#44403C]"
-                  }`}
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="font-space-grotesk text-sm text-[#E7E5E4]">
-                    {goal.title}
-                  </p>
-                </div>
-                <span className="font-space-grotesk text-xs text-[#A8A29E]">
-                  Phase {goal.targetPhase}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <TaskDetailSheet
+        activity={selected}
+        open={!!selected}
+        onClose={() => setSelectedId(null)}
+        onComplete={handleComplete}
+        onSkip={handleSkip}
+        onReschedule={handleReschedule}
+      />
     </div>
   );
 }
