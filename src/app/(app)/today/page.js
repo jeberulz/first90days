@@ -8,6 +8,7 @@ import StakeholderNudges from "@/components/stakeholders/StakeholderNudges";
 import NoPlanEmptyState from "@/components/app/NoPlanEmptyState";
 import { useHasPlan } from "@/hooks/useHasPlan";
 import { useToast } from "@/components/primitives/Toaster";
+import HelpWithThisButton from "@/components/whisperer/HelpWithThisButton";
 
 const categoryColors = {
   learning: { bg: "bg-blue-500/10", border: "border-l-blue-500", text: "text-blue-400" },
@@ -312,6 +313,13 @@ export default function TodayPage() {
                     </svg>
                   </button>
                 </div>
+              </div>
+              <div className="mt-3 pt-3 border-t border-[#2C2825]/60">
+                <HelpWithThisButton
+                  activityId={activity._id}
+                  taskCategory={activity.category}
+                  onMarkDone={() => handleComplete(activity._id)}
+                />
               </div>
               {completingId === activity._id && (
                 <div className="mt-3 pt-3 border-t border-[#2C2825]">
