@@ -236,6 +236,120 @@ export function buildSmallTaskPrompt(bundle, options = {}) {
   return lines.join("\n");
 }
 
+/**
+ * Continuation prompt: feeds the conversation-so-far into the same
+ * hybrid schema used by U4's one-shot reply. Wraps `buildHybridPrompt`
+ * to keep the grounding sections identical and APPENDS a
+ * "Conversation so far" block before the # Instructions section so the
+ * model treats prior turns as context, not new instructions.
+ *
+ * `history` is an array of `{ role, content }` (user|assistant|system)
+ * already ordered by seq. Long histories are truncated to the last 16
+ * turns (covers worst-case 10 user + 10 assistant comfortably).
+ *
+ * `shape` mirrors `buildHybridPrompt(bundle, shape)` — the continuation
+ * still emits the hybrid schema (artifact optional). Most continuation
+ * turns are coaching-only, but the user may ask for a redrafted
+ * artifact mid-thread, so we keep shape flexible.
+ */
+export function buildContinuationPrompt(bundle, history, shape, options = {}) {
+  const { strict = false, piiNote = null, parseHint = null } = options;
+  const base = buildHybridPrompt(bundle, shape, {
+    strict: false,
+    piiNote: null,
+    parseHint: null,
+  });
+
+  const histLines = [];
+  histLines.push("");
+  histLines.push("# Conversation so far");
+  const recent = Array.isArray(history) ? history.slice(-16) : [];
+  if (recent.length === 0) {
+    histLines.push("(no prior turns)");
+  } else {
+    for (const turn of recent) {
+      const role = turn.role === "assistant" ? "assistant" : "user";
+      const text = truncate(String(turn.content || ""), 800);
+      histLines.push(`- ${role}: ${text}`);
+    }
+  }
+
+  // Insert the history block just before "# Instructions". The hybrid
+  // builder always emits "# Instructions" exactly once at the bottom;
+  // splicing in the conversation log immediately above keeps the
+  // grounding sections ordered the way the model expects (context →
+  // history → ask).
+  const idx = base.indexOf("# Instructions");
+  let body;
+  if (idx === -1) {
+    body = `${base}\n${histLines.join("\n")}`;
+  } else {
+    body = `${base.slice(0, idx)}${histLines.join("\n")}\n\n${base.slice(idx)}`;
+  }
+
+  if (strict) {
+    const strictTail = [
+      "",
+      "STRICT MODE: the previous attempt failed validation.",
+      ...(parseHint ? [`Parse hint: ${parseHint}`] : []),
+      ...(piiNote ? [`PII note: ${piiNote}`] : []),
+      "Respond with valid JSON only. Do not include any text outside the JSON object. Do not invent stakeholder facts.",
+    ];
+    body = `${body}\n${strictTail.join("\n")}`;
+  }
+  return body;
+}
+
+/**
+ * Cap-recap prompt: free closing summary when a chat hits the
+ * 10-turn organic cap (or cents ceiling mid-thread). The recap is a
+ * Sonnet call but does NOT count against the user's daily ledger —
+ * see OP_COSTS.whisperer_recap = 0. We use generateText (plain) here,
+ * not the hybrid schema, because the recap is a single short paragraph,
+ * not a structured artifact.
+ *
+ * `reason` is one of: "turn_limit" | "cents_ceiling".
+ */
+export function buildCapRecapPrompt(bundle, history, reason) {
+  const lines = [];
+  lines.push("# Mode");
+  lines.push("recap");
+  lines.push("");
+
+  lines.push("# Task");
+  lines.push(formatTaskBlock(bundle));
+  lines.push("");
+
+  lines.push("# User context");
+  lines.push(formatUserContext(bundle));
+  lines.push("");
+
+  const recent = Array.isArray(history) ? history.slice(-16) : [];
+  if (recent.length > 0) {
+    lines.push("# Conversation so far");
+    for (const turn of recent) {
+      const role = turn.role === "assistant" ? "assistant" : "user";
+      const text = truncate(String(turn.content || ""), 600);
+      lines.push(`- ${role}: ${text}`);
+    }
+    lines.push("");
+  }
+
+  lines.push("# Instructions");
+  if (reason === "cents_ceiling") {
+    lines.push(
+      "The user has hit today's AI usage ceiling mid-conversation. Produce a graceful closing summary (3-5 short sentences) that: (1) names the most useful next step from the conversation, (2) acknowledges this thread is pausing, (3) suggests they mark the task done, escalate it, or close unresolved. Do not invent stakeholder facts. Be warm, concrete, and brief."
+    );
+  } else {
+    lines.push(
+      "This conversation has reached its 10-turn ritual cap. Produce a closing recap (3-5 short sentences) that: (1) summarizes the most actionable next step from the conversation, (2) acknowledges the cap, (3) invites the user to mark the task done, escalate it, or close it unresolved. Do not invent stakeholder facts. Be warm, concrete, and brief."
+    );
+  }
+  lines.push("Respond with plain prose only — no JSON, no preamble.");
+
+  return lines.join("\n");
+}
+
 /* ----- helpers ----- */
 
 function formatTaskBlock(bundle) {
