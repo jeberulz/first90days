@@ -124,12 +124,14 @@ export const createBatch = mutation({
     const userId = await auth.getUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
+    const now = Date.now();
     const ids = [];
     for (const s of args.stakeholders) {
       const id = await ctx.db.insert("stakeholders", {
         userId,
         ...s,
         firstMeetingScheduled: false,
+        firstMentionedAt: now,
       });
       ids.push(id);
     }
@@ -156,6 +158,7 @@ export const create = mutation({
       userId,
       ...args,
       firstMeetingScheduled: false,
+      firstMentionedAt: Date.now(),
     });
   },
 });

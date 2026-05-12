@@ -369,6 +369,7 @@ export const exportMyData = query({
       weeklyReviews,
       logEntries,
       knowledgeEntries,
+      whispererThreads,
     ] = await Promise.all([
       collectByUser("onboardingData"),
       collectByUser("plans"),
@@ -382,7 +383,32 @@ export const exportMyData = query({
       collectByUser("weeklyReviews"),
       collectByUser("logEntries"),
       collectByUser("knowledgeEntries"),
+      ctx.db
+        .query("whispererThreads")
+        .withIndex("by_user_status", (q) => q.eq("userId", userId))
+        .collect(),
     ]);
+
+    // Whisperer turns are owned via thread → user (no direct userId
+    // column), so we join through the threads we just fetched.
+    const whispererTurns = [];
+    for (const thread of whispererThreads) {
+      const turns = await ctx.db
+        .query("whispererTurns")
+        .withIndex("by_thread_seq", (q) => q.eq("threadId", thread._id))
+        .collect();
+      whispererTurns.push(...turns);
+    }
+
+    // planEventLog is owned by U2 (parallel worktree). When that schema
+    // lands the table will be queryable; for now we attempt it best-effort
+    // so the export contract stays stable across the merge.
+    let planEventLog = [];
+    try {
+      planEventLog = await collectByUser("planEventLog");
+    } catch {
+      planEventLog = [];
+    }
 
     const { _id, _creationTime, ...userPublic } = user;
 
@@ -406,6 +432,9 @@ export const exportMyData = query({
       weeklyReviews,
       logEntries,
       knowledgeEntries,
+      whispererThreads,
+      whispererTurns,
+      planEventLog,
     };
   },
 });
@@ -574,6 +603,48 @@ export const purgeUserData = internalMutation({
       .take(PURGE_BATCH_SIZE);
     for (const row of authoredComments) await ctx.db.delete(row._id);
     if (authoredComments.length === PURGE_BATCH_SIZE) moreWork = true;
+
+    // ── Whisperer cascade (U3 / R18) ────────────────────────────────────
+    // whispererThreads is keyed by userId directly; whispererTurns has
+    // no userId column so we join via the parent thread. We must delete
+    // all turns BEFORE the owning thread row so an interrupted batch
+    // can resume without orphans. To stay under transaction limits we
+    // delete one batch of turns per thread per invocation and only drop
+    // a thread once its turn set comes back empty.
+    const threads = await ctx.db
+      .query("whispererThreads")
+      .withIndex("by_user_status", (q) => q.eq("userId", userId))
+      .take(PURGE_BATCH_SIZE);
+
+    for (const thread of threads) {
+      const turns = await ctx.db
+        .query("whispererTurns")
+        .withIndex("by_thread_seq", (q) => q.eq("threadId", thread._id))
+        .take(PURGE_BATCH_SIZE);
+      for (const turn of turns) await ctx.db.delete(turn._id);
+      if (turns.length === PURGE_BATCH_SIZE) {
+        // Still more turns to delete for this thread; leave the thread
+        // row in place so the next invocation finds it again.
+        moreWork = true;
+      } else {
+        await ctx.db.delete(thread._id);
+      }
+    }
+    if (threads.length === PURGE_BATCH_SIZE) moreWork = true;
+
+    // planEventLog is owned by U2 (parallel worktree). Sweep best-effort
+    // so the cascade contract holds across the merge — when U2's schema
+    // lands this will start removing rows; until then it's a no-op.
+    try {
+      const eventRows = await ctx.db
+        .query("planEventLog")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .take(PURGE_BATCH_SIZE);
+      for (const row of eventRows) await ctx.db.delete(row._id);
+      if (eventRows.length === PURGE_BATCH_SIZE) moreWork = true;
+    } catch {
+      // Table not yet in schema; nothing to do.
+    }
 
     if (moreWork) {
       await ctx.scheduler.runAfter(0, internal.users.purgeUserData, { userId });
