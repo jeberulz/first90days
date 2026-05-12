@@ -44,7 +44,11 @@ import type * as lib_planPrompts from "../lib/planPrompts.js";
 import type * as lib_planTemplate from "../lib/planTemplate.js";
 import type * as lib_rateLimit from "../lib/rateLimit.js";
 import type * as lib_stakeholderCadence from "../lib/stakeholderCadence.js";
+import type * as lib_whispererClassifier from "../lib/whispererClassifier.js";
+import type * as lib_whispererContext from "../lib/whispererContext.js";
+import type * as lib_whispererPrompts from "../lib/whispererPrompts.js";
 import type * as lib_whispererQuota from "../lib/whispererQuota.js";
+import type * as lib_whispererValidator from "../lib/whispererValidator.js";
 import type * as logEntries from "../logEntries.js";
 import type * as loginAttempts from "../loginAttempts.js";
 import type * as migrations_backfillStakeholderFirstMentionedAt from "../migrations/backfillStakeholderFirstMentionedAt.js";
@@ -67,6 +71,9 @@ import type * as stakeholders from "../stakeholders.js";
 import type * as stripeWebhook from "../stripeWebhook.js";
 import type * as users from "../users.js";
 import type * as waitlist from "../waitlist.js";
+import type * as whisperer from "../whisperer.js";
+import type * as whispererInternal from "../whispererInternal.js";
+import type * as whispererSemantic from "../whispererSemantic.js";
 import type * as whispererThreads from "../whispererThreads.js";
 
 import type {
@@ -112,7 +119,11 @@ declare const fullApi: ApiFromModules<{
   "lib/planTemplate": typeof lib_planTemplate;
   "lib/rateLimit": typeof lib_rateLimit;
   "lib/stakeholderCadence": typeof lib_stakeholderCadence;
+  "lib/whispererClassifier": typeof lib_whispererClassifier;
+  "lib/whispererContext": typeof lib_whispererContext;
+  "lib/whispererPrompts": typeof lib_whispererPrompts;
   "lib/whispererQuota": typeof lib_whispererQuota;
+  "lib/whispererValidator": typeof lib_whispererValidator;
   logEntries: typeof logEntries;
   loginAttempts: typeof loginAttempts;
   "migrations/backfillStakeholderFirstMentionedAt": typeof migrations_backfillStakeholderFirstMentionedAt;
@@ -135,6 +146,9 @@ declare const fullApi: ApiFromModules<{
   stripeWebhook: typeof stripeWebhook;
   users: typeof users;
   waitlist: typeof waitlist;
+  whisperer: typeof whisperer;
+  whispererInternal: typeof whispererInternal;
+  whispererSemantic: typeof whispererSemantic;
   whispererThreads: typeof whispererThreads;
 }>;
 
