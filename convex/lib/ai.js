@@ -42,8 +42,9 @@ export async function embedText(input) {
 // future cuts only happens here.
 export const CLAUDE_SONNET_MODEL = "claude-sonnet-4-20250514";
 // Cheap Haiku id used by the structured judge + U5's semantic
-// classifier. Same pinning rationale.
-export const CLAUDE_HAIKU_MODEL = "claude-3-5-haiku-20241022";
+// classifier. The prior pin (claude-3-5-haiku-20241022) hit EOL on
+// 2026-02-19; the current release is Haiku 4.5.
+export const CLAUDE_HAIKU_MODEL = "claude-haiku-4-5-20251001";
 
 async function callClaude(systemPrompt, userPrompt) {
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });

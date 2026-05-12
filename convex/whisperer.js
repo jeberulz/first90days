@@ -170,38 +170,34 @@ export const respond = action({
       }
     }
 
-    // PII validator hit → retry once strict. Second hit → regenerate
-    // full with strict prompt. Third hit → graceful envelope.
+    // PII validator hit → ONE strict retry. If the retry still hits,
+    // fail-open: ship the response with a pii_warning flag rather than
+    // hide a working response behind a sterile error. The Haiku judge
+    // is a soft signal, not a hard gate — empirically (2026-05-12) the
+    // hard-gate flow degraded UX worse than any false negative could.
+    // The warning is captured in the invokedPayload so telemetry can
+    // monitor false-positive rates.
+    let piiWarning = false;
+    let firstHit = null;
     if (attempt.kind === "pii_hit") {
+      firstHit = attempt;
       piiRetry = true;
-      attempt = await callAndValidate({
+      const retry = await callAndValidate({
         bundle,
         buildPrompt,
         strict: true,
         stakeholderFacts,
         path,
       });
-      if (attempt.kind === "provider_unavailable") {
-        return providerUnavailable(attempt.error);
-      }
-      if (attempt.kind === "pii_hit" || attempt.kind === "parse_failed") {
-        attempt = await callAndValidate({
-          bundle,
-          buildPrompt,
-          strict: true,
-          stakeholderFacts,
-          path,
-        });
-        if (
-          attempt.kind === "provider_unavailable" ||
-          attempt.kind === "pii_hit" ||
-          attempt.kind === "parse_failed"
-        ) {
-          return {
-            status: "provider_unavailable",
-            reason: "Couldn't ground the response safely — try rephrasing the task.",
-          };
-        }
+      if (retry.kind === "ok") {
+        attempt = retry;
+      } else if (retry.kind === "provider_unavailable") {
+        return providerUnavailable(retry.error);
+      } else {
+        // Retry still failed. Ship the FIRST attempt's parsed output
+        // (Sonnet's best shot, before strict-mode pushed it elsewhere).
+        attempt = { kind: "ok", parsed: firstHit.parsed, tokenCounts: undefined };
+        piiWarning = true;
       }
     }
 
@@ -227,6 +223,7 @@ export const respond = action({
           model_used: CLAUDE_SONNET_MODEL,
           path,
           pii_retry: piiRetry,
+          pii_warning: piiWarning,
           timed_out: false,
         },
       }

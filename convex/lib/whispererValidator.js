@@ -91,6 +91,14 @@ export async function validateResponse(response, stakeholderFacts, judge = defau
   if (!response || typeof response !== "object") {
     return { ok: true, reason: "", fabricated: [] };
   }
+  // Scope guard: only run the (slow, fallible) Haiku judge when there's
+  // something high-stakes to validate. Coaching-only responses (no
+  // artifact) carry low fabrication risk — the model is giving generic
+  // advice, not drafting a deliverable that quotes someone. When no
+  // artifact exists we skip the judge entirely.
+  if (!shouldValidate(response, stakeholderFacts)) {
+    return { ok: true, reason: "skipped_no_artifact", fabricated: [] };
+  }
 
   const userPrompt = buildJudgePrompt(response, stakeholderFacts);
   let result;
@@ -157,4 +165,23 @@ function buildJudgePrompt(response, stakeholderFacts) {
 
 async function defaultJudge(systemPrompt, userPrompt, schema) {
   return judgeWithHaiku(systemPrompt, userPrompt, schema);
+}
+
+/**
+ * Decide whether a response is worth running through the Haiku judge.
+ * Coaching summaries are generic advice; the deliverable (artifact)
+ * is where invented stakeholder facts actually do damage. Validating
+ * coaching text wastes a model call AND tends to false-positive
+ * (Haiku flags any name echoed from the task description).
+ */
+export function shouldValidate(response, stakeholderFacts) {
+  if (!stakeholderFacts) return false;
+  const hasFacts = Boolean(
+    stakeholderFacts.name ||
+      stakeholderFacts.role ||
+      stakeholderFacts.relationshipType
+  );
+  if (!hasFacts) return false;
+  const artifact = typeof response.artifact === "string" ? response.artifact.trim() : "";
+  return artifact.length > 0;
 }

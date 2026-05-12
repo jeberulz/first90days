@@ -72,7 +72,11 @@ function deterministicJudge() {
     const text = String(userPrompt || "");
     const factsBlock = text.match(/# Supplied stakeholder facts\n([\s\S]*?)\n# Candidate/);
     const facts = factsBlock ? factsBlock[1] : "";
-    const candidate = text.split("# Candidate")[1] || "";
+    // Everything from the FIRST "# Candidate" header onwards — keeps
+    // coaching_summary + artifact + clarifying_question sections in
+    // scope so fabrication in any of them gets caught.
+    const candIdx = text.indexOf("# Candidate");
+    const candidate = candIdx >= 0 ? text.slice(candIdx) : "";
 
     const fabricated = [];
     for (const re of fabricationPatterns) {
