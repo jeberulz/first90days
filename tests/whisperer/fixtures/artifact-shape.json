@@ -1,0 +1,18 @@
+{
+  "description": "Labeled fixture for the artifact-shape classifier. artifact = task produces a concrete deliverable (draft/outline/write/prepare). coaching = task benefits from coaching but no artifact required. clarify = vague task (covered separately in vague.json).",
+  "version": 1,
+  "cases": [
+    { "id": "art-1", "title": "Draft 1:1 agenda for Marcus", "linkedStakeholder": true, "shape": "artifact" },
+    { "id": "art-2", "title": "Write the team's listening tour summary", "linkedStakeholder": true, "shape": "artifact" },
+    { "id": "art-3", "title": "Outline the team operating cadence proposal", "linkedStakeholder": true, "shape": "artifact" },
+    { "id": "art-4", "title": "Prepare quarterly business review slides", "linkedGoal": true, "shape": "artifact" },
+    { "id": "art-5", "title": "Build the first 30-60-90 deck for the CEO", "linkedStakeholder": true, "shape": "artifact" },
+    { "id": "art-6", "title": "Draft hiring scorecard for the senior engineer role", "linkedGoal": true, "shape": "artifact" },
+    { "id": "art-7", "title": "Compose introduction email to the engineering org", "linkedStakeholder": true, "shape": "artifact" },
+    { "id": "coa-1", "title": "Sync with Marcus about the migration roadmap", "linkedStakeholder": true, "shape": "coaching" },
+    { "id": "coa-2", "title": "Meet the design lead", "linkedStakeholder": true, "shape": "coaching" },
+    { "id": "coa-3", "title": "Decide on the org structure approach with the VPE", "linkedStakeholder": true, "shape": "coaching" },
+    { "id": "coa-4", "title": "Negotiate hiring budget with finance", "linkedStakeholder": true, "shape": "coaching" },
+    { "id": "coa-5", "title": "Resolve the cross-team incident postmortem", "linkedGoal": true, "shape": "coaching" }
+  ]
+}

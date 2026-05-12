@@ -1,0 +1,12 @@
+{
+  "description": "Locked thresholds for the whisperer eval suite. CI fails the eval test when a metric drops below its baseline. Bump these only when a deliberate model/prompt change improves them.",
+  "version": 1,
+  "metrics": {
+    "task_size_precision": 0.9,
+    "task_size_recall": 0.9,
+    "artifact_shape_precision": 0.85,
+    "artifact_shape_recall": 0.85,
+    "vague_escape_rate": 0.8,
+    "pii_validator_catch_rate": 1.0
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "description": "Labeled fixture for the task-size classifier (small vs full). small = short title + quick estimate + low-friction verb. full = everything else.",
+  "version": 1,
+  "cases": [
+    { "id": "small-1", "title": "Read primer", "estimatedTime": "10m", "size": "small", "linkedGoal": true },
+    { "id": "small-2", "title": "Skim onboarding pages", "estimatedTime": "15m", "size": "small", "linkedGoal": true },
+    { "id": "small-3", "title": "Watch intro video", "estimatedTime": "10m", "size": "small", "linkedStakeholder": true },
+    { "id": "small-4", "title": "Browse intranet", "estimatedTime": "15m", "size": "small", "linkedGoal": true },
+    { "id": "small-5", "title": "Check inbox", "estimatedTime": "10m", "size": "small", "linkedStakeholder": true },
+    { "id": "full-1", "title": "Draft 1:1 agenda for Marcus", "estimatedTime": "30m", "size": "full", "linkedStakeholder": true },
+    { "id": "full-2", "title": "Prepare quarterly review presentation slides", "estimatedTime": "120m", "size": "full" },
+    { "id": "full-3", "title": "Write the team's listening tour summary", "estimatedTime": "45m", "size": "full" },
+    { "id": "full-4", "title": "Map decision-making power across the org chart", "estimatedTime": "60m", "size": "full" },
+    { "id": "full-5", "title": "Build my first 30-60-90 deck for the CEO", "estimatedTime": "90m", "size": "full" },
+    { "id": "full-6", "title": "Outline the team operating cadence proposal", "estimatedTime": "45m", "size": "full" },
+    { "id": "full-7", "title": "Draft hiring scorecard for the senior engineer role", "estimatedTime": "60m", "size": "full" }
+  ]
+}
