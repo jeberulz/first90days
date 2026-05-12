@@ -61,4 +61,16 @@ crons.cron(
   {}
 );
 
+// Run daily at 02:00 UTC — reconcile prior-day whisperer invocations
+// against their expected semantic classifier output. For every turn
+// that produced no semantic row of any kind (label, completed_empty
+// sentinel, or failed sentinel), emit semantic_classify_failed with
+// recovered_by_reconciliation: true so the gap surfaces in analytics.
+crons.cron(
+  "reconcile-whisperer-semantic-events",
+  "0 2 * * *",
+  internal.whispererTelemetry.reconcileWhispererSemanticEvents,
+  {}
+);
+
 export default crons;
