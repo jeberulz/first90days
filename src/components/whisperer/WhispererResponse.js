@@ -9,7 +9,7 @@ import FallbackTip from "./FallbackTip";
 import ChatThread from "./ChatThread";
 import LoadingSkeleton from "./LoadingSkeleton";
 
-function CopyArtifactButton({ text }) {
+function CopyArtifactButton({ text, onCopy }) {
   const [copied, setCopied] = useState(false);
   async function copy() {
     if (!text) return;
@@ -17,6 +17,7 @@ function CopyArtifactButton({ text }) {
       await navigator.clipboard.writeText(text);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
+      onCopy?.();
     } catch {
       // ignore
     }
@@ -61,6 +62,9 @@ function QuotaCeilingPanel({ envelope }) {
   );
 }
 
+import { useMutation } from "convex/react";
+import { api } from "../../../convex/_generated/api";
+
 export default function WhispererResponse({
   result,
   pending,
@@ -71,6 +75,30 @@ export default function WhispererResponse({
   onClose,
 }) {
   const [chatOpen, setChatOpen] = useState(false);
+  const markAccepted = useMutation(api.whispererTelemetry.markAccepted);
+  const markDiscarded = useMutation(api.whispererTelemetry.markDiscarded);
+
+  const turnId = result?.turnId;
+
+  async function handleCopy() {
+    if (!turnId) return;
+    try {
+      await markAccepted({ turnId, path: "copy" });
+    } catch {
+      // telemetry is fire-and-forget for the user
+    }
+  }
+
+  async function handleClose() {
+    if (turnId && result?.status === "ok") {
+      try {
+        await markDiscarded({ turnId });
+      } catch {
+        // telemetry is fire-and-forget for the user
+      }
+    }
+    onClose?.();
+  }
 
   if (pending) {
     return (
@@ -133,7 +161,7 @@ export default function WhispererResponse({
           <QuotaIndicator remaining={result.remaining_whisperer_calls_est} />
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             className="text-stone-500 hover:text-stone-300"
             aria-label="close"
           >
@@ -157,7 +185,7 @@ export default function WhispererResponse({
                 <div className="text-[11px] uppercase tracking-wide text-stone-500">
                   draft
                 </div>
-                <CopyArtifactButton text={result.artifact} />
+                <CopyArtifactButton text={result.artifact} onCopy={handleCopy} />
               </div>
               <pre className="text-xs text-stone-200 whitespace-pre-wrap font-sans leading-relaxed">
                 {result.artifact}
