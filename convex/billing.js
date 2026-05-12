@@ -14,6 +14,11 @@ import {
   capForTier,
   localTrialState,
 } from "./lib/billing.js";
+import {
+  OP_COSTS,
+  tierCeilingCents,
+  getDailySpendCents,
+} from "./lib/rateLimit.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -51,6 +56,17 @@ export async function computeEntitlements(ctx, userId) {
   const trialEndsAt = local?.active ? local.endsAt : stripeTrialEndsAt;
   const trialDaysLeft = local?.active ? local.daysLeft : stripeTrialDaysLeft;
 
+  // Whisperer surfacing (U1): expose the cents ceiling + an estimate of
+  // remaining whisperer calls (full shared ledger / OP_COSTS.whisperer).
+  // UI uses this in the cap-aware affordance to show "X whisperer help
+  // left today" copy when the user gets close to the ceiling.
+  const aiUsageCeilingCents = tierCeilingCents(tier);
+  const aiUsageUsedCents = await getDailySpendCents(ctx, userId);
+  const remainingCents = Math.max(0, aiUsageCeilingCents - aiUsageUsedCents);
+  const whispererCallsRemainingEst = Math.floor(
+    remainingCents / OP_COSTS.whisperer
+  );
+
   return {
     tier,
     isPro: tier !== BILLING_TIERS.FREE,
@@ -67,6 +83,10 @@ export async function computeEntitlements(ctx, userId) {
     dailyEnrichCap: capForTier(tier),
     usedToday: user.settings?.kb?.enrichmentBudgetUsedToday ?? 0,
     paymentFailedAt: sub?.paymentFailedAt ?? null,
+    // Whisperer (U1)
+    aiUsageCeilingCents,
+    aiUsageUsedCents,
+    whispererCallsRemainingEst,
   };
 }
 

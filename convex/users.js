@@ -1,9 +1,17 @@
 import { v } from "convex/values";
-import { query, mutation, internalMutation } from "./_generated/server";
+import {
+  query,
+  mutation,
+  internalMutation,
+  internalQuery,
+} from "./_generated/server";
 import { internal } from "./_generated/api";
 import { auth } from "./auth";
 import { isPilotEmail, PILOT_PLAN_START_DATE } from "./lib/pilotUser";
-import { computePlanDayInfo } from "./lib/planDates";
+import {
+  computePlanDayInfo,
+  resolveUserTimezone,
+} from "./lib/planDates";
 import { computeEntitlements } from "./billing";
 
 function splitFullName(fullName) {
@@ -124,6 +132,23 @@ export const getDayNumber = query({
       startDate: info.startDate,
       weekNumber: info.weekNumber,
     };
+  },
+});
+
+/**
+ * Internal: return the resolved timezone for a user, falling back to
+ * Europe/London when `settings.timezone` is missing. Used by the rate-limit
+ * cents-ledger code path (`convex/lib/rateLimit.js`) so the daily window
+ * keys correctly to the user's local midnight rather than UTC midnight.
+ *
+ * Exposed as an internalQuery so action callers can resolve a timezone
+ * without re-reading the full user document.
+ */
+export const getUserTimezoneInternal = internalQuery({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => {
+    const user = await ctx.db.get(userId);
+    return { timezone: resolveUserTimezone(user) };
   },
 });
 
