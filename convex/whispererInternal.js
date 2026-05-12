@@ -174,3 +174,151 @@ export const finalizeRespond = internalMutation({
 
 // Auth identity resolution is handled via the existing public query
 // api.planMutations.getAuthenticatedUserId — see convex/whisperer.js.
+
+/**
+ * U5 helper: single transactional read of a turn + its parent thread +
+ * activity + linked stakeholder + user role/phase plus the user's full
+ * stakeholders list. Used by `internal.whispererSemantic.classifyTurnSemantic`
+ * (a Node action) so it never touches `ctx.db` directly.
+ *
+ * Returns `null` when the turn is missing — the action treats this as
+ * an unrecoverable input (race with cascade delete, etc.) and exits
+ * without emitting any event rows.
+ *
+ * Stakeholders are returned as `{ _id, name, firstMentionedAt }` only
+ * (we don't need the full row) and are bounded by `.take(200)` — well
+ * above the v1 expected ceiling but a safety bound on the array.
+ */
+export const loadTurnAndContext = internalQuery({
+  args: {
+    turnId: v.id("whispererTurns"),
+  },
+  handler: async (ctx, args) => {
+    const turn = await ctx.db.get(args.turnId);
+    if (!turn) return null;
+
+    const thread = await ctx.db.get(turn.threadId);
+    if (!thread) return null;
+
+    const activity = await ctx.db.get(thread.activityId);
+    if (!activity) return null;
+
+    // Onboarding for role + plan startDate.
+    const onboarding = await ctx.db
+      .query("onboardingData")
+      .withIndex("by_user", (q) => q.eq("userId", thread.userId))
+      .first();
+
+    // Phase via activity.weekId -> weeks.phaseId.
+    let phaseRow = null;
+    if (activity.weekId) {
+      const week = await ctx.db.get(activity.weekId);
+      if (week && week.phaseId) {
+        phaseRow = await ctx.db.get(week.phaseId);
+      }
+    }
+
+    // Linked stakeholder name (when set on the activity).
+    let linkedStakeholderName = null;
+    if (activity.relatedStakeholderId) {
+      const s = await ctx.db.get(activity.relatedStakeholderId);
+      if (s && s.userId === thread.userId) {
+        linkedStakeholderName = s.name || null;
+      }
+    }
+
+    // Linked goal `_creationTime` — used by `firstSeenWeek` computation
+    // for any future `goal_referenced` type. Currently the U5 taxonomy
+    // doesn't emit goal events, but we surface this so U6/U8 don't have
+    // to re-query.
+    let linkedGoalCreationTime = null;
+    if (activity.relatedGoalId) {
+      const g = await ctx.db.get(activity.relatedGoalId);
+      if (g && g.userId === thread.userId) {
+        linkedGoalCreationTime = g._creationTime;
+      }
+    }
+
+    // All of the user's stakeholders — needed to resolve names in the
+    // classifier output to actual rows. Bounded; the resolution path
+    // tolerates an empty array.
+    const stakeholders = await ctx.db
+      .query("stakeholders")
+      .withIndex("by_user", (q) => q.eq("userId", thread.userId))
+      .take(200);
+
+    return {
+      turn: {
+        _id: turn._id,
+        threadId: turn.threadId,
+        content: turn.content,
+      },
+      thread: {
+        _id: thread._id,
+        userId: thread.userId,
+        activityId: thread.activityId,
+      },
+      activity: {
+        _id: activity._id,
+        weekNumber: activity.weekNumber,
+      },
+      user: {
+        role: onboarding?.roleTitle || null,
+        phaseName: phaseRow ? phaseRow.name : null,
+        phaseNumber: phaseRow ? phaseRow.number : null,
+        startDate: onboarding?.startDate || null,
+      },
+      linkedStakeholderName,
+      linkedGoalCreationTime,
+      stakeholders: stakeholders.map((s) => ({
+        _id: s._id,
+        name: s.name,
+        firstMentionedAt: s.firstMentionedAt,
+      })),
+    };
+  },
+});
+
+/**
+ * U5 helper: write a batch of semantic event rows in one transaction so
+ * a partial failure doesn't leave the `planEventLog` half-populated for
+ * a single classifier run. Each row uses the standard `writePlanEvent`
+ * primitive (delivery status defaults to "delivered" for semantic
+ * labels, "delivered" for the sentinels too).
+ *
+ * Accepts a pre-built array so the action can resolve stakeholders,
+ * compute `firstSeenWeek`, and build payloads OUTSIDE the transaction
+ * (it's a Node action) and then commit the whole set atomically.
+ */
+export const emitSemanticEvents = internalMutation({
+  args: {
+    userId: v.id("users"),
+    activityId: v.id("activities"),
+    threadId: v.id("whispererThreads"),
+    turnId: v.id("whispererTurns"),
+    events: v.array(
+      v.object({
+        eventType: v.string(),
+        payload: v.optional(v.any()),
+        firstSeenWeek: v.optional(v.number()),
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    const ids = [];
+    for (const ev of args.events) {
+      const id = await writePlanEvent(ctx, {
+        userId: args.userId,
+        eventType: ev.eventType,
+        activityId: args.activityId,
+        threadId: args.threadId,
+        turnId: args.turnId,
+        payload: ev.payload,
+        firstSeenWeek: ev.firstSeenWeek,
+        deliveryStatus: "delivered",
+      });
+      ids.push(id);
+    }
+    return ids;
+  },
+});
