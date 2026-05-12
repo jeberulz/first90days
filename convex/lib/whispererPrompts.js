@@ -421,14 +421,22 @@ function truncate(s, max) {
  */
 export function stakeholderFactsForValidation(bundle) {
   const s = bundle.linkedStakeholder;
-  if (!s) return null;
+  const task = bundle.task || {};
+  // taskContext captures what the prompt EXPLICITLY supplied about the
+  // person/task. The validator treats claims that echo this content as
+  // grounded — only claims that go beyond it are fabrication. Without
+  // this, the model can't safely repeat facts the user themselves
+  // wrote into the task description (e.g. "Peter is a former CEO").
+  const taskContext = [task.title, task.description].filter(Boolean).join("\n");
+  if (!s && !taskContext) return null;
   return {
-    name: s.name && s.name.trim() ? s.name : null,
-    role: s.role || null,
-    relationshipType: s.relationshipType || null,
-    priority: s.priority || null,
-    stance: s.stance || null,
-    influenceLevel: s.influenceLevel || null,
+    name: s?.name && s.name.trim() ? s.name : null,
+    role: s?.role || null,
+    relationshipType: s?.relationshipType || null,
+    priority: s?.priority || null,
+    stance: s?.stance || null,
+    influenceLevel: s?.influenceLevel || null,
+    taskContext: taskContext || null,
   };
 }
 

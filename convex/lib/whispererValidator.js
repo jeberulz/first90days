@@ -54,17 +54,19 @@ const VALIDATOR_SYSTEM_PROMPT = `You are a strict fact-grounding judge for an AI
 
 You will receive:
   1. The EXACT stakeholder facts the original prompt was given (or "none" if no stakeholder was linked).
-  2. A candidate response (coaching summary + optional artifact).
+  2. Task context the user themselves wrote (title + description) — treat this as grounded source material the model was allowed to quote or paraphrase.
+  3. A candidate response (coaching summary + optional artifact).
 
-Your single job: decide whether the candidate response invents stakeholder facts that are NOT in the supplied fact set. Examples of inventions:
-  - Naming a stakeholder when no name was supplied.
-  - Inventing the stakeholder's role, tenure, preferences, history, or personality.
-  - Asserting a relationship attribute (e.g. "skeptical of new hires", "remote-first") that wasn't in the supplied facts.
+Your single job: decide whether the candidate response invents NEW stakeholder facts that are NOT in either source above. Examples of inventions:
+  - Naming a stakeholder when no name was supplied in the facts AND not in the task context.
+  - Inventing tenure, history, or personality NOT present in either source.
+  - Asserting a relationship attribute (e.g. "skeptical of new hires", "remote-first") that wasn't in either source.
 
 Things that are NOT inventions:
   - Referring to the stakeholder by a role label when no name was supplied (e.g. "your manager", "the stakeholder you're meeting with").
   - Generic coaching advice that doesn't make claims about the stakeholder.
-  - Repeating a fact that IS in the supplied set.
+  - Repeating a fact that IS in the supplied facts.
+  - Quoting OR paraphrasing claims that appear in the task context (e.g. if the task description says "he's a former CEO", the response can say that too).
 
 Output: structured JSON via the supplied tool. Be concise — fabricated[] should contain the literal fragments at issue, not paraphrases.`;
 
@@ -127,6 +129,14 @@ function buildJudgePrompt(response, stakeholderFacts) {
   if (facts.priority) lines.push(`Priority: ${facts.priority}`);
   if (facts.stance) lines.push(`Stance: ${facts.stance}`);
   if (facts.influenceLevel) lines.push(`Influence level: ${facts.influenceLevel}`);
+  if (facts.taskContext && facts.taskContext.trim()) {
+    lines.push("");
+    lines.push("# Task context the model was given (treat as grounded)");
+    lines.push(String(facts.taskContext));
+    lines.push(
+      "Any claim that paraphrases or directly echoes this task context is grounded, NOT fabrication."
+    );
+  }
   lines.push("");
   lines.push("# Candidate response — coaching_summary");
   lines.push(String(response.coaching_summary || "(empty)"));
