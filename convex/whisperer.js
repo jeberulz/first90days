@@ -14,6 +14,8 @@ import {
   buildHybridPrompt,
   buildClarifyingPrompt,
   buildSmallTaskPrompt,
+  buildContinuationPrompt,
+  buildCapRecapPrompt,
   stakeholderFactsForValidation,
   COACHING_MAX_CHARS,
   COACHING_MIN_CHARS,
@@ -22,6 +24,7 @@ import {
 } from "./lib/whispererPrompts.js";
 import { classifyTask } from "./lib/whispererClassifier.js";
 import { validateResponse } from "./lib/whispererValidator.js";
+import { buildEscalationCopyText } from "./lib/whispererEscalation.js";
 
 /**
  * Public whisperer action (U4).
@@ -349,4 +352,346 @@ function emptyToUndefined(s) {
   if (typeof s !== "string") return undefined;
   const t = s.trim();
   return t.length === 0 ? undefined : t;
+}
+
+const ORGANIC_TURN_CAP = 10;
+const CAP_OPTIONS = [
+  { key: "mark_task_done", label: "Mark task done" },
+  { key: "escalate_to_manager", label: "Escalate to manager" },
+  { key: "close_unresolved", label: "Close unresolved" },
+];
+
+const FALLBACK_RECAP_TURN_LIMIT =
+  "This conversation has reached the daily ritual cap. Pick the next step that fits — mark the task done, escalate it, or close it unresolved.";
+const FALLBACK_RECAP_CENTS =
+  "You've used a lot of AI today, so I'm pausing this thread. Mark the task done, escalate it, or close it unresolved — more capacity opens up tomorrow.";
+
+/**
+ * Public whisperer chat-continuation action (U6).
+ *
+ * Soft-block state machine:
+ *   1. Auth: continueThread only loads threads owned by the caller.
+ *   2. Pre-flight reservation. `over_cents` mid-thread → graceful
+ *      cap-recap path (NOT a hard error).
+ *   3. Capped/closed thread → typed `thread_closed`.
+ *   4. Append user turn. The post-append turnCount drives routing:
+ *        - turnCount === 10 → organic 10-turn cap, zero-cost recap.
+ *        - turnCount  <  10 → normal continuation, same hybrid schema
+ *          as U4, semantic classifier scheduled.
+ *
+ * Return envelope:
+ *   { status: "ok", path: "continuation", coachingSummary, artifact?,
+ *     assumptions, threadId, turnId, capped: false }
+ *   { status: "ok", path: "recap", recap, capped: true,
+ *     cents_capped?: true, options: [...], escalate?, threadId, turnId }
+ *   { status: "over_count" | "over_cents", remaining_cost, ... }
+ *   { status: "thread_closed", reason }
+ *   { status: "provider_unavailable", reason }
+ *   { status: "unauthorized" } | { status: "not_found" }
+ */
+export const continueThread = action({
+  args: {
+    threadId: v.id("whispererThreads"),
+    message: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const authUserId = await ctx.runQuery(
+      api.planMutations.getAuthenticatedUserId,
+      {}
+    );
+    if (!authUserId) return { status: "unauthorized" };
+
+    const message = String(args.message || "").trim();
+    if (message.length === 0) {
+      return {
+        status: "provider_unavailable",
+        reason: "Empty message — type a follow-up to continue the thread.",
+      };
+    }
+
+    // ── Load thread + bundle + history (transactional read) ──────────
+    const loaded = await ctx.runQuery(
+      internal.whispererInternal.loadThreadAndBundle,
+      { userId: authUserId, threadId: args.threadId }
+    );
+    if (loaded.status !== "ok") {
+      return { status: loaded.status };
+    }
+    const { bundle, thread, history } = loaded;
+
+    if (thread.status === "capped" || thread.status === "closed") {
+      return {
+        status: "thread_closed",
+        reason:
+          thread.status === "capped"
+            ? (thread.cappedReason || "capped")
+            : "closed",
+      };
+    }
+
+    // ── Pre-flight budget reservation (mid-thread aware) ─────────────
+    const reservation = await ctx.runMutation(
+      internal.whispererInternal.reserveWhispererBudget,
+      { userId: authUserId, op: "whisperer", midThread: true }
+    );
+
+    // `over_count` mid-thread is still a hard quota hit. `over_cents`
+    // is the special graceful path.
+    if (reservation.status === "over_count") {
+      return reservation;
+    }
+    if (reservation.status === "over_cents") {
+      return await runCapRecap({
+        ctx,
+        userId: authUserId,
+        thread,
+        bundle,
+        history,
+        reason: "cents_ceiling",
+        // We do NOT append the user's message in the cents-capped path:
+        // the reservation refused them BEFORE the turn landed. The
+        // recap acts as the assistant's closing reply and the thread
+        // flips to capped without ever recording the failed user turn.
+        appendUserMessage: null,
+        reservationEnvelope: reservation,
+      });
+    }
+    // reservation.status === "ok"
+
+    // ── Append the user turn (transactional, rejects on capped/closed) ──
+    const userAppend = await ctx.runMutation(
+      internal.whispererInternal.appendUserTurn,
+      { threadId: args.threadId, content: message }
+    );
+    if (userAppend.status !== "ok") {
+      // Raced with another flow that capped the thread between the
+      // read above and this write. Same `thread_closed` envelope.
+      return {
+        status: "thread_closed",
+        reason: userAppend.reason || "capped",
+      };
+    }
+
+    const newTurnCount = userAppend.turnCount;
+
+    // History at the moment of the assistant turn includes the new
+    // user message (we just appended it).
+    const historyWithUser = [
+      ...history,
+      { role: "user", content: message },
+    ];
+
+    // ── Organic 10-turn cap → recap path ─────────────────────────────
+    if (newTurnCount >= ORGANIC_TURN_CAP) {
+      return await runCapRecap({
+        ctx,
+        userId: authUserId,
+        thread,
+        bundle,
+        history: historyWithUser,
+        reason: "turn_limit",
+        appendUserMessage: null, // already appended above
+        reservationEnvelope: reservation,
+      });
+    }
+
+    // ── Normal continuation turn ────────────────────────────────────
+    const stakeholderFacts = stakeholderFactsForValidation(bundle);
+    const shape = "coaching"; // continuation defaults to coaching shape
+    const buildPrompt = (strict) =>
+      buildContinuationPrompt(bundle, historyWithUser, shape, { strict });
+
+    const t0 = Date.now();
+    let attempt = await callAndValidate({
+      bundle,
+      buildPrompt,
+      strict: false,
+      stakeholderFacts,
+      path: "hybrid",
+    });
+    let piiRetry = false;
+
+    if (attempt.kind === "provider_unavailable") {
+      return providerUnavailable(attempt.error);
+    }
+    if (attempt.kind === "parse_failed") {
+      attempt = await callAndValidate({
+        bundle,
+        buildPrompt,
+        strict: true,
+        stakeholderFacts,
+        path: "hybrid",
+      });
+      if (attempt.kind === "provider_unavailable") {
+        return providerUnavailable(attempt.error);
+      }
+      if (attempt.kind === "parse_failed") {
+        return providerUnavailable(new Error("structured_output_invalid"));
+      }
+    }
+    if (attempt.kind === "pii_hit") {
+      piiRetry = true;
+      attempt = await callAndValidate({
+        bundle,
+        buildPrompt,
+        strict: true,
+        stakeholderFacts,
+        path: "hybrid",
+      });
+      if (attempt.kind === "provider_unavailable") {
+        return providerUnavailable(attempt.error);
+      }
+      if (attempt.kind === "pii_hit" || attempt.kind === "parse_failed") {
+        attempt = await callAndValidate({
+          bundle,
+          buildPrompt,
+          strict: true,
+          stakeholderFacts,
+          path: "hybrid",
+        });
+        if (
+          attempt.kind === "provider_unavailable" ||
+          attempt.kind === "pii_hit" ||
+          attempt.kind === "parse_failed"
+        ) {
+          return {
+            status: "provider_unavailable",
+            reason:
+              "Couldn't ground the response safely — try rephrasing the message.",
+          };
+        }
+      }
+    }
+
+    const parsed = attempt.parsed;
+    const content = parsed.coaching_summary || "";
+
+    const finalized = await ctx.runMutation(
+      internal.whispererInternal.appendAssistantTurnForContinuation,
+      {
+        userId: authUserId,
+        threadId: args.threadId,
+        activityId: thread.activityId,
+        content,
+        modelUsed: CLAUDE_SONNET_MODEL,
+        latencyMs: Date.now() - t0,
+        assumptions: parsed.assumptions || [],
+        artifact: emptyToUndefined(parsed.artifact),
+        clarifyingQuestion: emptyToUndefined(parsed.clarifying_question),
+        tokenCounts: attempt.tokenCounts,
+        invokedPayload: {
+          model_used: CLAUDE_SONNET_MODEL,
+          path: "continuation",
+          turn_index: newTurnCount, // 0-indexed seq of the assistant turn
+          pii_retry: piiRetry,
+          timed_out: false,
+        },
+      }
+    );
+
+    await scheduleSemantic(ctx, {
+      threadId: finalized.threadId,
+      turnId: finalized.turnId,
+      userId: authUserId,
+      content,
+    });
+
+    return {
+      status: "ok",
+      path: "continuation",
+      coachingSummary: content,
+      artifact: emptyToUndefined(parsed.artifact),
+      assumptions: parsed.assumptions || [],
+      clarifyingQuestion: emptyToUndefined(parsed.clarifying_question),
+      threadId: finalized.threadId,
+      turnId: finalized.turnId,
+      turnCount: newTurnCount + 1, // include the assistant turn just appended
+      capped: false,
+      remaining_cost: reservation.remaining_cost,
+      remaining_whisperer_calls_est:
+        reservation.remaining_whisperer_calls_est,
+    };
+  },
+});
+
+/**
+ * Recap-and-cap helper. Reused by the organic-cap and cents-cap paths.
+ *
+ * Returns the user-facing envelope.
+ */
+async function runCapRecap({
+  ctx,
+  userId,
+  thread,
+  bundle,
+  history,
+  reason,
+  reservationEnvelope,
+}) {
+  const t0 = Date.now();
+  const prompt = buildCapRecapPrompt(bundle, history, reason);
+
+  let recapText = "";
+  let tokenCounts;
+  try {
+    const out = await generateText(WHISPERER_SYSTEM_PROMPT, prompt);
+    recapText = String(out || "").trim();
+  } catch (err) {
+    recapText = "";
+  }
+  if (!recapText) {
+    recapText =
+      reason === "cents_ceiling"
+        ? FALLBACK_RECAP_CENTS
+        : FALLBACK_RECAP_TURN_LIMIT;
+  }
+
+  const capped = await ctx.runMutation(
+    internal.whispererInternal.markCappedAndAppendRecap,
+    {
+      userId,
+      threadId: thread._id,
+      activityId: thread.activityId,
+      reason,
+      content: recapText,
+      modelUsed: CLAUDE_SONNET_MODEL,
+      latencyMs: Date.now() - t0,
+      tokenCounts,
+      capPayload: {
+        cap_reached: ORGANIC_TURN_CAP,
+        reason,
+        model_used: CLAUDE_SONNET_MODEL,
+      },
+    }
+  );
+
+  const escalate = buildEscalationCopyText({
+    taskTitle: bundle.task?.title,
+    taskDescription: bundle.task?.description,
+    stakeholderRole: bundle.linkedStakeholder?.role,
+    stakeholderName: bundle.linkedStakeholder?.name,
+    recapText,
+  });
+
+  const envelope = {
+    status: "ok",
+    path: "recap",
+    recap: recapText,
+    threadId: capped.threadId,
+    turnId: capped.turnId,
+    capped: true,
+    cappedReason: reason,
+    options: CAP_OPTIONS,
+    escalate,
+  };
+  if (reason === "cents_ceiling") {
+    envelope.cents_capped = true;
+    if (reservationEnvelope) {
+      envelope.remaining_cost = reservationEnvelope.remaining_cost;
+      envelope.remaining_whisperer_calls_est =
+        reservationEnvelope.remaining_whisperer_calls_est;
+      envelope.tier = reservationEnvelope.tier;
+    }
+  }
+  return envelope;
 }

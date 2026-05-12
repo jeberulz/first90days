@@ -322,3 +322,273 @@ export const emitSemanticEvents = internalMutation({
     return ids;
   },
 });
+/**
+ * U6 — Chat continuation transactional helpers.
+ *
+ * The public `continueThread` action in convex/whisperer.js runs in
+ * Node so cannot touch ctx.db directly. It calls into these handlers
+ * for each transactional step:
+ *
+ *  1. `loadThreadAndBundle` — auth-checked thread + context bundle +
+ *     turn history in one query.
+ *  2. `appendUserTurn` — append the user message; rejects on
+ *     capped/closed and returns the post-append turnCount so the
+ *     action can decide whether to fire the recap path.
+ *  3. `appendAssistantTurnForContinuation` — finalize a normal
+ *     continuation turn (emits whisperer_chat_expanded +
+ *     semantic_classify_scheduled).
+ *  4. `markCappedAndAppendRecap` — atomic recap path: flip status to
+ *     capped, append the assistant recap, emit
+ *     whisperer_chat_capped.
+ */
+
+/**
+ * Load (a) the thread by id with auth check, (b) the activity context
+ * bundle, and (c) all turns to date — all in one transactional read.
+ *
+ * Returns:
+ *   { status: "ok", bundle, thread, history }
+ *   { status: "unauthorized" }   — thread.userId mismatch
+ *   { status: "not_found" }       — no thread, or activity gone
+ *   { status: "provider_unavailable" } — onboarding missing
+ */
+export const loadThreadAndBundle = internalQuery({
+  args: {
+    userId: v.id("users"),
+    threadId: v.id("whispererThreads"),
+  },
+  handler: async (ctx, args) => {
+    const thread = await ctx.db.get(args.threadId);
+    if (!thread) return { status: "not_found" };
+    if (thread.userId !== args.userId) {
+      return { status: "unauthorized" };
+    }
+
+    const bundle = await assembleContextBundle(ctx, {
+      userId: args.userId,
+      activityId: thread.activityId,
+    });
+    if (!bundle) return { status: "provider_unavailable" };
+
+    const turns = await ctx.db
+      .query("whispererTurns")
+      .withIndex("by_thread_seq", (q) => q.eq("threadId", args.threadId))
+      .collect();
+
+    return {
+      status: "ok",
+      bundle,
+      thread: {
+        _id: thread._id,
+        userId: thread.userId,
+        activityId: thread.activityId,
+        status: thread.status,
+        turnCount: thread.turnCount,
+        cappedReason: thread.cappedReason ?? null,
+      },
+      history: turns.map((t) => ({
+        seq: t.seq,
+        role: t.role,
+        content: t.content,
+      })),
+    };
+  },
+});
+
+/**
+ * Append a single user-role turn. Rejects (typed return) when the
+ * thread is capped/closed. Returns the new turnCount so the orchestrator
+ * can decide whether the next assistant reply is a normal continuation
+ * (turnCount < 10) or the 10-turn organic-cap recap path
+ * (turnCount === 10).
+ *
+ * Returns:
+ *   { status: "ok", turnId, seq, turnCount }
+ *   { status: "thread_closed", reason }
+ */
+export const appendUserTurn = internalMutation({
+  args: {
+    threadId: v.id("whispererThreads"),
+    content: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const thread = await ctx.db.get(args.threadId);
+    if (!thread) return { status: "thread_closed", reason: "not_found" };
+    if (thread.status === "capped" || thread.status === "closed") {
+      return {
+        status: "thread_closed",
+        reason: thread.status === "capped"
+          ? (thread.cappedReason || "capped")
+          : "closed",
+      };
+    }
+
+    const now = Date.now();
+    const seq = thread.turnCount;
+    const turnId = await ctx.db.insert("whispererTurns", {
+      threadId: args.threadId,
+      seq,
+      role: "user",
+      content: args.content,
+      modelUsed: "user",
+      latencyMs: 0,
+      createdAt: now,
+    });
+    await ctx.db.patch(args.threadId, {
+      turnCount: seq + 1,
+      lastTurnAt: now,
+    });
+
+    return { status: "ok", turnId, seq, turnCount: seq + 1 };
+  },
+});
+
+/**
+ * Finalize a normal (non-cap) continuation turn. Appends the assistant
+ * turn and emits the two events U6 requires (whisperer_chat_expanded +
+ * semantic_classify_scheduled) inside the same Convex transaction.
+ *
+ * Mirrors `finalizeRespond` but emits `whisperer_chat_expanded` instead
+ * of `whisperer_invoked` and assumes the thread already exists (the
+ * action created it via U4's first turn or U3's createThread).
+ */
+export const appendAssistantTurnForContinuation = internalMutation({
+  args: {
+    userId: v.id("users"),
+    threadId: v.id("whispererThreads"),
+    activityId: v.id("activities"),
+    content: v.string(),
+    modelUsed: v.string(),
+    latencyMs: v.number(),
+    assumptions: v.optional(v.array(v.string())),
+    artifact: v.optional(v.string()),
+    clarifyingQuestion: v.optional(v.string()),
+    tokenCounts: v.optional(
+      v.object({ input: v.number(), output: v.number() })
+    ),
+    invokedPayload: v.any(),
+  },
+  handler: async (ctx, args) => {
+    const thread = await ctx.db.get(args.threadId);
+    if (!thread) throw new Error("Thread not found");
+    if (thread.status !== "open") {
+      throw new Error(`Cannot continue ${thread.status} thread`);
+    }
+
+    const now = Date.now();
+    const seq = thread.turnCount;
+    const turnId = await ctx.db.insert("whispererTurns", {
+      threadId: args.threadId,
+      seq,
+      role: "assistant",
+      content: args.content,
+      assumptions: args.assumptions,
+      artifact: args.artifact,
+      clarifyingQuestion: args.clarifyingQuestion,
+      modelUsed: args.modelUsed,
+      tokenCounts: args.tokenCounts,
+      latencyMs: args.latencyMs,
+      createdAt: now,
+    });
+    await ctx.db.patch(args.threadId, {
+      turnCount: seq + 1,
+      lastTurnAt: now,
+    });
+
+    await writePlanEvent(ctx, {
+      userId: args.userId,
+      eventType: "whisperer_chat_expanded",
+      activityId: args.activityId,
+      threadId: args.threadId,
+      turnId,
+      payload: args.invokedPayload,
+    });
+    await writePlanEvent(ctx, {
+      userId: args.userId,
+      eventType: "semantic_classify_scheduled",
+      activityId: args.activityId,
+      threadId: args.threadId,
+      turnId,
+      deliveryStatus: "pending",
+    });
+
+    return { threadId: args.threadId, turnId, seq };
+  },
+});
+
+/**
+ * Atomic recap-and-cap finisher. Used when:
+ *   - the user-turn just hit turnCount===10 (organic 10-turn cap), or
+ *   - the pre-flight cents reservation returned over_cents mid-thread.
+ *
+ * Marks the thread `capped` with the supplied reason, appends the
+ * assistant recap turn, emits `whisperer_chat_capped`. All three
+ * commit together so partial failures cannot leave a half-capped
+ * thread on disk.
+ */
+export const markCappedAndAppendRecap = internalMutation({
+  args: {
+    userId: v.id("users"),
+    threadId: v.id("whispererThreads"),
+    activityId: v.id("activities"),
+    reason: v.union(
+      v.literal("turn_limit"),
+      v.literal("cents_ceiling")
+    ),
+    content: v.string(),
+    modelUsed: v.string(),
+    latencyMs: v.number(),
+    tokenCounts: v.optional(
+      v.object({ input: v.number(), output: v.number() })
+    ),
+    capPayload: v.any(),
+  },
+  handler: async (ctx, args) => {
+    const thread = await ctx.db.get(args.threadId);
+    if (!thread) throw new Error("Thread not found");
+    if (thread.status === "closed") {
+      throw new Error("Cannot cap a closed thread");
+    }
+
+    // Flip to capped first so a racing appendTurn can't sneak in
+    // between recap insertion and status flip.
+    if (thread.status === "open") {
+      await ctx.db.patch(args.threadId, {
+        status: "capped",
+        cappedReason: args.reason,
+      });
+    }
+
+    // Recap turn is appended even on the capped thread — this insert
+    // bypasses the appendTurn guard intentionally so the user always
+    // sees a closing message.
+    const now = Date.now();
+    const reread = await ctx.db.get(args.threadId);
+    const seq = reread.turnCount;
+    const turnId = await ctx.db.insert("whispererTurns", {
+      threadId: args.threadId,
+      seq,
+      role: "assistant",
+      content: args.content,
+      modelUsed: args.modelUsed,
+      tokenCounts: args.tokenCounts,
+      latencyMs: args.latencyMs,
+      createdAt: now,
+    });
+    await ctx.db.patch(args.threadId, {
+      turnCount: seq + 1,
+      lastTurnAt: now,
+    });
+
+    await writePlanEvent(ctx, {
+      userId: args.userId,
+      eventType: "whisperer_chat_capped",
+      activityId: args.activityId,
+      threadId: args.threadId,
+      turnId,
+      payload: args.capPayload,
+    });
+
+    return { threadId: args.threadId, turnId, seq };
+  },
+});
