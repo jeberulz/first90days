@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { Icon } from "@iconify/react";
+import { useMutation } from "convex/react";
+import { api } from "../../../convex/_generated/api";
 import AssumptionsBlock from "./AssumptionsBlock";
 import QuotaIndicator from "./QuotaIndicator";
 import SmallTaskTip from "./SmallTaskTip";
@@ -62,9 +64,6 @@ function QuotaCeilingPanel({ envelope }) {
   );
 }
 
-import { useMutation } from "convex/react";
-import { api } from "../../../convex/_generated/api";
-
 export default function WhispererResponse({
   result,
   pending,
@@ -77,6 +76,7 @@ export default function WhispererResponse({
   const [chatOpen, setChatOpen] = useState(false);
   const markAccepted = useMutation(api.whispererTelemetry.markAccepted);
   const markDiscarded = useMutation(api.whispererTelemetry.markDiscarded);
+  const closeThread = useMutation(api.whispererThreads.closeThread);
 
   const turnId = result?.turnId;
 
@@ -89,12 +89,29 @@ export default function WhispererResponse({
     }
   }
 
-  async function handleClose() {
+  // X = minimize: clear local state, leave the thread on disk so the
+  // next render of the affordance shows "resume". No telemetry —
+  // dismissing is not a signal worth measuring.
+  function handleMinimize() {
+    onClose?.();
+  }
+
+  // "start fresh" = explicit discard. Closes the active thread on the
+  // server (subsequent respond() mints a new thread) AND emits
+  // whisperer_discarded so the negative signal is preserved in
+  // telemetry. Both are fire-and-forget so a network blip doesn't
+  // hide the response from being dismissed locally.
+  async function handleStartFresh() {
+    try {
+      if (activityId) await closeThread({ activityId });
+    } catch {
+      // best-effort
+    }
     if (turnId && result?.status === "ok") {
       try {
         await markDiscarded({ turnId });
       } catch {
-        // telemetry is fire-and-forget for the user
+        // best-effort
       }
     }
     onClose?.();
@@ -161,9 +178,20 @@ export default function WhispererResponse({
           <QuotaIndicator remaining={result.remaining_whisperer_calls_est} />
           <button
             type="button"
-            onClick={handleClose}
+            onClick={handleStartFresh}
+            className="text-[11px] inline-flex items-center gap-1 text-stone-500 hover:text-[#D97757]"
+            aria-label="start fresh — discard this thread and start a new one"
+            title="Discard this conversation and start a new one"
+          >
+            <Icon icon="solar:refresh-linear" width={12} height={12} />
+            start fresh
+          </button>
+          <button
+            type="button"
+            onClick={handleMinimize}
             className="text-stone-500 hover:text-stone-300"
-            aria-label="close"
+            aria-label="minimize — close the panel but keep this whisper to resume later"
+            title="Minimize — your whisper is saved, resume anytime"
           >
             <Icon icon="solar:close-circle-linear" width={16} height={16} />
           </button>
