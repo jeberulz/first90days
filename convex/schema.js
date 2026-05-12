@@ -346,6 +346,76 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_user_type", ["userId", "type"]),
 
+  // ── Plan event log ─────────────────────────────────────────────────────
+  // System-emitted event substrate for the Arcora AI Task Whisperer (U2).
+  // Coexists with `logEntries` (user-authored). `planEventLog` is written
+  // exclusively by server-side flows: the whisperer action, the semantic
+  // classifier, quota gates, and chat-thread lifecycle.
+  //
+  // PRIVACY (v1): `payload` MUST NOT contain raw prompt or response text.
+  // Store only structured metadata — token counts, classifier outputs,
+  // referenced entity ids (stakeholderId, etc.), latency, model name.
+  // Raw turn text lives in `whispererTurns.content`; this table is a
+  // higher-signal index over that content for analytics and replay.
+  planEventLog: defineTable({
+    userId: v.id("users"),
+    // Discriminated event type. Operational events trace the whisperer
+    // surface lifecycle; semantic events are emitted by U5's fire-and-forget
+    // classifier after the main response renders.
+    eventType: v.union(
+      // Operational (R13)
+      v.literal("whisperer_invoked"),
+      v.literal("whisperer_accepted"),
+      v.literal("whisperer_edited"),
+      v.literal("whisperer_discarded"),
+      v.literal("whisperer_chat_expanded"),
+      v.literal("whisperer_chat_capped"),
+      v.literal("clarifying_question_asked"),
+      v.literal("semantic_classify_scheduled"),
+      v.literal("semantic_classify_completed_empty"),
+      v.literal("semantic_classify_failed"),
+      // Semantic (R13) — emitted per-turn by the Haiku classifier
+      v.literal("stuck_signaled"),
+      v.literal("blocker_named"),
+      v.literal("stakeholder_referenced"),
+      v.literal("task_reframed"),
+      v.literal("commitment_made")
+    ),
+    // Coarse filter: "operational" for surface lifecycle, "semantic" for
+    // classifier-derived events. Lets analytics queries skip a whole half
+    // of the table without scanning every eventType.
+    eventCategory: v.union(
+      v.literal("operational"),
+      v.literal("semantic")
+    ),
+    activityId: v.optional(v.id("activities")),
+    // U3 defines the `whispererThreads` and `whispererTurns` tables.
+    // Convex resolves cross-table id references at deploy time, not source
+    // order, so it is OK that those tables appear later in this file.
+    threadId: v.optional(v.id("whispererThreads")),
+    turnId: v.optional(v.id("whispererTurns")),
+    // Structured metadata only. See PRIVACY note above. v1 keeps this as
+    // v.any() to avoid premature typing; the discriminated union per
+    // eventType is a deferred refinement (see plan U2 "Open questions").
+    payload: v.optional(v.any()),
+    // Default is "delivered". "pending" is used by U5's classifier
+    // scheduling marker; "failed" is set when the classifier action errors
+    // and we still want a breadcrumb in the log.
+    deliveryStatus: v.union(
+      v.literal("delivered"),
+      v.literal("pending"),
+      v.literal("failed")
+    ),
+    // Plan-week number when the referenced entity was first surfaced in
+    // this user's plan. Powers the compound-payoff metric in U8.
+    firstSeenWeek: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+    .index("by_user_time", ["userId", "createdAt"])
+    .index("by_user_event", ["userId", "eventType", "createdAt"])
+    .index("by_thread", ["threadId", "createdAt"])
+    .index("by_user_activity", ["userId", "activityId", "createdAt"]),
+
   knowledgeEntries: defineTable({
     userId: v.id("users"),
     title: v.string(),
