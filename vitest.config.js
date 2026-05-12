@@ -7,6 +7,7 @@ export default defineConfig({
     include: [
       "convex/**/*.test.{js,ts}",
       "src/lib/**/*.test.{js,ts}",
+      "src/components/**/*.test.{js,ts}",
     ],
   },
 });
