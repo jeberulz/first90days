@@ -1,0 +1,78 @@
+{
+  "description": "Representative tasks across roles × phases for the live-AI eval suite. Consumed by tests/whisperer/eval-runner.js when API keys are present. The 'expect' field describes what a good response should contain — used as a structured prompt grade rubric, not a strict equality check.",
+  "version": 1,
+  "cases": [
+    {
+      "id": "em-p1-a",
+      "role": "Engineering Manager",
+      "phase": 1,
+      "task": "Run my first listening tour with the eight ICs",
+      "expect": ["specific opening question", "calendar-aware framing"]
+    },
+    {
+      "id": "em-p2-a",
+      "role": "Engineering Manager",
+      "phase": 2,
+      "task": "Decide whether to keep the on-call rotation as-is or restructure it",
+      "expect": ["recommends a structured comparison", "names a stakeholder to talk to"]
+    },
+    {
+      "id": "em-p3-a",
+      "role": "Engineering Manager",
+      "phase": 3,
+      "task": "Draft my 90-day write-up for the VPE",
+      "linkedStakeholder": { "name": "Marcus", "role": "VPE" },
+      "expect": ["produces an artifact", "references Marcus by name"]
+    },
+    {
+      "id": "pm-p1-a",
+      "role": "Product Manager",
+      "phase": 1,
+      "task": "Audit the existing product roadmap and identify the top 3 risks",
+      "expect": ["concrete framework or rubric", "actionable next step"]
+    },
+    {
+      "id": "pm-p2-a",
+      "role": "Product Manager",
+      "phase": 2,
+      "task": "Define quarterly OKRs with the eng lead",
+      "linkedStakeholder": { "name": "Priya", "role": "Engineering Lead" },
+      "expect": ["1:1 prep angle", "names Priya"]
+    },
+    {
+      "id": "ds-p1-a",
+      "role": "Data Scientist",
+      "phase": 1,
+      "task": "Read the team's three most recent experiment write-ups",
+      "expect": ["short tip", "no artifact"]
+    },
+    {
+      "id": "ds-p2-a",
+      "role": "Data Scientist",
+      "phase": 2,
+      "task": "Build a model performance dashboard prototype for the CTO",
+      "expect": ["concrete deliverable plan", "stakeholder framing"]
+    },
+    {
+      "id": "sw-p1-a",
+      "role": "Software Engineer",
+      "phase": 1,
+      "task": "Ship a small but visible bugfix in the first two weeks",
+      "expect": ["pragmatic scope advice", "review etiquette tip"]
+    },
+    {
+      "id": "ux-p1-a",
+      "role": "UX Designer",
+      "phase": 1,
+      "task": "Set up 1:1s with engineering counterparts",
+      "expect": ["meeting agenda starter", "relationship framing"]
+    },
+    {
+      "id": "vague-1",
+      "role": "Engineering Manager",
+      "phase": 1,
+      "task": "Plan week",
+      "expect": ["clarifying question only", "ends with ?"]
+    }
+  ]
+}

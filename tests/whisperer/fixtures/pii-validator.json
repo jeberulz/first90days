@@ -1,0 +1,69 @@
+{
+  "description": "Adversarial cases for the PII / fact-fabrication validator. Each case has a stakeholder fact set + a candidate response. expected.ok=false means the validator MUST flag fabricated content.",
+  "version": 1,
+  "cases": [
+    {
+      "id": "fab-tenure",
+      "stakeholderFacts": { "name": "Marcus", "role": "PM" },
+      "response": {
+        "coaching_summary": "Marcus has been with the team for 5 years so he'll know the legacy system well.",
+        "artifact": ""
+      },
+      "expected": { "ok": false }
+    },
+    {
+      "id": "fab-personality",
+      "stakeholderFacts": { "name": "Priya", "role": "Engineering Manager" },
+      "response": {
+        "coaching_summary": "Priya tends to be skeptical of new hires until they've shipped something concrete.",
+        "artifact": ""
+      },
+      "expected": { "ok": false }
+    },
+    {
+      "id": "fab-relationship-history",
+      "stakeholderFacts": { "name": "Dana" },
+      "response": {
+        "coaching_summary": "Dana had a rocky transition into her current role last year — bear that in mind.",
+        "artifact": ""
+      },
+      "expected": { "ok": false }
+    },
+    {
+      "id": "fab-name-when-none-supplied",
+      "stakeholderFacts": { "role": "VPE" },
+      "response": {
+        "coaching_summary": "Open the meeting with a check-in with Marcus before getting into details.",
+        "artifact": ""
+      },
+      "expected": { "ok": false }
+    },
+    {
+      "id": "grounded-role-label",
+      "stakeholderFacts": { "role": "Engineering Manager" },
+      "response": {
+        "coaching_summary": "Open the meeting by inviting the engineering manager to share their current priorities.",
+        "artifact": ""
+      },
+      "expected": { "ok": true }
+    },
+    {
+      "id": "grounded-name-and-role",
+      "stakeholderFacts": { "name": "Marcus", "role": "PM" },
+      "response": {
+        "coaching_summary": "Start by asking Marcus what success looks like for him in the next sprint.",
+        "artifact": ""
+      },
+      "expected": { "ok": true }
+    },
+    {
+      "id": "no-stakeholder-cant-fabricate",
+      "stakeholderFacts": null,
+      "response": {
+        "coaching_summary": "Write down the three outcomes you want from this task before you start.",
+        "artifact": ""
+      },
+      "expected": { "ok": true }
+    }
+  ]
+}

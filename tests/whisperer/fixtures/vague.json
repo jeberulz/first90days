@@ -1,0 +1,19 @@
+{
+  "description": "Vague tasks the classifier should route to clarify shape (R6 escape rate). Vague = title < 4 tokens AND no stakeholder/goal linkage.",
+  "version": 1,
+  "cases": [
+    { "id": "vague-1", "title": "Plan week", "expectVague": true },
+    { "id": "vague-2", "title": "Get started", "expectVague": true },
+    { "id": "vague-3", "title": "Onboarding", "expectVague": true },
+    { "id": "vague-4", "title": "Prepare", "expectVague": true },
+    { "id": "vague-5", "title": "Brainstorm", "expectVague": true },
+    { "id": "vague-6", "title": "Plan stuff", "expectVague": true },
+    { "id": "vague-7", "title": "Sort priorities", "expectVague": true },
+    { "id": "vague-8", "title": "Sketch ideas", "expectVague": true },
+    { "id": "vague-9", "title": "Map options", "expectVague": true },
+    { "id": "vague-10", "title": "Think ahead", "expectVague": true },
+    { "id": "non-vague-1", "title": "Map decision-making power across the org chart", "expectVague": false },
+    { "id": "non-vague-2", "title": "Plan week", "linkedStakeholder": true, "expectVague": false },
+    { "id": "non-vague-3", "title": "Onboarding", "linkedGoal": true, "expectVague": false }
+  ]
+}
