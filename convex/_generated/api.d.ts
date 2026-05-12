@@ -76,6 +76,7 @@ import type * as waitlist from "../waitlist.js";
 import type * as whisperer from "../whisperer.js";
 import type * as whispererInternal from "../whispererInternal.js";
 import type * as whispererSemantic from "../whispererSemantic.js";
+import type * as whispererTelemetry from "../whispererTelemetry.js";
 import type * as whispererThreads from "../whispererThreads.js";
 
 import type {
@@ -153,6 +154,7 @@ declare const fullApi: ApiFromModules<{
   whisperer: typeof whisperer;
   whispererInternal: typeof whispererInternal;
   whispererSemantic: typeof whispererSemantic;
+  whispererTelemetry: typeof whispererTelemetry;
   whispererThreads: typeof whispererThreads;
 }>;
 
