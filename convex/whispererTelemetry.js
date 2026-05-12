@@ -185,12 +185,20 @@ export const markDiscarded = mutation({
  */
 export async function emitTaskCompleteAcceptIfRecent(ctx, args) {
   try {
+    // After the multi-thread-per-activity change (user-initiated
+    // "start fresh"), exclude closed threads. A user who explicitly
+    // discarded their conversation has already emitted
+    // whisperer_discarded — don't subsequently emit
+    // whisperer_accepted on the same turn just because the task
+    // happened to complete within 24h.
     const thread = await ctx.db
       .query("whispererThreads")
       .withIndex("by_user_activity", (q) =>
         q.eq("userId", args.userId).eq("activityId", args.activityId)
       )
-      .unique();
+      .filter((q) => q.neq(q.field("status"), "closed"))
+      .order("desc")
+      .first();
     if (!thread) return null;
 
     const turns = await ctx.db

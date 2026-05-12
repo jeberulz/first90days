@@ -104,15 +104,20 @@ export const finalizeRespond = internalMutation({
     invokedPayload: v.any(),
   },
   handler: async (ctx, args) => {
-    // 1) Create-or-reuse the thread (idempotent on (userId, activityId)).
-    const existing = await ctx.db
+    // 1) Create-or-reuse the thread. Idempotency is now scoped to
+    //    OPEN threads only — a prior closed/capped thread on the same
+    //    activity does not block creating a new active conversation
+    //    (required by the user-initiated "start fresh" flow).
+    const existingOpen = await ctx.db
       .query("whispererThreads")
       .withIndex("by_user_activity", (q) =>
         q.eq("userId", args.userId).eq("activityId", args.activityId)
       )
-      .unique();
+      .filter((q) => q.eq(q.field("status"), "open"))
+      .order("desc")
+      .first();
     const threadId =
-      existing?._id ??
+      existingOpen?._id ??
       (await ctx.db.insert("whispererThreads", {
         userId: args.userId,
         activityId: args.activityId,
@@ -121,11 +126,12 @@ export const finalizeRespond = internalMutation({
         createdAt: Date.now(),
       }));
 
-    const thread = existing ?? (await ctx.db.get(threadId));
+    const thread = existingOpen ?? (await ctx.db.get(threadId));
     if (thread.status !== "open") {
-      // Should not normally happen — the action guards against
-      // calling respond on a capped thread by lazy-creating only when
-      // appending. If it does, surface a structured failure.
+      // Defensive: the open-filter above means we should never see a
+      // non-open thread here, but if a concurrent cap snuck in we
+      // surface a structured failure rather than silently appending
+      // to a capped thread.
       throw new Error(`Cannot finalize respond on ${thread.status} thread`);
     }
 

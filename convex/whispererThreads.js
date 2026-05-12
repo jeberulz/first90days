@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import {
   internalMutation,
   internalQuery,
+  mutation,
   query,
 } from "./_generated/server";
 import { auth } from "./auth";
@@ -48,13 +49,18 @@ export const createThread = internalMutation({
     activityId: v.id("activities"),
   },
   handler: async (ctx, args) => {
-    const existing = await ctx.db
+    // Reuse-only-open: an existing closed/capped thread does not block
+    // creating a fresh open thread for the same activity (required by
+    // the user-initiated "start fresh" flow).
+    const existingOpen = await ctx.db
       .query("whispererThreads")
       .withIndex("by_user_activity", (q) =>
         q.eq("userId", args.userId).eq("activityId", args.activityId)
       )
-      .unique();
-    if (existing) return existing._id;
+      .filter((q) => q.eq(q.field("status"), "open"))
+      .order("desc")
+      .first();
+    if (existingOpen) return existingOpen._id;
 
     return await ctx.db.insert("whispererThreads", {
       userId: args.userId,
@@ -160,7 +166,9 @@ export const getByActivity = internalQuery({
       .withIndex("by_user_activity", (q) =>
         q.eq("userId", args.userId).eq("activityId", args.activityId)
       )
-      .unique();
+      .filter((q) => q.neq(q.field("status"), "closed"))
+      .order("desc")
+      .first();
   },
 });
 
@@ -193,8 +201,12 @@ export const markCapped = internalMutation({
 });
 
 /**
- * Public read query for U7. Returns the user's thread + ordered turns
- * for a given activity, or null when no thread has been opened yet.
+ * Public read query for U7. Returns the user's most recent NON-CLOSED
+ * thread + ordered turns for a given activity. Closed threads are
+ * deliberately hidden so the affordance reverts to "help with this"
+ * after a user-initiated start-fresh. Capped threads are returned so
+ * the UI can show the soft-block recap.
+ *
  * Auth-checked: caller must own the activity.
  */
 export const listByActivity = query({
@@ -211,7 +223,9 @@ export const listByActivity = query({
       .withIndex("by_user_activity", (q) =>
         q.eq("userId", userId).eq("activityId", args.activityId)
       )
-      .unique();
+      .filter((q) => q.neq(q.field("status"), "closed"))
+      .order("desc")
+      .first();
     if (!thread) return null;
 
     const turns = await ctx.db
@@ -220,5 +234,44 @@ export const listByActivity = query({
       .collect();
 
     return { thread, turns };
+  },
+});
+
+/**
+ * User-initiated close. Distinct from `markCapped` (system-initiated
+ * for turn/cents caps). Flips the most recent OPEN thread on this
+ * activity to status="closed" so subsequent `respond` calls mint a
+ * fresh thread instead of appending to the prior conversation.
+ *
+ * Idempotent: a no-op when no open thread exists. Soft-fails on
+ * cross-user access (returns null rather than throwing) — UI calls
+ * this as fire-and-forget telemetry-style.
+ *
+ * Used by the "start fresh" button in WhispererResponse.
+ */
+export const closeThread = mutation({
+  args: { activityId: v.id("activities") },
+  handler: async (ctx, args) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) return null;
+
+    const activity = await ctx.db.get(args.activityId);
+    if (!activity || activity.userId !== userId) return null;
+
+    const open = await ctx.db
+      .query("whispererThreads")
+      .withIndex("by_user_activity", (q) =>
+        q.eq("userId", userId).eq("activityId", args.activityId)
+      )
+      .filter((q) => q.eq(q.field("status"), "open"))
+      .order("desc")
+      .first();
+    if (!open) return null;
+
+    await ctx.db.patch(open._id, {
+      status: "closed",
+      cappedReason: "close_unresolved",
+    });
+    return open._id;
   },
 });

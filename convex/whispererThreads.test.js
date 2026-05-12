@@ -2,7 +2,7 @@
 import { convexTest } from "convex-test";
 import { expect, describe, it } from "vitest";
 import schema from "./schema.js";
-import { internal } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 
 // Glob is anchored at this test file's location so convex-test sees
 // the worktree's convex/ tree (npm and node_modules live above the
@@ -372,5 +372,189 @@ describe("whispererThreads — concurrent appends keep seq monotonic", () => {
 
     const thread = await t.run(async (ctx) => ctx.db.get(threadId));
     expect(thread.turnCount).toBe(2);
+  });
+});
+
+describe("whispererThreads.closeThread", () => {
+  it("flips an open thread to closed with reason close_unresolved", async () => {
+    const t = convexTest(schema, modules);
+    const { userId, activityId } = await seedUserAndActivity(t);
+    const threadId = await t.mutation(internal.whispererThreads.createThread, {
+      userId,
+      activityId,
+    });
+
+    await t
+      .withIdentity({ subject: userId, issuer: "test" })
+      .mutation(api.whispererThreads.closeThread, { activityId });
+
+    const row = await t.run(async (ctx) => ctx.db.get(threadId));
+    expect(row.status).toBe("closed");
+    expect(row.cappedReason).toBe("close_unresolved");
+  });
+
+  it("is a no-op when no thread exists for the activity", async () => {
+    const t = convexTest(schema, modules);
+    const { userId, activityId } = await seedUserAndActivity(t);
+
+    const result = await t
+      .withIdentity({ subject: userId, issuer: "test" })
+      .mutation(api.whispererThreads.closeThread, { activityId });
+
+    expect(result).toBeNull();
+  });
+
+  it("is a no-op when the most recent thread is already closed", async () => {
+    const t = convexTest(schema, modules);
+    const { userId, activityId } = await seedUserAndActivity(t);
+    const threadId = await t.mutation(internal.whispererThreads.createThread, {
+      userId,
+      activityId,
+    });
+    await t.run(async (ctx) =>
+      ctx.db.patch(threadId, { status: "closed", cappedReason: "close_unresolved" })
+    );
+
+    const result = await t
+      .withIdentity({ subject: userId, issuer: "test" })
+      .mutation(api.whispererThreads.closeThread, { activityId });
+
+    expect(result).toBeNull();
+  });
+
+  it("refuses to close another user's thread", async () => {
+    const t = convexTest(schema, modules);
+    const { userId, activityId } = await seedUserAndActivity(t);
+    const threadId = await t.mutation(internal.whispererThreads.createThread, {
+      userId,
+      activityId,
+    });
+    const otherUser = await t.run((ctx) =>
+      ctx.db.insert("users", { email: "other@example.com" })
+    );
+
+    const result = await t
+      .withIdentity({ subject: otherUser, issuer: "test" })
+      .mutation(api.whispererThreads.closeThread, { activityId });
+
+    expect(result).toBeNull();
+    const row = await t.run(async (ctx) => ctx.db.get(threadId));
+    expect(row.status).toBe("open");
+  });
+});
+
+describe("whispererThreads.listByActivity — multi-thread semantics", () => {
+  it("hides closed threads so the affordance reverts to a fresh start", async () => {
+    const t = convexTest(schema, modules);
+    const { userId, activityId } = await seedUserAndActivity(t);
+    const threadId = await t.mutation(internal.whispererThreads.createThread, {
+      userId,
+      activityId,
+    });
+    await t.run(async (ctx) =>
+      ctx.db.patch(threadId, { status: "closed", cappedReason: "close_unresolved" })
+    );
+
+    const result = await t
+      .withIdentity({ subject: userId, issuer: "test" })
+      .query(api.whispererThreads.listByActivity, { activityId });
+
+    expect(result).toBeNull();
+  });
+
+  it("returns the most recent OPEN thread when a closed one exists alongside", async () => {
+    const t = convexTest(schema, modules);
+    const { userId, activityId } = await seedUserAndActivity(t);
+    const closedId = await t.mutation(internal.whispererThreads.createThread, {
+      userId,
+      activityId,
+    });
+    await t.run(async (ctx) =>
+      ctx.db.patch(closedId, { status: "closed", cappedReason: "close_unresolved" })
+    );
+    // finalizeRespond is the canonical "create or reuse" path; force a
+    // new open thread via createThread (which is reuse-only-open after U1).
+    const openId = await t.mutation(internal.whispererThreads.createThread, {
+      userId,
+      activityId,
+    });
+    expect(openId).not.toBe(closedId);
+
+    const result = await t
+      .withIdentity({ subject: userId, issuer: "test" })
+      .query(api.whispererThreads.listByActivity, { activityId });
+
+    expect(result).not.toBeNull();
+    expect(result.thread._id).toBe(openId);
+  });
+
+  it("still returns a capped thread (so the UI can show the soft-block recap)", async () => {
+    const t = convexTest(schema, modules);
+    const { userId, activityId } = await seedUserAndActivity(t);
+    const threadId = await t.mutation(internal.whispererThreads.createThread, {
+      userId,
+      activityId,
+    });
+    await t.mutation(internal.whispererThreads.markCapped, {
+      threadId,
+      reason: "turn_limit",
+    });
+
+    const result = await t
+      .withIdentity({ subject: userId, issuer: "test" })
+      .query(api.whispererThreads.listByActivity, { activityId });
+
+    expect(result).not.toBeNull();
+    expect(result.thread.status).toBe("capped");
+  });
+});
+
+describe("whispererInternal.finalizeRespond — reuse-only-open", () => {
+  it("creates a new open thread when the prior thread on the activity is closed", async () => {
+    const t = convexTest(schema, modules);
+    const { userId, activityId } = await seedUserAndActivity(t);
+    const closedId = await t.mutation(internal.whispererThreads.createThread, {
+      userId,
+      activityId,
+    });
+    await t.run(async (ctx) =>
+      ctx.db.patch(closedId, { status: "closed", cappedReason: "close_unresolved" })
+    );
+
+    const result = await t.mutation(internal.whispererInternal.finalizeRespond, {
+      userId,
+      activityId,
+      role: "assistant",
+      content: "coaching",
+      modelUsed: "claude-sonnet",
+      latencyMs: 100,
+      invokedPayload: {},
+    });
+
+    expect(result.threadId).not.toBe(closedId);
+    const newThread = await t.run(async (ctx) => ctx.db.get(result.threadId));
+    expect(newThread.status).toBe("open");
+    expect(newThread.turnCount).toBe(1);
+  });
+
+  it("reuses the existing open thread when one exists (no regression)", async () => {
+    const t = convexTest(schema, modules);
+    const { userId, activityId } = await seedUserAndActivity(t);
+    const threadId = await t.mutation(internal.whispererThreads.createThread, {
+      userId,
+      activityId,
+    });
+
+    const result = await t.mutation(internal.whispererInternal.finalizeRespond, {
+      userId,
+      activityId,
+      role: "assistant",
+      content: "coaching",
+      modelUsed: "claude-sonnet",
+      latencyMs: 100,
+      invokedPayload: {},
+    });
+
+    expect(result.threadId).toBe(threadId);
   });
 });
