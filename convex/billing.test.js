@@ -743,3 +743,74 @@ describe("enrichment budget mutations", () => {
     expect(user.settings.kb.enrichmentBudgetUsedToday).toBe(2);
   });
 });
+
+// ---------- Whisperer surfacing in entitlements (U1) ----------
+// These tests pass an explicit `modules` map so convex-test loads the
+// worktree's billing.js (the default auto-discover glob resolves relative
+// to the convex-test package location, which lands on the main repo).
+
+const whispererModules = import.meta.glob("./**/*.{js,ts}");
+
+describe("computeEntitlements whisperer surfacing", () => {
+  it("free user with no usage: full 200¢ ceiling, ~13 whisperer calls remaining", async () => {
+    const t = convexTest(schema, whispererModules);
+    const userId = await t.run(async (ctx) =>
+      ctx.db.insert("users", { email: "wh-free@example.com" })
+    );
+
+    const ent = await t.query(internal.billing.getEntitlementsInternal, {
+      userId,
+    });
+    expect(ent.aiUsageCeilingCents).toBe(200);
+    expect(ent.aiUsageUsedCents).toBe(0);
+    expect(ent.whispererCallsRemainingEst).toBe(13);
+  });
+
+  it("pro user with 150¢ spent: surfaces 1350¢ remaining, 90 calls remaining", async () => {
+    const t = convexTest(schema, whispererModules);
+    const userId = await t.run(async (ctx) =>
+      ctx.db.insert("users", {
+        email: "wh-pro@example.com",
+        billingTier: "pro",
+      })
+    );
+    // Pro tier requires an active sub OR pro_legacy. Wire up an active sub
+    // so deriveTier returns "pro" and the 1500¢ ceiling applies.
+    await t.run(async (ctx) =>
+      ctx.db.insert("billingSubscriptions", {
+        userId,
+        stripeCustomerId: "cus_pro",
+        stripeSubscriptionId: "sub_pro",
+        priceId: "price_pro",
+        status: "active",
+        currentPeriodEnd: Date.now() + 30 * DAY,
+        cancelAtPeriodEnd: false,
+        stripeUpdatedAt: Date.now(),
+        updatedAt: Date.now(),
+      })
+    );
+
+    // Day-key-agnostic: write under utcDayKey to match the legacy read path.
+    const utcKey = (() => {
+      const d = new Date();
+      return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+    })();
+    await t.run(async (ctx) =>
+      ctx.db.insert("aiUsage", {
+        userId,
+        dayKey: utcKey,
+        costCents: 150,
+        requestCount: 3,
+        lastRequestAt: Date.now(),
+      })
+    );
+
+    const ent = await t.query(internal.billing.getEntitlementsInternal, {
+      userId,
+    });
+    expect(ent.tier).toBe("pro");
+    expect(ent.aiUsageCeilingCents).toBe(1500);
+    expect(ent.aiUsageUsedCents).toBe(150);
+    expect(ent.whispererCallsRemainingEst).toBe(90);
+  });
+});

@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { auth } from "./auth";
+import { emitTaskCompleteAcceptIfRecent } from "./whispererTelemetry";
 import {
   scheduleYmd,
   resolveUserTimezone,
@@ -83,9 +84,10 @@ export const complete = mutation({
       throw new Error("Activity not found");
     }
 
+    const completedAtMs = Date.now();
     await ctx.db.patch(args.id, {
       status: "completed",
-      completedAt: new Date().toISOString(),
+      completedAt: new Date(completedAtMs).toISOString(),
       completionNotes: args.completionNotes,
     });
 
@@ -97,6 +99,15 @@ export const complete = mutation({
         { activityId: args.id }
       );
     }
+
+    // Emit whisperer_accepted with path=task_complete when a recent
+    // whisperer turn precedes the completion (U8 north-star metric).
+    // Soft-fails; never blocks the task-complete write.
+    await emitTaskCompleteAcceptIfRecent(ctx, {
+      userId,
+      activityId: args.id,
+      completedAt: completedAtMs,
+    });
   },
 });
 

@@ -5,6 +5,7 @@ import { Icon } from "@iconify/react";
 import { ResponsiveModal } from "@/components/primitives";
 import { CategoryChip } from "@/components/app/TaskCard";
 import { cn } from "@/lib/utils";
+import HelpWithThisButton from "@/components/whisperer/HelpWithThisButton";
 
 function ActionButton({ icon, label, onClick, variant = "default", disabled }) {
   const base =
@@ -145,6 +146,14 @@ export default function TaskDetailSheet({
           <p className="font-space-grotesk text-sm leading-relaxed text-warm-line/90">
             {activity.description}
           </p>
+        )}
+
+        {!isDone && !isSkipped && (
+          <HelpWithThisButton
+            activityId={activity._id}
+            taskCategory={activity.category}
+            onMarkDone={handleComplete}
+          />
         )}
 
         {showNote && !isDone && (

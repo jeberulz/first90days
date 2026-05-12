@@ -1,9 +1,17 @@
 import { v } from "convex/values";
-import { query, mutation, internalMutation } from "./_generated/server";
+import {
+  query,
+  mutation,
+  internalMutation,
+  internalQuery,
+} from "./_generated/server";
 import { internal } from "./_generated/api";
 import { auth } from "./auth";
 import { isPilotEmail, PILOT_PLAN_START_DATE } from "./lib/pilotUser";
-import { computePlanDayInfo } from "./lib/planDates";
+import {
+  computePlanDayInfo,
+  resolveUserTimezone,
+} from "./lib/planDates";
 import { computeEntitlements } from "./billing";
 
 function splitFullName(fullName) {
@@ -124,6 +132,23 @@ export const getDayNumber = query({
       startDate: info.startDate,
       weekNumber: info.weekNumber,
     };
+  },
+});
+
+/**
+ * Internal: return the resolved timezone for a user, falling back to
+ * Europe/London when `settings.timezone` is missing. Used by the rate-limit
+ * cents-ledger code path (`convex/lib/rateLimit.js`) so the daily window
+ * keys correctly to the user's local midnight rather than UTC midnight.
+ *
+ * Exposed as an internalQuery so action callers can resolve a timezone
+ * without re-reading the full user document.
+ */
+export const getUserTimezoneInternal = internalQuery({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => {
+    const user = await ctx.db.get(userId);
+    return { timezone: resolveUserTimezone(user) };
   },
 });
 
@@ -369,6 +394,7 @@ export const exportMyData = query({
       weeklyReviews,
       logEntries,
       knowledgeEntries,
+      whispererThreads,
     ] = await Promise.all([
       collectByUser("onboardingData"),
       collectByUser("plans"),
@@ -382,7 +408,29 @@ export const exportMyData = query({
       collectByUser("weeklyReviews"),
       collectByUser("logEntries"),
       collectByUser("knowledgeEntries"),
+      ctx.db
+        .query("whispererThreads")
+        .withIndex("by_user_status", (q) => q.eq("userId", userId))
+        .collect(),
     ]);
+
+    // Whisperer turns are owned via thread → user (no direct userId
+    // column), so we join through the threads we just fetched.
+    const whispererTurns = [];
+    for (const thread of whispererThreads) {
+      const turns = await ctx.db
+        .query("whispererTurns")
+        .withIndex("by_thread_seq", (q) => q.eq("threadId", thread._id))
+        .collect();
+      whispererTurns.push(...turns);
+    }
+
+    // planEventLog uses a compound (userId, createdAt) index; query the
+    // by_user_time prefix so we get every row for this user.
+    const planEventLog = await ctx.db
+      .query("planEventLog")
+      .withIndex("by_user_time", (q) => q.eq("userId", userId))
+      .collect();
 
     const { _id, _creationTime, ...userPublic } = user;
 
@@ -406,6 +454,9 @@ export const exportMyData = query({
       weeklyReviews,
       logEntries,
       knowledgeEntries,
+      whispererThreads,
+      whispererTurns,
+      planEventLog,
     };
   },
 });
@@ -574,6 +625,43 @@ export const purgeUserData = internalMutation({
       .take(PURGE_BATCH_SIZE);
     for (const row of authoredComments) await ctx.db.delete(row._id);
     if (authoredComments.length === PURGE_BATCH_SIZE) moreWork = true;
+
+    // ── Whisperer cascade (U3 / R18) ────────────────────────────────────
+    // whispererThreads is keyed by userId directly; whispererTurns has
+    // no userId column so we join via the parent thread. We must delete
+    // all turns BEFORE the owning thread row so an interrupted batch
+    // can resume without orphans. To stay under transaction limits we
+    // delete one batch of turns per thread per invocation and only drop
+    // a thread once its turn set comes back empty.
+    const threads = await ctx.db
+      .query("whispererThreads")
+      .withIndex("by_user_status", (q) => q.eq("userId", userId))
+      .take(PURGE_BATCH_SIZE);
+
+    for (const thread of threads) {
+      const turns = await ctx.db
+        .query("whispererTurns")
+        .withIndex("by_thread_seq", (q) => q.eq("threadId", thread._id))
+        .take(PURGE_BATCH_SIZE);
+      for (const turn of turns) await ctx.db.delete(turn._id);
+      if (turns.length === PURGE_BATCH_SIZE) {
+        // Still more turns to delete for this thread; leave the thread
+        // row in place so the next invocation finds it again.
+        moreWork = true;
+      } else {
+        await ctx.db.delete(thread._id);
+      }
+    }
+    if (threads.length === PURGE_BATCH_SIZE) moreWork = true;
+
+    // planEventLog uses a compound (userId, createdAt) index; query the
+    // by_user_time prefix and batch-delete.
+    const eventRows = await ctx.db
+      .query("planEventLog")
+      .withIndex("by_user_time", (q) => q.eq("userId", userId))
+      .take(PURGE_BATCH_SIZE);
+    for (const row of eventRows) await ctx.db.delete(row._id);
+    if (eventRows.length === PURGE_BATCH_SIZE) moreWork = true;
 
     if (moreWork) {
       await ctx.scheduler.runAfter(0, internal.users.purgeUserData, { userId });

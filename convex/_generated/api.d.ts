@@ -39,12 +39,21 @@ import type * as lib_kbPrompts from "../lib/kbPrompts.js";
 import type * as lib_pilotUser from "../lib/pilotUser.js";
 import type * as lib_planAccess from "../lib/planAccess.js";
 import type * as lib_planDates from "../lib/planDates.js";
+import type * as lib_planEventLog from "../lib/planEventLog.js";
 import type * as lib_planPrompts from "../lib/planPrompts.js";
 import type * as lib_planTemplate from "../lib/planTemplate.js";
 import type * as lib_rateLimit from "../lib/rateLimit.js";
 import type * as lib_stakeholderCadence from "../lib/stakeholderCadence.js";
+import type * as lib_whispererClassifier from "../lib/whispererClassifier.js";
+import type * as lib_whispererContext from "../lib/whispererContext.js";
+import type * as lib_whispererEscalation from "../lib/whispererEscalation.js";
+import type * as lib_whispererPrompts from "../lib/whispererPrompts.js";
+import type * as lib_whispererQuota from "../lib/whispererQuota.js";
+import type * as lib_whispererSemantic from "../lib/whispererSemantic.js";
+import type * as lib_whispererValidator from "../lib/whispererValidator.js";
 import type * as logEntries from "../logEntries.js";
 import type * as loginAttempts from "../loginAttempts.js";
+import type * as migrations_backfillStakeholderFirstMentionedAt from "../migrations/backfillStakeholderFirstMentionedAt.js";
 import type * as migrations_clearRescheduledStatus from "../migrations/clearRescheduledStatus.js";
 import type * as migrations_grandfather from "../migrations/grandfather.js";
 import type * as migrations_legacyKnowledgeToDocuments from "../migrations/legacyKnowledgeToDocuments.js";
@@ -64,6 +73,11 @@ import type * as stakeholders from "../stakeholders.js";
 import type * as stripeWebhook from "../stripeWebhook.js";
 import type * as users from "../users.js";
 import type * as waitlist from "../waitlist.js";
+import type * as whisperer from "../whisperer.js";
+import type * as whispererInternal from "../whispererInternal.js";
+import type * as whispererSemantic from "../whispererSemantic.js";
+import type * as whispererTelemetry from "../whispererTelemetry.js";
+import type * as whispererThreads from "../whispererThreads.js";
 
 import type {
   ApiFromModules,
@@ -103,12 +117,21 @@ declare const fullApi: ApiFromModules<{
   "lib/pilotUser": typeof lib_pilotUser;
   "lib/planAccess": typeof lib_planAccess;
   "lib/planDates": typeof lib_planDates;
+  "lib/planEventLog": typeof lib_planEventLog;
   "lib/planPrompts": typeof lib_planPrompts;
   "lib/planTemplate": typeof lib_planTemplate;
   "lib/rateLimit": typeof lib_rateLimit;
   "lib/stakeholderCadence": typeof lib_stakeholderCadence;
+  "lib/whispererClassifier": typeof lib_whispererClassifier;
+  "lib/whispererContext": typeof lib_whispererContext;
+  "lib/whispererEscalation": typeof lib_whispererEscalation;
+  "lib/whispererPrompts": typeof lib_whispererPrompts;
+  "lib/whispererQuota": typeof lib_whispererQuota;
+  "lib/whispererSemantic": typeof lib_whispererSemantic;
+  "lib/whispererValidator": typeof lib_whispererValidator;
   logEntries: typeof logEntries;
   loginAttempts: typeof loginAttempts;
+  "migrations/backfillStakeholderFirstMentionedAt": typeof migrations_backfillStakeholderFirstMentionedAt;
   "migrations/clearRescheduledStatus": typeof migrations_clearRescheduledStatus;
   "migrations/grandfather": typeof migrations_grandfather;
   "migrations/legacyKnowledgeToDocuments": typeof migrations_legacyKnowledgeToDocuments;
@@ -128,6 +151,11 @@ declare const fullApi: ApiFromModules<{
   stripeWebhook: typeof stripeWebhook;
   users: typeof users;
   waitlist: typeof waitlist;
+  whisperer: typeof whisperer;
+  whispererInternal: typeof whispererInternal;
+  whispererSemantic: typeof whispererSemantic;
+  whispererTelemetry: typeof whispererTelemetry;
+  whispererThreads: typeof whispererThreads;
 }>;
 
 /**

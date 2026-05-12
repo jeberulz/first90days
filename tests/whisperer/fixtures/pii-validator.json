@@ -1,0 +1,69 @@
+{
+  "description": "Adversarial cases for the PII / fact-fabrication validator. Each case has a stakeholder fact set + a candidate response. expected.ok=false means the validator MUST flag fabricated content. Cases include an artifact because the v1 validator only runs when an artifact is present (shouldValidate gate) — coaching-only responses skip the judge.",
+  "version": 1,
+  "cases": [
+    {
+      "id": "fab-tenure",
+      "stakeholderFacts": { "name": "Marcus", "role": "PM" },
+      "response": {
+        "coaching_summary": "Lean on his depth.",
+        "artifact": "Hi Marcus — given you've been with the team for 5 years, you'll know the legacy system well. Can we cover the migration history first?"
+      },
+      "expected": { "ok": false }
+    },
+    {
+      "id": "fab-personality",
+      "stakeholderFacts": { "name": "Priya", "role": "Engineering Manager" },
+      "response": {
+        "coaching_summary": "Lead with a concrete win.",
+        "artifact": "Hi Priya — I know you tend to be skeptical of new hires until they've shipped something concrete, so here's the small win I'm aiming to land in week one."
+      },
+      "expected": { "ok": false }
+    },
+    {
+      "id": "fab-relationship-history",
+      "stakeholderFacts": { "name": "Dana" },
+      "response": {
+        "coaching_summary": "Acknowledge the transition.",
+        "artifact": "Dana — I know you had a rocky transition into your current role last year, so I want to make sure my onboarding doesn't add to your plate."
+      },
+      "expected": { "ok": false }
+    },
+    {
+      "id": "fab-name-when-none-supplied",
+      "stakeholderFacts": { "role": "VPE" },
+      "response": {
+        "coaching_summary": "Open with a check-in.",
+        "artifact": "Hi Marcus — looking forward to today's session; here's the agenda I'd like to cover."
+      },
+      "expected": { "ok": false }
+    },
+    {
+      "id": "grounded-role-label",
+      "stakeholderFacts": { "role": "Engineering Manager" },
+      "response": {
+        "coaching_summary": "Invite their priorities first.",
+        "artifact": "Hi — looking forward to meeting; I'd like to start by hearing your current priorities before sharing mine."
+      },
+      "expected": { "ok": true }
+    },
+    {
+      "id": "grounded-name-and-role",
+      "stakeholderFacts": { "name": "Marcus", "role": "PM" },
+      "response": {
+        "coaching_summary": "Start with their definition of success.",
+        "artifact": "Hi Marcus — looking forward to our chat; I'd love to start by hearing what success looks like for you this sprint."
+      },
+      "expected": { "ok": true }
+    },
+    {
+      "id": "no-stakeholder-cant-fabricate",
+      "stakeholderFacts": null,
+      "response": {
+        "coaching_summary": "Write down the three outcomes you want from this task before you start.",
+        "artifact": ""
+      },
+      "expected": { "ok": true }
+    }
+  ]
+}

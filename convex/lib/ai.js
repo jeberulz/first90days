@@ -38,10 +38,18 @@ export async function embedText(input) {
   return response.data[0].embedding;
 }
 
+// Default Sonnet model id. Pinned in one place so swapping versions in
+// future cuts only happens here.
+export const CLAUDE_SONNET_MODEL = "claude-sonnet-4-20250514";
+// Cheap Haiku id used by the structured judge + U5's semantic
+// classifier. The prior pin (claude-3-5-haiku-20241022) hit EOL on
+// 2026-02-19; the current release is Haiku 4.5.
+export const CLAUDE_HAIKU_MODEL = "claude-haiku-4-5-20251001";
+
 async function callClaude(systemPrompt, userPrompt) {
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   const response = await client.messages.create({
-    model: "claude-sonnet-4-20250514",
+    model: CLAUDE_SONNET_MODEL,
     max_tokens: 4096,
     system: systemPrompt,
     messages: [{ role: "user", content: userPrompt }],
@@ -68,6 +76,149 @@ export async function generateText(systemPrompt, userPrompt) {
     return callOpenAI(systemPrompt, userPrompt);
   }
   return callClaude(systemPrompt, userPrompt);
+}
+
+/**
+ * Forced-structured-output helper. Bifurcated from generateText so we
+ * can use Anthropic's tool_use forced JSON path or OpenAI's
+ * response_format json_schema. The caller passes a `schema` shaped like
+ * `convex/lib/whispererPrompts.HYBRID_RESPONSE_SCHEMA`:
+ *   { name, description, input_schema: <JSONSchema> }
+ *
+ * Returns:
+ *   {
+ *     json:   <parsed object matching the schema>,
+ *     raw:    <stringified JSON the provider produced>,
+ *     model:  <model id used>,
+ *     tokens: { input, output },
+ *     latencyMs,
+ *   }
+ *
+ * On parse failure throws Error("structured_parse_failed: …") so the
+ * caller can retry once with a stricter prompt (U4 step 7).
+ *
+ * @param {string} systemPrompt
+ * @param {string} userPrompt
+ * @param {{name:string, description?:string, input_schema:object}} schema
+ * @param {{model?:string, maxTokens?:number}} [options]
+ */
+export async function generateStructured(systemPrompt, userPrompt, schema, options = {}) {
+  const provider = getProvider();
+  const start = Date.now();
+  if (provider === "openai") {
+    const json = await callOpenAIStructured(systemPrompt, userPrompt, schema, options);
+    return {
+      json: json.parsed,
+      raw: json.raw,
+      model: json.model,
+      tokens: json.tokens,
+      latencyMs: Date.now() - start,
+    };
+  }
+  const result = await callClaudeStructured(systemPrompt, userPrompt, schema, options);
+  return {
+    json: result.parsed,
+    raw: result.raw,
+    model: result.model,
+    tokens: result.tokens,
+    latencyMs: Date.now() - start,
+  };
+}
+
+async function callClaudeStructured(systemPrompt, userPrompt, schema, options) {
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const model = options.model || CLAUDE_SONNET_MODEL;
+  const maxTokens = options.maxTokens || 4096;
+
+  const tool = {
+    name: schema.name,
+    description: schema.description || "",
+    input_schema: schema.input_schema,
+  };
+
+  const response = await client.messages.create({
+    model,
+    max_tokens: maxTokens,
+    system: systemPrompt,
+    tools: [tool],
+    tool_choice: { type: "tool", name: schema.name },
+    messages: [{ role: "user", content: userPrompt }],
+  });
+
+  // tool_choice forces the model to emit a single tool_use block.
+  const block = (response.content || []).find((c) => c.type === "tool_use");
+  if (!block || !block.input) {
+    throw new Error(
+      `structured_parse_failed: model returned no tool_use block (provider=claude, model=${model})`
+    );
+  }
+
+  return {
+    parsed: block.input,
+    raw: JSON.stringify(block.input),
+    model,
+    tokens: {
+      input: response.usage?.input_tokens ?? 0,
+      output: response.usage?.output_tokens ?? 0,
+    },
+  };
+}
+
+async function callOpenAIStructured(systemPrompt, userPrompt, schema, options) {
+  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const model = options.model || "gpt-4o-2024-08-06";
+  const maxTokens = options.maxTokens || 4096;
+
+  const response = await client.chat.completions.create({
+    model,
+    max_tokens: maxTokens,
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
+    ],
+    response_format: {
+      type: "json_schema",
+      json_schema: {
+        name: schema.name,
+        description: schema.description || "",
+        schema: schema.input_schema,
+        strict: true,
+      },
+    },
+  });
+
+  const raw = response.choices[0].message.content || "";
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (e) {
+    throw new Error(
+      `structured_parse_failed: provider=openai, JSON.parse error: ${e.message}`
+    );
+  }
+
+  return {
+    parsed,
+    raw,
+    model,
+    tokens: {
+      input: response.usage?.prompt_tokens ?? 0,
+      output: response.usage?.completion_tokens ?? 0,
+    },
+  };
+}
+
+/**
+ * Lightweight Haiku judge for short structured-output checks
+ * (whisperer PII validator + U5's semantic classifier). Same
+ * signature as generateStructured but pinned to Haiku.
+ */
+export async function judgeWithHaiku(systemPrompt, userPrompt, schema, options = {}) {
+  return generateStructured(systemPrompt, userPrompt, schema, {
+    ...options,
+    model: options.model || CLAUDE_HAIKU_MODEL,
+    maxTokens: options.maxTokens || 1024,
+  });
 }
 
 export const WATKINS_SYSTEM_PROMPT = `You are an expert career coach specializing in Michael Watkins' "The First 90 Days" framework. You help professionals plan their transition into new roles.
