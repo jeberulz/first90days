@@ -180,7 +180,12 @@ export default defineSchema({
     .index("by_plan", ["planId"])
     .index("by_plan_number", ["planId", "number"])
     .index("by_phase", ["phaseId"])
-    .index("by_user_number", ["userId", "number"]),
+    .index("by_user_number", ["userId", "number"])
+    // Required by users.purgeUserData (USER_OWNED_TABLES sweep). Without
+    // it, account deletion crashes the first time a user has any weeks
+    // rows. Pre-existing latent bug surfaced by the U3 cascade test;
+    // adding the index here is the minimum-surface fix.
+    .index("by_user", ["userId"]),
 
   activities: defineTable({
     planId: v.id("plans"),
@@ -264,6 +269,13 @@ export default defineSchema({
     // YYYY-MM-DD. If today <= this date, nudges for this stakeholder are
     // suppressed on the Today page.
     nudgeSnoozedUntil: v.optional(v.string()),
+    // First time this stakeholder was mentioned anywhere in the user's
+    // workspace (chat, interaction note, manual creation). Populated on
+    // creation by convex/stakeholders.create(*); for legacy rows the
+    // backfill migration sets it to _creationTime as a best-effort lower
+    // bound. Used by U8 to measure the compound-payoff metric ("Arcora
+    // remembered something I mentioned weeks ago").
+    firstMentionedAt: v.optional(v.number()),
   })
     .index("by_user", ["userId"])
     .index("by_user_priority", ["userId", "priority"]),
@@ -332,6 +344,65 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_user_week", ["userId", "weekNumber"]),
+
+  // ── Whisperer chat threads (U3) ──────────────────────────────────────────
+  // One thread per (userId, activityId) — the AI Task Whisperer's
+  // conversation about a single task. Status follows the same
+  // multi-status pattern as weeklyReviews. Turns are stored in a
+  // separate child table to keep the parent row small (it gets patched
+  // on every turn) and avoid the 1MB document ceiling.
+  whispererThreads: defineTable({
+    userId: v.id("users"),
+    activityId: v.id("activities"),
+    status: v.union(
+      v.literal("open"),
+      v.literal("capped"),
+      v.literal("closed")
+    ),
+    turnCount: v.number(),
+    createdAt: v.number(),
+    lastTurnAt: v.optional(v.number()),
+    // Absence of this field means "not yet capped". Set when status
+    // transitions away from "open".
+    cappedReason: v.optional(
+      v.union(
+        v.literal("turn_limit"),
+        v.literal("cents_ceiling"),
+        v.literal("mark_done"),
+        v.literal("escalate"),
+        v.literal("close_unresolved")
+      )
+    ),
+  })
+    .index("by_user_activity", ["userId", "activityId"])
+    .index("by_user_status", ["userId", "status", "lastTurnAt"]),
+
+  // Append-only log of individual messages in a whispererThread. `seq`
+  // is monotonic per thread and assigned inside the same mutation that
+  // appends — Convex transactions guarantee no two appends see the same
+  // turnCount.
+  whispererTurns: defineTable({
+    threadId: v.id("whispererThreads"),
+    seq: v.number(),
+    role: v.union(
+      v.literal("user"),
+      v.literal("assistant"),
+      v.literal("system")
+    ),
+    content: v.string(),
+    assumptions: v.optional(v.array(v.string())),
+    artifact: v.optional(v.string()),
+    clarifyingQuestion: v.optional(v.string()),
+    modelUsed: v.string(),
+    tokenCounts: v.optional(
+      v.object({
+        input: v.number(),
+        output: v.number(),
+      })
+    ),
+    latencyMs: v.number(),
+    createdAt: v.number(),
+  }).index("by_thread_seq", ["threadId", "seq"]),
 
   logEntries: defineTable({
     userId: v.id("users"),
