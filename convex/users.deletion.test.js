@@ -189,6 +189,58 @@ describe("purgeUserData — whisperer cascade (R18)", () => {
     expect(otherTurns).toHaveLength(1);
   });
 
+  it("removes planEventLog rows for the deleted user (and only them)", async () => {
+    const t = convexTest(schema, modules);
+
+    const { userId, otherUserId } = await t.run(async (ctx) => {
+      const userId = await ctx.db.insert("users", { email: "log-doom@example.com" });
+      const otherUserId = await ctx.db.insert("users", { email: "log-safe@example.com" });
+
+      await ctx.db.insert("planEventLog", {
+        userId,
+        eventType: "whisperer_invoked",
+        eventCategory: "operational",
+        deliveryStatus: "delivered",
+        createdAt: Date.now(),
+      });
+      await ctx.db.insert("planEventLog", {
+        userId,
+        eventType: "whisperer_accepted",
+        eventCategory: "operational",
+        deliveryStatus: "delivered",
+        createdAt: Date.now(),
+      });
+      await ctx.db.insert("planEventLog", {
+        userId: otherUserId,
+        eventType: "whisperer_invoked",
+        eventCategory: "operational",
+        deliveryStatus: "delivered",
+        createdAt: Date.now(),
+      });
+
+      return { userId, otherUserId };
+    });
+
+    await t.mutation(internal.users.purgeUserData, { userId });
+    await t.finishAllScheduledFunctions(() => {});
+
+    const remaining = await t.run(async (ctx) =>
+      ctx.db
+        .query("planEventLog")
+        .withIndex("by_user_time", (q) => q.eq("userId", userId))
+        .collect()
+    );
+    expect(remaining).toEqual([]);
+
+    const others = await t.run(async (ctx) =>
+      ctx.db
+        .query("planEventLog")
+        .withIndex("by_user_time", (q) => q.eq("userId", otherUserId))
+        .collect()
+    );
+    expect(others).toHaveLength(1);
+  });
+
   it("survives a thread with no turns (deletes the empty parent in one pass)", async () => {
     const t = convexTest(schema, modules);
 

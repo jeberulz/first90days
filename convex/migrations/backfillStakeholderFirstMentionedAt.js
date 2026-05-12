@@ -22,9 +22,12 @@ import { internalMutation } from "../_generated/server";
  * Idempotent — rows where firstMentionedAt is already set are left
  * alone, so running twice produces the same end state.
  *
- * Batched on `batchSize` (default 200) and re-schedules itself if any
- * batch comes back full, to stay under Convex transaction limits at
- * scale.
+ * Single-pass scan with `take(batchSize)` (default 200). The v1 user
+ * base fits in one batch; if the stakeholders table grows past
+ * `batchSize` this will need a cursored scan + self-reschedule (see
+ * `purgeUserData` for the pattern) — currently it would silently leave
+ * rows past the first batch un-backfilled because there is no index on
+ * `firstMentionedAt` to skip already-set rows.
  */
 export const run = internalMutation({
   args: {

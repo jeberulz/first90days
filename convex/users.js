@@ -425,15 +425,12 @@ export const exportMyData = query({
       whispererTurns.push(...turns);
     }
 
-    // planEventLog is owned by U2 (parallel worktree). When that schema
-    // lands the table will be queryable; for now we attempt it best-effort
-    // so the export contract stays stable across the merge.
-    let planEventLog = [];
-    try {
-      planEventLog = await collectByUser("planEventLog");
-    } catch {
-      planEventLog = [];
-    }
+    // planEventLog uses a compound (userId, createdAt) index; query the
+    // by_user_time prefix so we get every row for this user.
+    const planEventLog = await ctx.db
+      .query("planEventLog")
+      .withIndex("by_user_time", (q) => q.eq("userId", userId))
+      .collect();
 
     const { _id, _creationTime, ...userPublic } = user;
 
@@ -657,19 +654,14 @@ export const purgeUserData = internalMutation({
     }
     if (threads.length === PURGE_BATCH_SIZE) moreWork = true;
 
-    // planEventLog is owned by U2 (parallel worktree). Sweep best-effort
-    // so the cascade contract holds across the merge — when U2's schema
-    // lands this will start removing rows; until then it's a no-op.
-    try {
-      const eventRows = await ctx.db
-        .query("planEventLog")
-        .withIndex("by_user", (q) => q.eq("userId", userId))
-        .take(PURGE_BATCH_SIZE);
-      for (const row of eventRows) await ctx.db.delete(row._id);
-      if (eventRows.length === PURGE_BATCH_SIZE) moreWork = true;
-    } catch {
-      // Table not yet in schema; nothing to do.
-    }
+    // planEventLog uses a compound (userId, createdAt) index; query the
+    // by_user_time prefix and batch-delete.
+    const eventRows = await ctx.db
+      .query("planEventLog")
+      .withIndex("by_user_time", (q) => q.eq("userId", userId))
+      .take(PURGE_BATCH_SIZE);
+    for (const row of eventRows) await ctx.db.delete(row._id);
+    if (eventRows.length === PURGE_BATCH_SIZE) moreWork = true;
 
     if (moreWork) {
       await ctx.scheduler.runAfter(0, internal.users.purgeUserData, { userId });
