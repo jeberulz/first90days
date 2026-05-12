@@ -1,49 +1,42 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Icon } from "@iconify/react";
 
-const COUNT_KEY = "whisperer_invocation_count";
-const COLLAPSE_AFTER = 5;
-
-function readCount() {
-  if (typeof window === "undefined") return 0;
-  const raw = window.localStorage.getItem(COUNT_KEY);
-  const n = raw ? parseInt(raw, 10) : 0;
-  return Number.isFinite(n) ? n : 0;
-}
-
-export function bumpWhispererInvocationCount() {
-  if (typeof window === "undefined") return;
-  const n = readCount();
-  window.localStorage.setItem(COUNT_KEY, String(n + 1));
-}
-
+/**
+ * Quiet, collapsed-by-default assumptions reveal. The model's
+ * grounding notes are useful for power users but visually heavy if
+ * always-on — gating them behind a single tap reduces panel weight
+ * without losing them entirely.
+ */
 export default function AssumptionsBlock({ assumptions }) {
-  const [expanded, setExpanded] = useState(true);
-
-  useEffect(() => {
-    setExpanded(readCount() <= COLLAPSE_AFTER);
-  }, []);
+  const [expanded, setExpanded] = useState(false);
 
   if (!assumptions || assumptions.length === 0) return null;
 
   return (
-    <div className="mt-3">
+    <div className="mt-2">
       <button
         type="button"
         onClick={() => setExpanded((e) => !e)}
-        className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-stone-500 hover:text-stone-300 transition"
+        className="inline-flex items-center gap-1 text-[11px] text-stone-500 hover:text-[#D97757]"
       >
+        <span aria-hidden>↳</span>
+        <span>
+          {assumptions.length} note{assumptions.length === 1 ? "" : "s"}
+        </span>
         <Icon
-          icon={expanded ? "solar:alt-arrow-down-linear" : "solar:alt-arrow-right-linear"}
-          width={12}
-          height={12}
+          icon={
+            expanded
+              ? "solar:alt-arrow-up-linear"
+              : "solar:alt-arrow-down-linear"
+          }
+          width={10}
+          height={10}
         />
-        <span>assumptions: {assumptions.length}</span>
       </button>
       {expanded && (
-        <ul className="mt-2 space-y-1 text-xs italic text-stone-400">
+        <ul className="mt-2 space-y-1 text-xs italic text-stone-500">
           {assumptions.map((a, i) => (
             <li key={i} className="leading-relaxed">— {a}</li>
           ))}

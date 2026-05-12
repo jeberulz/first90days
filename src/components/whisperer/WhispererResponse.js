@@ -1,47 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Icon } from "@iconify/react";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import AssumptionsBlock from "./AssumptionsBlock";
-import QuotaIndicator from "./QuotaIndicator";
+import ConversationTimeline from "./ConversationTimeline";
 import SmallTaskTip from "./SmallTaskTip";
 import FallbackTip from "./FallbackTip";
-import ChatThread from "./ChatThread";
 import LoadingSkeleton from "./LoadingSkeleton";
-
-function CopyArtifactButton({ text, onCopy }) {
-  const [copied, setCopied] = useState(false);
-  async function copy() {
-    if (!text) return;
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-      onCopy?.();
-    } catch {
-      // ignore
-    }
-  }
-  return (
-    <button
-      type="button"
-      onClick={copy}
-      className="text-[11px] inline-flex items-center gap-1 text-stone-400 hover:text-[#D97757]"
-    >
-      <Icon icon={copied ? "solar:check-circle-linear" : "solar:copy-linear"} width={12} height={12} />
-      {copied ? "copied" : "copy"}
-    </button>
-  );
-}
+import QuotaIndicator from "./QuotaIndicator";
 
 function QuotaCeilingPanel({ envelope }) {
   const isCount = envelope.status === "over_count";
   return (
     <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4">
       <div className="flex items-start gap-3">
-        <Icon icon="solar:bell-off-linear" className="text-amber-400 mt-0.5" width={16} height={16} />
+        <Icon
+          icon="solar:bell-off-linear"
+          className="text-amber-400 mt-0.5"
+          width={16}
+          height={16}
+        />
         <div className="flex-1">
           <div className="text-[11px] uppercase tracking-wide text-amber-400/80 mb-1">
             {isCount ? "daily call limit" : "daily ai budget reached"}
@@ -73,43 +52,28 @@ export default function WhispererResponse({
   onMarkDone,
   onClose,
 }) {
-  const [chatOpen, setChatOpen] = useState(false);
-  const markAccepted = useMutation(api.whispererTelemetry.markAccepted);
   const markDiscarded = useMutation(api.whispererTelemetry.markDiscarded);
   const closeThread = useMutation(api.whispererThreads.closeThread);
+  const [entered, setEntered] = useState(false);
 
-  const turnId = result?.turnId;
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setEntered(true));
+    return () => cancelAnimationFrame(raf);
+  }, []);
 
-  async function handleCopy() {
-    if (!turnId) return;
-    try {
-      await markAccepted({ turnId, path: "copy" });
-    } catch {
-      // telemetry is fire-and-forget for the user
-    }
-  }
-
-  // X = minimize: clear local state, leave the thread on disk so the
-  // next render of the affordance shows "resume". No telemetry —
-  // dismissing is not a signal worth measuring.
   function handleMinimize() {
     onClose?.();
   }
 
-  // "start fresh" = explicit discard. Closes the active thread on the
-  // server (subsequent respond() mints a new thread) AND emits
-  // whisperer_discarded so the negative signal is preserved in
-  // telemetry. Both are fire-and-forget so a network blip doesn't
-  // hide the response from being dismissed locally.
   async function handleStartFresh() {
     try {
       if (activityId) await closeThread({ activityId });
     } catch {
       // best-effort
     }
-    if (turnId && result?.status === "ok") {
+    if (result?.turnId && result?.status === "ok") {
       try {
-        await markDiscarded({ turnId });
+        await markDiscarded({ turnId: result.turnId });
       } catch {
         // best-effort
       }
@@ -117,42 +81,59 @@ export default function WhispererResponse({
     onClose?.();
   }
 
-  if (pending) {
+  const enterClasses = entered
+    ? "opacity-100 translate-y-0"
+    : "opacity-0 translate-y-1";
+  const baseTransition =
+    "transition duration-200 ease-out motion-reduce:transition-none";
+
+  if (pending && !result) {
     return (
-      <div className="mt-3 rounded-xl border border-[#D97757]/15 bg-stone-900/60 p-4">
+      <div
+        className={`mt-3 rounded-xl border border-[#D97757]/15 bg-stone-900/60 p-4 ${baseTransition} ${enterClasses}`}
+      >
         <LoadingSkeleton />
       </div>
     );
   }
+
   if (!result) return null;
 
   const status = result.status;
+
   if (status === "unauthorized" || status === "not_found") {
     return (
-      <div className="mt-3 rounded-xl border border-white/10 bg-stone-900/60 p-4 text-sm text-stone-400">
+      <div
+        className={`mt-3 rounded-xl border border-white/10 bg-stone-900/60 p-4 text-sm text-stone-400 ${baseTransition} ${enterClasses}`}
+      >
         Couldn't load this task. Refresh and try again.
       </div>
     );
   }
+
   if (status === "over_count" || status === "over_cents") {
     return (
-      <div className="mt-3">
+      <div
+        className={`mt-3 ${baseTransition} ${enterClasses}`}
+      >
         <QuotaCeilingPanel envelope={result} />
       </div>
     );
   }
+
   if (status === "provider_unavailable") {
     return (
-      <div className="mt-3">
+      <div className={`mt-3 ${baseTransition} ${enterClasses}`}>
         <FallbackTip taskCategory={taskCategory} />
       </div>
     );
   }
+
   if (status !== "ok") return null;
 
   if (result.path === "small") {
     return (
-      <div className="mt-3">
+      <div className={`mt-3 ${baseTransition} ${enterClasses}`}>
         <SmallTaskTip
           tip={result.coachingSummary}
           onDraftItAnyway={onRetryForceFull}
@@ -161,88 +142,57 @@ export default function WhispererResponse({
     );
   }
 
-  const isClarify = result.path === "clarify";
-
   return (
-    <div className="mt-3 rounded-xl border border-[#D97757]/15 bg-stone-900/60 p-4">
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-md bg-[#1F1510] text-[#D97757]">
-            <Icon icon="solar:lightbulb-bolt-linear" width={14} height={14} />
-          </div>
-          <span className="text-[11px] uppercase tracking-wide text-[#D97757]/80">
-            {isClarify ? "one question first" : "whisper"}
-          </span>
-        </div>
-        <div className="flex items-center gap-3">
-          <QuotaIndicator remaining={result.remaining_whisperer_calls_est} />
-          <button
-            type="button"
-            onClick={handleStartFresh}
-            className="text-[11px] inline-flex items-center gap-1 text-stone-500 hover:text-[#D97757]"
-            aria-label="start fresh — discard this thread and start a new one"
-            title="Discard this conversation and start a new one"
-          >
-            <Icon icon="solar:refresh-linear" width={12} height={12} />
-            start fresh
-          </button>
-          <button
-            type="button"
-            onClick={handleMinimize}
-            className="text-stone-500 hover:text-stone-300"
-            aria-label="minimize — close the panel but keep this whisper to resume later"
-            title="Minimize — your whisper is saved, resume anytime"
-          >
-            <Icon icon="solar:close-circle-linear" width={16} height={16} />
-          </button>
-        </div>
+    <div
+      style={{ containerType: "inline-size" }}
+      className={`mt-3 rounded-xl border border-[#D97757]/15 bg-stone-900/60 p-4 ${baseTransition} ${enterClasses}`}
+    >
+      <div className="flex items-center justify-end gap-2 mb-3">
+        <QuotaIndicator remaining={result.remaining_whisperer_calls_est} />
+        <OverflowMenu onStartFresh={handleStartFresh} />
+        <button
+          type="button"
+          onClick={handleMinimize}
+          className="text-stone-500 hover:text-stone-300"
+          aria-label="minimize — your whisper is saved, resume anytime"
+          title="Minimize — your whisper is saved, resume anytime"
+        >
+          <Icon icon="solar:minimize-square-linear" width={16} height={16} />
+        </button>
       </div>
 
-      {isClarify ? (
-        <p className="text-sm text-stone-100 leading-relaxed">
-          {result.clarifyingQuestion}
-        </p>
-      ) : (
-        <>
-          <p className="text-sm text-stone-100 leading-relaxed whitespace-pre-wrap">
-            {result.coachingSummary}
-          </p>
-          {result.artifact && (
-            <div className="mt-3 rounded-md border border-white/10 bg-stone-950/60 p-3">
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-[11px] uppercase tracking-wide text-stone-500">
-                  draft
-                </div>
-                <CopyArtifactButton text={result.artifact} onCopy={handleCopy} />
-              </div>
-              <pre className="text-xs text-stone-200 whitespace-pre-wrap font-sans leading-relaxed">
-                {result.artifact}
-              </pre>
-            </div>
-          )}
-          <AssumptionsBlock assumptions={result.assumptions} />
-        </>
-      )}
-
-      <div className="mt-4 flex flex-wrap items-center gap-3">
-        {!chatOpen ? (
-          <button
-            type="button"
-            onClick={() => setChatOpen(true)}
-            className="text-xs inline-flex items-center gap-1 text-[#D97757] hover:text-[#E89070]"
-          >
-            <Icon icon="solar:chat-round-line-linear" width={12} height={12} />
-            keep going
-          </button>
-        ) : null}
-      </div>
-
-      {chatOpen && (
-        <ChatThread
-          activityId={activityId}
-          onMarkDone={onMarkDone}
-        />
-      )}
+      <ConversationTimeline
+        activityId={activityId}
+        freshResult={result}
+        onMarkDone={onMarkDone}
+      />
     </div>
+  );
+}
+
+function OverflowMenu({ onStartFresh }) {
+  return (
+    <details className="relative group [&_summary::-webkit-details-marker]:hidden">
+      <summary
+        className="list-none cursor-pointer text-stone-500 hover:text-stone-300 outline-none"
+        aria-label="more actions"
+      >
+        <Icon icon="solar:menu-dots-linear" width={16} height={16} />
+      </summary>
+      <div className="absolute right-0 top-full mt-1 rounded-md border border-white/10 bg-stone-950 shadow-lg z-10 min-w-[10rem]">
+        <button
+          type="button"
+          onClick={(e) => {
+            const details = e.currentTarget.closest("details");
+            if (details) details.open = false;
+            onStartFresh?.();
+          }}
+          className="w-full text-left px-3 py-2 text-xs text-stone-200 hover:bg-white/5 inline-flex items-center gap-2"
+        >
+          <Icon icon="solar:refresh-linear" width={12} height={12} />
+          Start fresh — discard this conversation
+        </button>
+      </div>
+    </details>
   );
 }

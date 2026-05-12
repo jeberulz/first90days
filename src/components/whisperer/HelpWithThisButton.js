@@ -5,7 +5,6 @@ import { Icon } from "@iconify/react";
 import { useAction, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import WhispererResponse from "./WhispererResponse";
-import { bumpWhispererInvocationCount } from "./AssumptionsBlock";
 import { envelopeFromTurns } from "./envelopeFromTurns";
 
 export default function HelpWithThisButton({ activityId, taskCategory, onMarkDone }) {
@@ -31,7 +30,6 @@ export default function HelpWithThisButton({ activityId, taskCategory, onMarkDon
         ...(forceFullOverride ? { force_full: true } : {}),
       });
       setResult(res);
-      if (res?.status === "ok") bumpWhispererInvocationCount();
     } catch (err) {
       setResult({ status: "provider_unavailable", reason: err?.message || "error" });
     } finally {
