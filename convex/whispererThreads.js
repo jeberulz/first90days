@@ -1,5 +1,10 @@
 import { v } from "convex/values";
-import { internalMutation, internalQuery } from "./_generated/server";
+import {
+  internalMutation,
+  internalQuery,
+  query,
+} from "./_generated/server";
+import { auth } from "./auth";
 
 /**
  * Whisperer chat threads — per-task AI conversation storage.
@@ -184,5 +189,36 @@ export const markCapped = internalMutation({
       status: "capped",
       cappedReason: args.reason,
     });
+  },
+});
+
+/**
+ * Public read query for U7. Returns the user's thread + ordered turns
+ * for a given activity, or null when no thread has been opened yet.
+ * Auth-checked: caller must own the activity.
+ */
+export const listByActivity = query({
+  args: { activityId: v.id("activities") },
+  handler: async (ctx, args) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) return null;
+
+    const activity = await ctx.db.get(args.activityId);
+    if (!activity || activity.userId !== userId) return null;
+
+    const thread = await ctx.db
+      .query("whispererThreads")
+      .withIndex("by_user_activity", (q) =>
+        q.eq("userId", userId).eq("activityId", args.activityId)
+      )
+      .unique();
+    if (!thread) return null;
+
+    const turns = await ctx.db
+      .query("whispererTurns")
+      .withIndex("by_thread_seq", (q) => q.eq("threadId", thread._id))
+      .collect();
+
+    return { thread, turns };
   },
 });
