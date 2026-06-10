@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { query, internalQuery, mutation } from "./_generated/server";
 import { auth } from "./auth";
 
 export const get = query({
@@ -15,7 +15,10 @@ export const get = query({
   },
 });
 
-export const getByUserId = query({
+// Internal only: takes an arbitrary userId with no ownership check, so it
+// must never be part of the public API. Server-side callers (e.g. ai.js)
+// resolve the authenticated userId before calling this.
+export const getByUserId = internalQuery({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
     return await ctx.db

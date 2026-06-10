@@ -223,13 +223,13 @@ export const getByPublicSlug = query({
       plan.publicVisibility?.showStakeholderRoles === true;
 
     // Derived stakeholder roles (never names). Keep only the relationship
-    // label, plus the stakeholder's title where present, so the public
-    // viewer can see the *shape* of the support network without exposing
-    // any individual.
+    // label, plus the stakeholder's job title (the `role` field) where
+    // present, so the public viewer can see the *shape* of the support
+    // network without exposing any individual.
     const stakeholderRoles = showStakeholderRoles
       ? stakeholders.map((s) => {
-          const rel = (s.relationship || "").trim();
-          const title = (s.title || "").trim();
+          const rel = (s.relationshipType || "").trim();
+          const title = (s.role || "").trim();
           if (rel && title) return `${title} (${prettyRelationship(rel)})`;
           if (title) return title;
           if (rel) return prettyRelationship(rel);
@@ -246,7 +246,9 @@ export const getByPublicSlug = query({
           .map((a) => ({
             title: a.title,
             category: a.category,
-            durationMin: a.durationMin,
+            // Activities store estimatedTime as a string ("1h", "45m");
+            // the shared viewer contract expects minutes.
+            durationMin: estimatedTimeToMinutes(a.estimatedTime),
           }))
       : [];
 
@@ -289,6 +291,23 @@ export const getByPublicSlug = query({
     };
   },
 });
+
+// "1h" → 60, "45m" → 45, "1h 30m" → 90, "90" → 90. Returns null when the
+// string can't be parsed so the viewer simply omits the duration chip.
+function estimatedTimeToMinutes(raw) {
+  if (!raw || typeof raw !== "string") return null;
+  const text = raw.trim().toLowerCase();
+  let minutes = 0;
+  const hours = text.match(/(\d+(?:\.\d+)?)\s*h/);
+  const mins = text.match(/(\d+)\s*m/);
+  if (hours) minutes += Math.round(parseFloat(hours[1]) * 60);
+  if (mins) minutes += parseInt(mins[1], 10);
+  if (!hours && !mins) {
+    const bare = parseInt(text, 10);
+    if (Number.isFinite(bare)) minutes = bare;
+  }
+  return minutes > 0 ? minutes : null;
+}
 
 function prettyRelationship(slug) {
   const map = {

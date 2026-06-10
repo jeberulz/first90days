@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useConvexAuth, useConvex } from "convex/react";
 import { useAuthActions, useAuthToken } from "@convex-dev/auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { api } from "../../../../convex/_generated/api";
 import SettingsCard from "@/components/settings/SettingsCard";
 import SaveBar from "@/components/settings/SaveBar";
@@ -124,7 +124,34 @@ function Icon({ name, className = "", size = 18 }) {
   }
 }
 
+function SettingsLoading() {
+  return (
+    <div
+      className="flex items-center justify-center py-24"
+      role="status"
+      aria-live="polite"
+    >
+      <div
+        className="w-6 h-6 border-2 border-[#D97757] border-t-transparent rounded-full animate-spin"
+        aria-hidden="true"
+      />
+      <span className="sr-only">Loading settings…</span>
+    </div>
+  );
+}
+
+// useSearchParams() requires a Suspense boundary at the page level or
+// `next build` fails the static prerender pass (same pattern as the
+// auth pages).
 export default function SettingsPage() {
+  return (
+    <Suspense fallback={<SettingsLoading />}>
+      <SettingsPageInner />
+    </Suspense>
+  );
+}
+
+function SettingsPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isLoading: authLoading, isAuthenticated } = useConvexAuth();
@@ -165,10 +192,7 @@ export default function SettingsPage() {
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      addToast?.({
-        kind: "success",
-        message: "Your data has been downloaded.",
-      });
+      addToast("Your data has been downloaded.", "success");
     } catch (err) {
       const message = err?.data ?? err?.message ?? "Could not export data.";
       setExportError(typeof message === "string" ? message : "Could not export data.");
@@ -177,20 +201,26 @@ export default function SettingsPage() {
     }
   }
 
-  const billingStatus = searchParams.get("billing");
-  const initialTab = billingStatus ? "billing" : "profile";
+  // Capture ?billing= (Stripe redirect / in-app upgrade links) into state,
+  // then strip it from the URL so refreshes and back-nav don't replay it.
+  // The captured value keeps driving the success/cancel banner, and the
+  // user can still switch tabs freely afterwards.
+  const billingStatusParam = searchParams.get("billing");
+  const [billingStatus, setBillingStatus] = useState(billingStatusParam);
 
-  // User-chosen tab. null = "let derivation pick" (typically driven by
-  // ?billing= URL param on Stripe redirect).
+  // User-chosen tab. null = "let derivation pick" (billing when we arrived
+  // via a ?billing= link, profile otherwise).
   const [userSelectedTab, setUserSelectedTab] = useState(null);
   const tabsBaseId = useId();
 
-  // Derive the active tab during render. If we came back from Stripe with a
-  // billing status in the URL, force the billing tab until the user picks
-  // another. No effect needed.
-  const activeTab = billingStatus
-    ? "billing"
-    : (userSelectedTab ?? initialTab);
+  useEffect(() => {
+    if (!billingStatusParam) return;
+    setBillingStatus(billingStatusParam);
+    setUserSelectedTab("billing");
+    router.replace("/settings", { scroll: false });
+  }, [billingStatusParam, router]);
+
+  const activeTab = userSelectedTab ?? (billingStatus ? "billing" : "profile");
   const setActiveTab = useCallback((tab) => setUserSelectedTab(tab), []);
 
   // Scroll the active tab into view within the horizontal scroll container
@@ -575,19 +605,7 @@ export default function SettingsPage() {
 
   // Distinguish loading from null user: use Convex auth state.
   if (authLoading || (isAuthenticated && user === undefined)) {
-    return (
-      <div
-        className="flex items-center justify-center py-24"
-        role="status"
-        aria-live="polite"
-      >
-        <div
-          className="w-6 h-6 border-2 border-[#D97757] border-t-transparent rounded-full animate-spin"
-          aria-hidden="true"
-        />
-        <span className="sr-only">Loading settings…</span>
-      </div>
-    );
+    return <SettingsLoading />;
   }
 
   if (!user) {

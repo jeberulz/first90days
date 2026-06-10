@@ -75,7 +75,7 @@ export const generatePlan = action({
 
     const regenerate = args.regenerate === true;
 
-    const onboardingData = await ctx.runQuery(api.onboarding.getByUserId, {
+    const onboardingData = await ctx.runQuery(internal.onboarding.getByUserId, {
       userId,
     });
     if (!onboardingData) throw new Error("No onboarding data found");
