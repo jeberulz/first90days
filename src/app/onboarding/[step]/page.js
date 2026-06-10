@@ -12,6 +12,7 @@ import StakeholderRow from "@/components/onboarding/StakeholderRow";
 import CompletionOverlay from "@/components/onboarding/CompletionOverlay";
 import StepTransition from "@/components/onboarding/StepTransition";
 import { splitFullNameDisplay } from "@/lib/userDisplay";
+import { localDateYMD } from "@/lib/dates";
 
 const TOTAL_STEPS = 6;
 
@@ -56,7 +57,7 @@ function initialData() {
     firstName: "",
     lastName: "",
     roleTitle: "",
-    startDate: new Date().toISOString().split("T")[0],
+    startDate: localDateYMD(),
     experienceYears: 5,
     isFirstRoleAtLevel: false,
     companyName: "",

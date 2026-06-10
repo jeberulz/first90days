@@ -405,6 +405,14 @@ export const continueThread = action({
         reason: "Empty message — type a follow-up to continue the thread.",
       };
     }
+    // Cap inbound length: protects storage and the model token budget when
+    // the UI's textarea limit is bypassed.
+    if (message.length > 4000) {
+      return {
+        status: "provider_unavailable",
+        reason: "Message is too long — keep follow-ups under 4,000 characters.",
+      };
+    }
 
     // ── Load thread + bundle + history (transactional read) ──────────
     const loaded = await ctx.runQuery(

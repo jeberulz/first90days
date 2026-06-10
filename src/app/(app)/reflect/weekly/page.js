@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import NoPlanEmptyState from "@/components/app/NoPlanEmptyState";
 import { useHasPlan } from "@/hooks/useHasPlan";
+import { localDateYMD } from "@/lib/dates";
 
 const defaultQuestions = [
   "What were your biggest accomplishments this week?",
@@ -94,7 +95,7 @@ export default function WeeklyReviewPage() {
     try {
       await saveReview({
         weekNumber: dayInfo.weekNumber,
-        date: new Date().toISOString().split("T")[0],
+        date: localDateYMD(),
         rating,
         questionResponses: responses,
         activitiesCompleted: completed,

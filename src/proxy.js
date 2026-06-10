@@ -95,6 +95,9 @@ function getIp(request) {
 const LIMITS = {
   auth: { limit: 5, windowMs: 60_000 },
   billing: { limit: 10, windowMs: 60_000 },
+  // Unauthenticated waitlist signup triggers third-party email sends, so
+  // keep it tight: enough for a shared-office retry, useless for abuse.
+  subscribe: { limit: 3, windowMs: 60_000 },
 };
 
 export async function proxy(request) {
@@ -108,6 +111,8 @@ export async function proxy(request) {
     group = 'auth';
   } else if (pathname.startsWith('/api/billing/')) {
     group = 'billing';
+  } else if (pathname === '/api/subscribe') {
+    group = 'subscribe';
   } else {
     return NextResponse.next();
   }
@@ -139,5 +144,5 @@ export async function proxy(request) {
 }
 
 export const config = {
-  matcher: ['/api/auth/:path*', '/api/billing/:path*'],
+  matcher: ['/api/auth/:path*', '/api/billing/:path*', '/api/subscribe'],
 };

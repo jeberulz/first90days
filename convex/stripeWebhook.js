@@ -115,8 +115,9 @@ export const stripeWebhook = httpAction(async (ctx, req) => {
       payload: event.data.object,
     });
   } catch (err) {
-    // Return 500 so Stripe retries. processStripeEvent already logged to
-    // billingWebhookLog with the error message for replay.
+    // Return 500 so Stripe retries. The failed mutation rolled back all of
+    // its writes (including the billingWebhookLog row), so the retry gets a
+    // clean idempotency slate.
     console.error(
       `[stripeWebhook] processStripeEvent failed for ${event.id}: ${err?.message ?? err}`
     );

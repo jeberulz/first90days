@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import { localDateYMD } from "@/lib/dates";
 
 /**
  * Stakeholder cadence nudges shown on the Today page.
@@ -28,7 +29,7 @@ export default function StakeholderNudges() {
   async function handleLogCheckin(id) {
     setPendingId(id);
     try {
-      const today = new Date().toISOString().split("T")[0];
+      const today = localDateYMD();
       await addInteraction({
         stakeholderId: id,
         date: today,

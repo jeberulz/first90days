@@ -15,9 +15,25 @@ export async function POST(request) {
         email = email.trim().toLowerCase();
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
+        if (email.length > 254 || !emailRegex.test(email)) {
             return NextResponse.json(
                 { error: 'Invalid email format' },
+                { status: 400 }
+            );
+        }
+
+        // Length-cap attacker-controlled strings before forwarding them to
+        // Beehiiv (stored as custom fields / UTM data on the subscriber).
+        const cap = (value, max) =>
+            typeof value === 'string' ? value.trim().slice(0, max) : '';
+        firstName = cap(firstName, 80);
+        utmSource = cap(utmSource, 64);
+        utmMedium = cap(utmMedium, 64);
+        utmCampaign = cap(utmCampaign, 64);
+
+        if (!firstName) {
+            return NextResponse.json(
+                { error: 'Email and First Name are required' },
                 { status: 400 }
             );
         }

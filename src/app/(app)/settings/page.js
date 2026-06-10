@@ -20,6 +20,7 @@ import {
   PASSWORD_MIN_LENGTH,
 } from "@/lib/passwordValidation";
 import { displayName, splitFullNameDisplay, userInitials } from "@/lib/userDisplay";
+import { localDateYMD } from "@/lib/dates";
 import PublicSharingPanel from "@/components/settings/PublicSharingPanel";
 
 const TABS = [
@@ -185,7 +186,7 @@ function SettingsPageInner() {
       });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      const stamp = new Date().toISOString().split("T")[0];
+      const stamp = localDateYMD();
       a.href = url;
       a.download = `arcora-export-${stamp}.json`;
       document.body.appendChild(a);
@@ -1426,7 +1427,12 @@ function ChangeEmailSection({ currentEmail, addToast }) {
     setError("");
     setStep("verifying");
     try {
-      await verify({ code: code.trim() });
+      const result = await verify({ code: code.trim() });
+      if (result?.ok === false) {
+        setError(result.error || "Verification failed.");
+        setStep("codeSent");
+        return;
+      }
       addToast("Email address updated", "success");
       setStep("idle");
       setNewEmail("");

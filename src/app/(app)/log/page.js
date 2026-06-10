@@ -4,6 +4,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { useState } from "react";
 import { ResponsiveModal, ScrollableTabs } from "@/components/primitives";
+import { localDateYMD } from "@/lib/dates";
 
 const typeConfig = {
   win: { label: "Wins", emoji: "🏆", color: "text-green-400" },
@@ -44,7 +45,7 @@ export default function LogPage() {
     e.preventDefault();
     await createEntry({
       ...form,
-      date: new Date().toISOString().split("T")[0],
+      date: localDateYMD(),
     });
     setForm({ type: "win", title: "", description: "", category: "learning" });
     setShowForm(false);

@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/components/primitives/Toaster";
 import { useHasPlan } from "@/hooks/useHasPlan";
 import NoPlanEmptyState from "@/components/app/NoPlanEmptyState";
+import { localDateYMD } from "@/lib/dates";
 
 const energyEmojis = [
   { level: 1, emoji: "😴", label: "Drained" },
@@ -20,7 +21,7 @@ export default function DailyReflectionPage() {
   const router = useRouter();
   const { hasPlan, isGenerating, isLoading: planLoading } = useHasPlan();
   const viewer = useQuery(api.users.viewer);
-  const today = new Date().toISOString().split("T")[0];
+  const today = localDateYMD();
   const existing = useQuery(api.reflections.getDailyByDate, { date: today });
   const streak = useQuery(api.reflections.getStreak);
   const saveReflection = useMutation(api.reflections.saveDailyReflection);

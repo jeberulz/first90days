@@ -5,6 +5,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { ResponsiveModal } from "@/components/primitives";
 import { useHasPlan } from "@/hooks/useHasPlan";
+import { localDateYMD } from "@/lib/dates";
 
 export default function QuickAddFAB() {
   const [open, setOpen] = useState(false);
@@ -46,7 +47,7 @@ export default function QuickAddFAB() {
           category,
           estimatedTime: "30m",
           priority: "Medium",
-          scheduledDate: new Date().toISOString().split("T")[0],
+          scheduledDate: localDateYMD(),
           weekNumber: dayInfo?.weekNumber || 1,
         });
       } else {
@@ -54,7 +55,7 @@ export default function QuickAddFAB() {
           type: mode === "win" ? "win" : "learning",
           title,
           description,
-          date: new Date().toISOString().split("T")[0],
+          date: localDateYMD(),
           category,
         });
       }

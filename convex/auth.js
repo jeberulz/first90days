@@ -56,6 +56,11 @@ function validatePasswordRequirements(password) {
 }
 
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
+  // Server-authoritative brute-force protection (token bucket per account):
+  // 5 failed credential attempts, then one more allowed every 12 minutes.
+  // The login page mirrors this with a client-side lockout for UX only —
+  // this setting is what actually enforces it.
+  signIn: { maxFailedAttempsPerHour: 5 },
   providers: [
     Password({
       verify: ResendOTP,

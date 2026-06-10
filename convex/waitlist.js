@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server";
+import { mutation } from "./_generated/server";
 import { v } from "convex/values";
 
 // Join the waitlist. Silently deduplicates — if the email already exists,
@@ -27,14 +27,5 @@ export const join = mutation({
     });
 
     return { id, alreadySignedUp: false };
-  },
-});
-
-// Total signup count — used to show social proof on the landing page.
-export const count = query({
-  args: {},
-  handler: async (ctx) => {
-    const signups = await ctx.db.query("waitlistSignups").collect();
-    return signups.length;
   },
 });

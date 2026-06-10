@@ -531,12 +531,6 @@ export const purgeAccountForEmail = internalMutation({
       await ctx.db.delete(session._id);
     }
 
-    const attempts = await ctx.db
-      .query("loginAttempts")
-      .withIndex("by_email", (q) => q.eq("email", normalised))
-      .first();
-    if (attempts) await ctx.db.delete(attempts._id);
-
     await ctx.scheduler.runAfter(0, internal.users.purgeUserData, { userId });
 
     return {

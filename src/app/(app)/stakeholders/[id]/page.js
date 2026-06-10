@@ -5,6 +5,7 @@ import { api } from "../../../../../convex/_generated/api";
 import { use, useState } from "react";
 import Link from "next/link";
 import { ResponsiveModal } from "@/components/primitives";
+import { localDateYMD } from "@/lib/dates";
 
 export default function StakeholderDetailPage({ params }) {
   const { id } = use(params);
@@ -15,7 +16,7 @@ export default function StakeholderDetailPage({ params }) {
 
   const [showInteractionForm, setShowInteractionForm] = useState(false);
   const [interaction, setInteraction] = useState({
-    date: new Date().toISOString().split("T")[0],
+    date: localDateYMD(),
     type: "1:1 Meeting",
     title: "",
     notes: "",
@@ -38,7 +39,7 @@ export default function StakeholderDetailPage({ params }) {
       stakeholderId: id,
       ...interaction,
     });
-    setInteraction({ date: new Date().toISOString().split("T")[0], type: "1:1 Meeting", title: "", notes: "" });
+    setInteraction({ date: localDateYMD(), type: "1:1 Meeting", title: "", notes: "" });
     setShowInteractionForm(false);
   }
 

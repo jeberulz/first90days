@@ -251,7 +251,9 @@ export const getByToken = query({
       invitedEmail: inv.invitedEmail,
       message: inv.message ?? null,
       ownerName: owner?.name ?? null,
-      ownerEmail: owner?.email ?? null,
+      // Deliberately no ownerEmail: a forwarded/leaked invite link should
+      // not expose the owner's address pre-auth, and the accept screen
+      // only renders the display name.
       planId: inv.planId,
       roleTitle: onboarding?.roleTitle ?? null,
       companyName: onboarding?.companyName ?? null,

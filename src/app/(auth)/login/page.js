@@ -1,12 +1,13 @@
 "use client";
 
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useMutation } from "convex/react";
 import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { api } from "../../../../convex/_generated/api";
 
+// Client-side lockout is UX feedback only. The real brute-force protection
+// is server-side: convexAuth's signIn.maxFailedAttempsPerHour in
+// convex/auth.js, which throttles per account regardless of client state.
 const MAX_CLIENT_ATTEMPTS = 5;
 const LOCKOUT_MS = 15 * 60 * 1000;
 
@@ -35,8 +36,6 @@ function LoginInner() {
   const [lockoutMs, setLockoutMs] = useState(0);
   const failCount = useRef(0);
 
-  const clearMyAttempts = useMutation(api.loginAttempts.clearMyAttempts);
-
   useEffect(() => {
     if (lockoutMs <= 0) return;
     const id = setInterval(() => {
@@ -63,7 +62,6 @@ function LoginInner() {
     try {
       await signIn("password", { email, password, flow: "signIn" });
       failCount.current = 0;
-      clearMyAttempts().catch(() => {});
       router.push("/dashboard");
     } catch {
       failCount.current += 1;

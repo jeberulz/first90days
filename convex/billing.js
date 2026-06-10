@@ -181,13 +181,11 @@ export const processStripeEvent = internalMutation({
     } catch (err) {
       const msg = err?.message ?? String(err);
       console.error(`[processStripeEvent] ${eventId} (${eventType}): ${msg}`);
-      // Record the failure so we can replay manually; still throw so Stripe retries.
-      await ctx.db.insert("billingWebhookLog", {
-        eventId,
-        eventType,
-        processedAt: Date.now(),
-        error: msg,
-      });
+      // Throw so the webhook returns 500 and Stripe retries. Mutations are
+      // transactional, so the throw rolls back every write from this run —
+      // deliberately including any billingWebhookLog row. A persisted
+      // failure row would trip the duplicate check above and permanently
+      // swallow all retries of this event.
       throw err;
     }
   },

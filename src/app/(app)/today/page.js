@@ -9,6 +9,7 @@ import NoPlanEmptyState from "@/components/app/NoPlanEmptyState";
 import { useHasPlan } from "@/hooks/useHasPlan";
 import { useToast } from "@/components/primitives/Toaster";
 import HelpWithThisButton from "@/components/whisperer/HelpWithThisButton";
+import { localDateYMDPlusDays } from "@/lib/dates";
 
 const categoryColors = {
   learning: { bg: "bg-blue-500/10", border: "border-l-blue-500", text: "text-blue-400" },
@@ -290,9 +291,7 @@ export default function TodayPage() {
                   <button
                     onClick={() => {
                       setReschedulingId(activity._id);
-                      const tomorrow = new Date();
-                      tomorrow.setDate(tomorrow.getDate() + 1);
-                      setRescheduleDate(tomorrow.toISOString().split("T")[0]);
+                      setRescheduleDate(localDateYMDPlusDays(1));
                     }}
                     aria-label="Reschedule"
                     className="p-1.5 rounded-md text-[#A8A29E] hover:text-[#E7E5E4] hover:bg-[#292524] transition-colors"

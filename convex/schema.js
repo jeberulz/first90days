@@ -44,6 +44,9 @@ export default defineSchema({
     pendingEmail: v.optional(v.string()),
     pendingEmailCode: v.optional(v.string()),
     pendingEmailExpiry: v.optional(v.number()),
+    // Failed verify attempts for the pending code; the code is invalidated
+    // after MAX_CODE_ATTEMPTS wrong guesses (see convex/emailChange.js).
+    pendingEmailAttempts: v.optional(v.number()),
     billingTier: v.optional(
       v.union(
         v.literal("free"),
@@ -875,14 +878,6 @@ export default defineSchema({
   })
     .index("by_email", ["email"])
     .index("by_created", ["createdAt"]),
-
-  // ── Login attempt tracking (account lockout) ──────────────────────────
-  loginAttempts: defineTable({
-    email: v.string(),
-    attempts: v.number(),
-    firstAttemptAt: v.number(),
-    lockedUntil: v.optional(v.number()),
-  }).index("by_email", ["email"]),
 
   // ── Notification deduplication log ─────────────────────────────────────
   // Prevents sending the same notification twice (e.g. daily reminder
