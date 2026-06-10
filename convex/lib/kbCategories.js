@@ -1,8 +1,8 @@
 /**
- * Single source of truth for the 6 KB categories.
- * Mirrored at src/lib/kbCategories.js for the frontend.
- * Keep both files in sync — adding a category requires updating both
- * AND the v.union() in convex/schema.js (kbDocuments.category).
+ * Single source of truth for the 6 KB categories. The frontend re-exports
+ * this enum from src/lib/kbCategories.js (which adds presentation-only
+ * helpers). Adding a category requires updating this list AND the
+ * v.union() in convex/schema.js (kbDocuments.category).
  */
 
 export const KB_CATEGORIES = [
@@ -98,16 +98,4 @@ export const DEFAULT_IMPORTANCE_BY_SOURCE = {
   interaction_autocapture: 55,
   activity_completion_autocapture: 35,
   ai_generated: 50,
-};
-
-/**
- * Display labels for source types — used by the new UI badges.
- */
-export const SOURCE_TYPE_LABELS = {
-  manual: "Manual",
-  upload: "Upload",
-  reflection_autocapture: "Reflection",
-  interaction_autocapture: "Interaction",
-  activity_completion_autocapture: "Activity Note",
-  ai_generated: "AI Generated",
 };

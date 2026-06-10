@@ -1,65 +1,23 @@
 /**
- * Frontend mirror of convex/lib/kbCategories.js.
- * Both files MUST stay in sync. Adding a category requires updating both
- * AND the v.union() in convex/schema.js (kbDocuments.category).
+ * Frontend KB category helpers.
+ *
+ * The category enum itself lives in convex/lib/kbCategories.js — the single
+ * source of truth shared with backend prompts, migrations, and the
+ * v.union() in convex/schema.js. This module re-exports it and adds the
+ * presentation-only pieces (Tailwind accents, user-facing provenance copy)
+ * that the backend doesn't need.
  */
 
-export const KB_CATEGORIES = [
-  {
-    slug: "company_context",
-    label: "Company Context",
-    description:
-      "Mission, values, org structure, company history, culture docs, and strategic priorities.",
-    icon: "solar:buildings-2-linear",
-    accent: "violet",
-  },
-  {
-    slug: "team_people",
-    label: "Team & People",
-    description:
-      "Stakeholder map, reporting lines, communication styles, team dynamics and preferences.",
-    icon: "solar:users-group-rounded-linear",
-    accent: "blue",
-  },
-  {
-    slug: "product_technology",
-    label: "Product & Technology",
-    description:
-      "Architecture docs, tech stack, product roadmap, feature specs, and system diagrams.",
-    icon: "solar:code-square-linear",
-    accent: "amber",
-  },
-  {
-    slug: "processes_workflows",
-    label: "Processes & Workflows",
-    description:
-      "Sprint cadences, review processes, deployment workflows, and decision frameworks.",
-    icon: "solar:routing-2-linear",
-    accent: "emerald",
-  },
-  {
-    slug: "goals_notes",
-    label: "Your Goals & Notes",
-    description:
-      "Personal onboarding goals, meeting notes, questions, reflections and observations.",
-    icon: "solar:document-text-linear",
-    accent: "brand",
-  },
-  {
-    slug: "industry_market",
-    label: "Industry & Market",
-    description:
-      "Competitive landscape, market trends, customer personas, and industry terminology.",
-    icon: "solar:chart-2-linear",
-    accent: "pink",
-  },
-];
+import {
+  KB_CATEGORIES,
+  KB_CATEGORY_LABELS,
+} from "../../convex/lib/kbCategories.js";
 
-export const KB_CATEGORY_SLUGS = KB_CATEGORIES.map((c) => c.slug);
-
-export const KB_CATEGORY_LABELS = Object.fromEntries(
-  KB_CATEGORIES.map((c) => [c.slug, c.label])
-);
+export {
+  KB_CATEGORIES,
+  KB_CATEGORY_SLUGS,
+  KB_CATEGORY_LABELS,
+} from "../../convex/lib/kbCategories.js";
 
 export const KB_CATEGORY_BY_SLUG = Object.fromEntries(
   KB_CATEGORIES.map((c) => [c.slug, c])

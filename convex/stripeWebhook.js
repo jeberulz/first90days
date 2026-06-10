@@ -53,7 +53,8 @@ async function computeHmacHex(secret, payload) {
     .join("");
 }
 
-async function verifyStripeSignature(body, header, secret) {
+// Exported for tests — this is the security boundary for billing.
+export async function verifyStripeSignature(body, header, secret) {
   if (!header) throw new Error("missing stripe-signature header");
 
   const parts = parseSignatureHeader(header);
@@ -68,8 +69,11 @@ async function verifyStripeSignature(body, header, secret) {
     throw new Error("invalid timestamp in signature header");
   }
 
+  // Reject only stale timestamps (past skew), matching the Stripe SDK:
+  // future-dated timestamps are allowed since clock skew can run either way
+  // and an attacker can't forge the HMAC regardless.
   const nowSec = Math.floor(Date.now() / 1000);
-  if (Math.abs(nowSec - timestampSec) > DEFAULT_TOLERANCE_SECONDS) {
+  if (nowSec - timestampSec > DEFAULT_TOLERANCE_SECONDS) {
     throw new Error("timestamp outside tolerance window");
   }
 
