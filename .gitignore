@@ -48,3 +48,6 @@ next-env.d.ts
 # local planning docs
 /plan/
 pnpm-lock.yaml
+
+# Agentic workflow worktrees
+.worktrees/
