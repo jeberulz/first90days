@@ -896,4 +896,17 @@ export default defineSchema({
   })
     .index("by_dedup_key", ["dedupKey"])
     .index("by_user", ["userId"]),
+
+  // ── In-app product feedback (FIR-57) ────────────────────────────────────
+  // Collects 1-5 star ratings + optional open text from users inside the
+  // app. Source distinguishes button-triggered (passive) from prompt-
+  // triggered (active, e.g. after first activity completion or day 7).
+  feedbackSubmissions: defineTable({
+    userId: v.id("users"),
+    rating: v.number(),
+    text: v.optional(v.string()),
+    submittedAt: v.string(),
+    dayNumber: v.optional(v.number()),
+    source: v.union(v.literal("button"), v.literal("prompt")),
+  }).index("by_user", ["userId"]),
 });
