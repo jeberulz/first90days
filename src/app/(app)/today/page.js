@@ -164,7 +164,7 @@ export default function TodayPage() {
           if (!alreadyPrompted && feedback?.openModal) {
             localStorage.setItem(FIRST_ACTIVITY_PROMPTED_KEY, "1");
             addToast(
-              "Enjoying First90?",
+              "Enjoying Arcora?",
               "info",
               8000,
               { label: "Share feedback", onClick: () => feedback.openModal("prompt") }
