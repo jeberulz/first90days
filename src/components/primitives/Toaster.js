@@ -9,11 +9,12 @@ const ToastContext = createContext(null);
 // ── Hook ─────────────────────────────────────────────────────────────────────
 
 /**
- * Returns `addToast(message, variant?, duration?)`.
+ * Returns `addToast(message, variant?, duration?, action?)`.
  *
  * variant: 'success' | 'error' | 'warning' | 'info'  (default: 'info')
  * duration: ms before auto-dismiss; 0 = stay until manually closed
  *           default: 4000 for success/info/warning, 0 (persistent) for error
+ * action: optional { label: string, onClick: () => void } — renders a button inside the toast
  */
 export function useToast() {
   const ctx = useContext(ToastContext);
@@ -58,7 +59,7 @@ function ToastIcon({ variant }) {
 
 // ── Single Toast ──────────────────────────────────────────────────────────────
 
-function Toast({ id, message, variant, onDismiss }) {
+function Toast({ id, message, variant, action, onDismiss }) {
   const isError = variant === "error";
   const ariaRole = isError ? "alert" : "status";
 
@@ -70,7 +71,18 @@ function Toast({ id, message, variant, onDismiss }) {
       className="flex items-start gap-3 w-full lg:w-[360px] px-4 py-3 bg-[#1C1917] border border-[#2C2825] rounded-xl shadow-xl font-space-grotesk text-sm text-[#E7E5E4] animate-fade-in-up"
     >
       <ToastIcon variant={variant} />
-      <span className="flex-1 leading-snug pt-px">{message}</span>
+      <div className="flex-1 min-w-0 leading-snug pt-px space-y-1.5">
+        <span>{message}</span>
+        {action && (
+          <button
+            type="button"
+            onClick={() => { action.onClick(); onDismiss(id); }}
+            className="block text-xs font-medium text-[#D97757] hover:text-[#C26242] transition-colors"
+          >
+            {action.label} →
+          </button>
+        )}
+      </div>
       <button
         type="button"
         onClick={() => onDismiss(id)}
@@ -116,12 +128,12 @@ export function ToastProvider({ children }) {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  const addToast = useCallback((message, variant = "info", duration) => {
+  const addToast = useCallback((message, variant = "info", duration, action) => {
     const defaultDuration = variant === "error" ? 0 : 4000;
     const dur = duration ?? defaultDuration;
     const id = ++counterRef.current;
 
-    setToasts((prev) => [...prev, { id, message, variant, duration: dur }]);
+    setToasts((prev) => [...prev, { id, message, variant, duration: dur, action }]);
 
     if (dur > 0) {
       setTimeout(() => dismissToast(id), dur);

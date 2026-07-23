@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { createContext, useCallback, useContext, useState, useEffect, useRef } from "react";
+import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 
 const COOLDOWN_KEY = "feedback_last_submitted_at";
@@ -24,6 +24,16 @@ function markSubmitted() {
     localStorage.setItem(COOLDOWN_KEY, String(Date.now()));
   } catch {}
 }
+
+// ── Feedback context ─────────────────────────────────────────────────────────
+
+const FeedbackContext = createContext(null);
+
+export function useFeedback() {
+  return useContext(FeedbackContext);
+}
+
+// ── Star rating ───────────────────────────────────────────────────────────────
 
 function StarRating({ value, onChange }) {
   const [hovered, setHovered] = useState(0);
@@ -58,6 +68,8 @@ function StarRating({ value, onChange }) {
     </div>
   );
 }
+
+// ── Feedback modal ────────────────────────────────────────────────────────────
 
 function FeedbackModal({ onClose, source = "button" }) {
   const [rating, setRating] = useState(5);
@@ -198,39 +210,58 @@ function FeedbackModal({ onClose, source = "button" }) {
   );
 }
 
-export default function FeedbackWidget() {
-  const [open, setOpen] = useState(false);
-  const [cooledDown] = useState(
-    () => typeof window !== "undefined" && isCooledDown()
-  );
+// ── Provider ──────────────────────────────────────────────────────────────────
+// Wrap the (app) layout with this so any page can call useFeedback().openModal()
 
-  if (!cooledDown) return null;
+export function FeedbackProvider({ children }) {
+  const [open, setOpen] = useState(false);
+  const [source, setSource] = useState("button");
+
+  const openModal = useCallback((src = "button") => {
+    setSource(src);
+    setOpen(true);
+  }, []);
 
   return (
-    <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-label="Share feedback"
-        className="fixed bottom-24 right-6 z-40 hidden lg:flex items-center gap-1.5 bg-[#1C1917] border border-[#2C2825] rounded-full px-3 py-2 font-space-grotesk text-xs text-[#A8A29E] hover:text-[#E7E5E4] hover:border-[#44403C] transition-colors shadow-sm"
-      >
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-        </svg>
-        Feedback
-      </button>
+    <FeedbackContext.Provider value={{ openModal }}>
+      {children}
+      {open && <FeedbackModal onClose={() => setOpen(false)} source={source} />}
+    </FeedbackContext.Provider>
+  );
+}
 
-      {open && <FeedbackModal onClose={() => setOpen(false)} source="button" />}
-    </>
+// ── Floating button ───────────────────────────────────────────────────────────
+// Rendered once in the (app) layout chrome; reads openModal from context.
+
+export default function FeedbackWidget() {
+  const [cooledDown, setCooledDown] = useState(
+    () => typeof window !== "undefined" && isCooledDown()
+  );
+  const { openModal } = useFeedback() ?? {};
+
+  if (!cooledDown || !openModal) return null;
+
+  return (
+    <button
+      type="button"
+      onClick={() => openModal("button")}
+      aria-label="Share feedback"
+      className="fixed bottom-24 right-6 z-40 hidden lg:flex items-center gap-1.5 bg-[#1C1917] border border-[#2C2825] rounded-full px-3 py-2 font-space-grotesk text-xs text-[#A8A29E] hover:text-[#E7E5E4] hover:border-[#44403C] transition-colors shadow-sm"
+    >
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+      </svg>
+      Feedback
+    </button>
   );
 }
