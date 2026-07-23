@@ -13,7 +13,7 @@ export default function FallbackTip({ taskCategory }) {
         </div>
         <div className="flex-1 min-w-0">
           <div className="text-[11px] uppercase tracking-wide text-stone-500 mb-1">
-            ai unavailable — here's an evergreen tip
+            ai unavailable — here&apos;s an evergreen tip
           </div>
           <p className="text-sm text-stone-300 leading-relaxed">{tip}</p>
           {category !== taskCategory && (

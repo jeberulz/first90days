@@ -106,7 +106,7 @@ export default function WhispererResponse({
       <div
         className={`mt-3 rounded-xl border border-white/10 bg-stone-900/60 p-4 text-sm text-stone-400 ${baseTransition} ${enterClasses}`}
       >
-        Couldn't load this task. Refresh and try again.
+        Couldn&apos;t load this task. Refresh and try again.
       </div>
     );
   }

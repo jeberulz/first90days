@@ -38,7 +38,7 @@ export default function ConversationTimeline({
   const scrollRef = useRef(null);
 
   const thread = data?.thread || null;
-  const persistedTurns = data?.turns || [];
+  const rawTurns = data?.turns;
   const status = thread?.status || "open";
   const turnCount = thread?.turnCount ?? 0;
   const capped = status === "capped" || status === "closed";
@@ -47,6 +47,7 @@ export default function ConversationTimeline({
   // hasn't yet appeared in the persisted list. Prevents the empty-flash
   // between action-return and Convex reactivity catching up.
   const turns = useMemo(() => {
+    const persistedTurns = rawTurns || [];
     const sorted = [...persistedTurns].sort(
       (a, b) => (a.seq ?? 0) - (b.seq ?? 0)
     );
@@ -66,7 +67,7 @@ export default function ConversationTimeline({
         _optimistic: true,
       },
     ];
-  }, [persistedTurns, freshResult]);
+  }, [rawTurns, freshResult]);
 
   // Auto-expand once a user actively sends or when there are 2 or
   // fewer turns. Otherwise default to the collapsed history view.
