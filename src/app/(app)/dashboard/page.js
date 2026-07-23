@@ -101,7 +101,26 @@ export default function DashboardPage() {
       });
   }, [user, startLocalTrial, addToast]);
 
-  if (!user) return null;
+  if (!user) {
+    return (
+      <div className="space-y-6 sm:space-y-8" aria-busy="true" aria-label="Loading dashboard">
+        {/* Header skeleton */}
+        <div className="space-y-2">
+          <div className="h-8 bg-[#1C1917] animate-pulse rounded-lg w-64" />
+          <div className="h-4 bg-[#1C1917] animate-pulse rounded-lg w-80" />
+        </div>
+        {/* Main card skeleton */}
+        <div className="h-32 bg-[#1C1917] border border-[#2C2825] rounded-xl animate-pulse" />
+        {/* Metric cards skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+          <div className="h-24 bg-[#1C1917] border border-[#2C2825] rounded-xl animate-pulse col-span-full" />
+          <div className="h-24 bg-[#1C1917] border border-[#2C2825] rounded-xl animate-pulse" />
+          <div className="h-24 bg-[#1C1917] border border-[#2C2825] rounded-xl animate-pulse" />
+          <div className="h-24 bg-[#1C1917] border border-[#2C2825] rounded-xl animate-pulse" />
+        </div>
+      </div>
+    );
+  }
 
   const preBoarding = plan && dayInfo && !dayInfo.hasStarted;
   const greetingFirst = preferredFirstName(user);
