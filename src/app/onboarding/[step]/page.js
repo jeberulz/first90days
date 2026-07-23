@@ -474,7 +474,7 @@ export default function OnboardingStepPage({ params }) {
                         type="checkbox"
                         checked={data.isFirstRoleAtLevel}
                         onChange={(e) => update("isFirstRoleAtLevel", e.target.checked)}
-                        className="w-4 h-4 rounded border-warm-line text-accent focus:ring-accent"
+                        className="w-4 h-4 rounded border-warm-line accent-accent focus:ring-accent"
                       />
                       <span className="font-space-grotesk text-sm text-warm-ink">
                         First role at this level
@@ -568,7 +568,7 @@ export default function OnboardingStepPage({ params }) {
                     type="checkbox"
                     checked={data.isNewTeam}
                     onChange={(e) => update("isNewTeam", e.target.checked)}
-                    className="w-4 h-4 rounded border-warm-line text-accent focus:ring-accent"
+                    className="w-4 h-4 rounded border-warm-line accent-accent focus:ring-accent"
                   />
                   <span className="font-space-grotesk text-sm text-warm-ink">
                     I&apos;m joining a new team (not an existing one)

@@ -224,7 +224,7 @@ function SignupForm() {
               checked={agreedToTerms}
               onChange={(e) => setAgreedToTerms(e.target.checked)}
               required
-              className="mt-0.5 h-4 w-4 rounded border-[#E7E5E4] text-[#D97757] focus:ring-2 focus:ring-[#D97757]/20 focus:ring-offset-0 cursor-pointer"
+              className="mt-0.5 h-4 w-4 rounded border-[#E7E5E4] accent-[#D97757] focus:ring-2 focus:ring-[#D97757]/20 focus:ring-offset-0 cursor-pointer"
               aria-describedby="terms-description"
             />
             <span
@@ -258,7 +258,7 @@ function SignupForm() {
               type="checkbox"
               checked={marketingOptIn}
               onChange={(e) => setMarketingOptIn(e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-[#E7E5E4] text-[#D97757] focus:ring-2 focus:ring-[#D97757]/20 focus:ring-offset-0 cursor-pointer"
+              className="mt-0.5 h-4 w-4 rounded border-[#E7E5E4] accent-[#D97757] focus:ring-2 focus:ring-[#D97757]/20 focus:ring-offset-0 cursor-pointer"
               aria-describedby="marketing-description"
             />
             <span
