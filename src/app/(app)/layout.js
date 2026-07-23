@@ -12,6 +12,7 @@ import QuickAddFAB from "@/components/app/QuickAddFAB";
 import OnboardingNudgeBanner from "@/components/app/OnboardingNudgeBanner";
 import PhaseCompletionModal from "@/components/milestones/PhaseCompletionModal";
 import { ToastProvider } from "@/components/primitives/Toaster";
+import FeedbackWidget, { FeedbackProvider } from "@/components/feedback/FeedbackWidget";
 
 // Routes where the phase-completion modal is allowed to pop. Everywhere
 // else (deep reflection flows, settings, knowledge editor, share/invite
@@ -110,6 +111,7 @@ export default function AppLayout({ children }) {
 
   return (
     <ToastProvider>
+    <FeedbackProvider>
     <div className="min-h-[100dvh] min-w-0 bg-paper-dark text-warm-line dark">
       {showTrialBanner && (
         <div
@@ -150,6 +152,7 @@ export default function AppLayout({ children }) {
       </div>
       <MobileBottomNav />
       <QuickAddFAB />
+      <FeedbackWidget />
       {pendingMilestone &&
         pendingMilestone.phaseId !== dismissedMilestoneId &&
         isMilestoneRoute(pathname) && (
@@ -159,6 +162,7 @@ export default function AppLayout({ children }) {
           />
         )}
     </div>
+    </FeedbackProvider>
     </ToastProvider>
   );
 }

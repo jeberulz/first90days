@@ -8,7 +8,10 @@ import StakeholderNudges from "@/components/stakeholders/StakeholderNudges";
 import NoPlanEmptyState from "@/components/app/NoPlanEmptyState";
 import { useHasPlan } from "@/hooks/useHasPlan";
 import { useToast } from "@/components/primitives/Toaster";
+import { useFeedback } from "@/components/feedback/FeedbackWidget";
 import HelpWithThisButton from "@/components/whisperer/HelpWithThisButton";
+
+const FIRST_ACTIVITY_PROMPTED_KEY = "feedback_first_activity_prompted";
 
 const categoryColors = {
   learning: { bg: "bg-blue-500/10", border: "border-l-blue-500", text: "text-blue-400" },
@@ -38,6 +41,7 @@ export default function TodayPage() {
 
   const { isGenerating } = useHasPlan();
   const addToast = useToast();
+  const feedback = useFeedback();
   const [completingId, setCompletingId] = useState(null);
   const [noteText, setNoteText] = useState("");
   const [reschedulingId, setReschedulingId] = useState(null);
@@ -153,6 +157,20 @@ export default function TodayPage() {
       try {
         await completeActivity({ id, completionNotes: noteText || undefined });
         addToast("Activity marked complete", "success");
+
+        // After the very first ever activity completion, prompt for feedback
+        try {
+          const alreadyPrompted = localStorage.getItem(FIRST_ACTIVITY_PROMPTED_KEY);
+          if (!alreadyPrompted && feedback?.openModal) {
+            localStorage.setItem(FIRST_ACTIVITY_PROMPTED_KEY, "1");
+            addToast(
+              "Enjoying Arcora?",
+              "info",
+              8000,
+              { label: "Share feedback", onClick: () => feedback.openModal("prompt") }
+            );
+          }
+        } catch {}
       } catch (err) {
         addToast(err?.message ?? "Failed to complete activity", "error");
       }
