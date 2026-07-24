@@ -135,6 +135,7 @@ export default function ConversationTimeline({
           <button
             type="button"
             onClick={() => setExpanded(true)}
+            aria-expanded={expanded}
             className="mb-3 text-[11px] text-stone-500 hover:text-[#D97757] inline-flex items-center gap-1"
           >
             <Icon icon="solar:alt-arrow-up-linear" width={12} height={12} />
@@ -174,6 +175,7 @@ export default function ConversationTimeline({
             onChange={(e) => setInput(e.target.value)}
             disabled={busy}
             placeholder="ask a follow-up"
+            aria-label="Ask a follow-up question"
             className="flex-1 bg-transparent text-sm text-stone-100 placeholder-stone-600 focus:outline-none"
           />
           {turnCount >= 8 && (
