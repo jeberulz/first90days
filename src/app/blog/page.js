@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { Navbar } from "@/components/ui/Navbar";
+import { Footer } from "@/components/ui/Footer";
 import { BLOG_POSTS, formatDate } from "@/lib/blog";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://usearcora.com";
@@ -16,8 +18,10 @@ export default function BlogIndexPage() {
   );
 
   return (
-    <main className="pt-32 pb-20 px-4 sm:px-6">
-      <div className="max-w-3xl mx-auto">
+    <div className="min-h-screen bg-[#F5F2E8] dark:bg-[#0F0E0D] transition-colors duration-300">
+      <Navbar />
+      <main className="pt-32 pb-20 px-4 sm:px-6">
+        <div className="max-w-3xl mx-auto">
         <header className="mb-12">
           <p className="font-space-grotesk text-xs uppercase tracking-wide text-[#A8A29E] mb-2">
             Blog
@@ -56,7 +60,9 @@ export default function BlogIndexPage() {
             </li>
           ))}
         </ul>
-      </div>
-    </main>
+        </div>
+      </main>
+      <Footer />
+    </div>
   );
 }

@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { Navbar } from "@/components/ui/Navbar";
+import { Footer } from "@/components/ui/Footer";
 import { BLOG_POSTS, getPostBySlug, formatDate } from "@/lib/blog";
 import { MarkdownRenderer } from "@/components/blog/MarkdownRenderer";
 
@@ -31,7 +33,9 @@ export default function BlogPostPage({ params }) {
   if (!post) notFound();
 
   return (
-    <main className="pt-32 pb-20 px-4 sm:px-6">
+    <div className="min-h-screen bg-[#F5F2E8] dark:bg-[#0F0E0D] transition-colors duration-300">
+      <Navbar />
+      <main className="pt-32 pb-20 px-4 sm:px-6">
       <div className="max-w-2xl mx-auto">
         <nav className="mb-8">
           <Link
@@ -64,6 +68,8 @@ export default function BlogPostPage({ params }) {
           </Link>
         </footer>
       </div>
-    </main>
+      </main>
+      <Footer />
+    </div>
   );
 }
