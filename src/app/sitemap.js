@@ -1,5 +1,6 @@
 import { SAMPLE_ROLES } from "@/lib/sampleData";
 import { CHANGELOG } from "@/lib/changelog";
+import { BLOG_POSTS } from "@/lib/blog";
 
 // Static sitemap. Includes the public marketing pages and every curated
 // /sample/[role] page so search engines can index them. User-public
@@ -30,5 +31,15 @@ export default function sitemap() {
     priority: 0.8,
   }));
 
-  return [...core, ...samples];
+  const blog = [
+    { url: `${APP_URL}/blog`, lastModified: now, changeFrequency: "weekly", priority: 0.8 },
+    ...BLOG_POSTS.map((p) => ({
+      url: `${APP_URL}/blog/${p.slug}`,
+      lastModified: new Date(`${p.publishedAt}T00:00:00Z`).toISOString(),
+      changeFrequency: "monthly",
+      priority: 0.8,
+    })),
+  ];
+
+  return [...core, ...blog, ...samples];
 }

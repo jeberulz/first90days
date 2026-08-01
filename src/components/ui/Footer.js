@@ -42,6 +42,11 @@ export function Footer() {
             </h4>
             <ul className="space-y-2 text-xs text-[#A8A29E] font-medium">
               <li>
+                <Link href="/blog" className="hover:text-accent transition-colors font-space-grotesk inline-block py-1">
+                  Blog
+                </Link>
+              </li>
+              <li>
                 <Link href="/#methodology" className="hover:text-accent transition-colors font-space-grotesk inline-block py-1">
                   Methodology
                 </Link>
